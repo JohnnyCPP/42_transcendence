@@ -1,3 +1,4 @@
+// Tipo simple usado por la pantalla de listado de tareas.
 export interface TaskType {
     id: number;
     title: string;
