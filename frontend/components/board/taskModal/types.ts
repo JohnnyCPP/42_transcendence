@@ -1,1 +1,1 @@
-export type { User } from '../../../types/board';
+export type { User } from '@/types/board';
