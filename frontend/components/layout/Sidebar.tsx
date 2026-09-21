@@ -108,15 +108,14 @@ export default function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
             active={isBoardsActive}
             fill={isBoardsActive}
           />
-
-          {/* Enlaces todavía no conectados a vistas reales. */}
-          <NavItem href="#" icon="calendar_today" label="Calendar" active={false} />
-          <NavItem href="#" icon="settings" label="Settings" active={false} />
         </nav>
 
         {/* CTA inferior para crear proyectos. */}
         <div className="px-6 mt-auto">
-          <button className="w-full bg-primary text-white text-[12px] font-semibold py-2.5 rounded-lg hover:bg-primary-container transition-colors shadow-xs cursor-pointer active:scale-95">
+          <button
+            onClick={() => alert('Create Project no está implementado todavía.')}
+            className="w-full bg-primary text-white text-[12px] font-semibold py-2.5 rounded-lg hover:bg-primary-container transition-colors shadow-xs cursor-pointer active:scale-95"
+          >
             Create Project
           </button>
         </div>

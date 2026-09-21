@@ -4,10 +4,19 @@ export default function VelocityWidget() {
   return (
     <section className="bg-surface-container-lowest rounded-xl border border-surface-container-highest p-5 shadow-xs relative overflow-hidden group">
       <div className="absolute -right-10 -top-10 w-32 h-32 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors" />
-      <h3 className="text-[16px] font-semibold text-on-surface mb-4 flex items-center gap-2">
-        <span className="material-symbols-outlined text-outline">insights</span>
-        Velocity
-      </h3>
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <h3 className="text-[16px] font-semibold text-on-surface flex items-center gap-2">
+          <span className="material-symbols-outlined text-outline">insights</span>
+          Velocity
+        </h3>
+
+        <span className="inline-flex items-center gap-1 rounded-full border border-outline-variant bg-surface-container-low px-2 py-1 text-[11px] font-medium text-on-surface-variant">
+          <span className="material-symbols-outlined text-[14px] text-amber-600">
+            info
+          </span>
+          No integrado aún
+        </span>
+      </div>
 
       <div className="flex items-end justify-between">
         <div>

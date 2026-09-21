@@ -103,7 +103,10 @@ export default function DashboardPage() {
                     </span>
                     Active Boards
                   </h3>
-                  <button className="text-primary font-medium text-[13px] hover:underline cursor-pointer">
+                  <button
+                    onClick={() => alert('View All no está implementado todavía.')}
+                    className="text-primary font-medium text-[13px] hover:underline cursor-pointer"
+                  >
                     View All
                   </button>
                 </div>
