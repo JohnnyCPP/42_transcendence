@@ -6,15 +6,18 @@ import type {
   OrganizationMember,
   OrganizationRole,
   OrganizationWithRole,
+  SetOrganizationMemberInput,
   UpdateOrganizationInput
 } from './organizations.types.js';
+import { paginateArray, type Page, type PaginationInput } from '../../shared/pagination.js';
 
 export interface OrganizationsRepository 
 {
   createWithOwner(input: CreateOrganizationInput): Promise<OrganizationWithRole>;
-  listForUser(userId: string): Promise<OrganizationWithRole[]>;
+  listForUser(userId: string, pagination: PaginationInput): Promise<Page<OrganizationWithRole>>;
   findForUser(organizationId: string, userId: string): Promise<OrganizationWithRole | null>;
   findMember(organizationId: string, userId: string): Promise<OrganizationMember | null>;
+  upsertMember(input: SetOrganizationMemberInput): Promise<OrganizationMember>;
   update(input: UpdateOrganizationInput): Promise<Organization>;
 }
 
@@ -53,16 +56,19 @@ export class InMemoryOrganizationsRepository implements OrganizationsRepository
     return { ...organization, role: 'owner' };
   }
 
-  async listForUser(userId: string): Promise<OrganizationWithRole[]> 
+  async listForUser(userId: string, pagination: PaginationInput): Promise<Page<OrganizationWithRole>>
   {
-    return [...this.members.values()]
+    const organizations = [...this.members.values()]
       .filter((member) => member.userId === userId)
       .map((member) => {
         const organization = this.organizations.get(member.organizationId)!;
         return { ...organization, role: member.role };
       })
       .filter((organization) => !organization.archivedAt)
-      .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
+      .sort((left, right) =>
+        right.createdAt.getTime() - left.createdAt.getTime() || right.id.localeCompare(left.id)
+      );
+    return paginateArray(organizations, pagination);
   }
 
   async findForUser(organizationId: string, userId: string): Promise<OrganizationWithRole | null> 
@@ -77,6 +83,20 @@ export class InMemoryOrganizationsRepository implements OrganizationsRepository
   async findMember(organizationId: string, userId: string): Promise<OrganizationMember | null> 
   {
     return this.members.get(memberKey(organizationId, userId)) ?? null;
+  }
+
+  async upsertMember(input: SetOrganizationMemberInput): Promise<OrganizationMember>
+  {
+    const key = memberKey(input.organizationId, input.userId);
+    const current = this.members.get(key);
+    const member: OrganizationMember = {
+      organizationId: input.organizationId,
+      userId: input.userId,
+      role: input.role,
+      joinedAt: current?.joinedAt ?? new Date()
+    };
+    this.members.set(key, member);
+    return member;
   }
 
   async update(input: UpdateOrganizationInput): Promise<Organization> 

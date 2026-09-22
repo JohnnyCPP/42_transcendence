@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { clearSessionCookie, setSessionCookie } from '../../shared/http/cookies.js';
 import { securityConfig } from '../../config/security.js';
@@ -10,20 +11,35 @@ import type { LoginResult } from './auth.types.js';
 
 const registerSchema = z.object({
   username: z.string().min(3).max(32),
-  email: z.string().email().optional(),
-  password: z.string().min(12)
+  email: z.string().email().max(254).optional(),
+  password: z.string().min(12).max(128)
 });
 
 const loginSchema = z.object({
   username: z.string().min(3).max(32),
-  password: z.string().min(1)
+  password: z.string().min(1).max(128)
 });
 
-const twoFactorLoginSchema = z.object({
-  challengeToken: z.string().min(1),
-  code: z.string().min(1),
-  method: z.enum(['totp', 'recovery_code'])
+const twoFactorLoginSchema = z.discriminatedUnion('method', [
+  z.object({
+    challengeToken: z.string().length(43),
+    code: z.string().regex(/^\d{6}$/),
+    method: z.literal('totp')
+  }),
+  z.object({
+    challengeToken: z.string().length(43),
+    code: z.string().trim().regex(/^[A-Za-z0-9_-]{12}$/),
+    method: z.literal('recovery_code')
+  })
+]);
+
+const reauthenticateSchema = z.object({
+  password: z.string().min(1).max(128),
+  secondFactorCode: z.string().min(1).max(64).optional(),
+  secondFactorMethod: z.enum(['totp', 'recovery_code']).optional()
 });
+
+const changePasswordSchema = z.object({ newPassword: z.string().min(12).max(128) });
 
 function getUserAgent(header: string | string[] | undefined): string | null 
 {
@@ -50,8 +66,10 @@ export async function registerAuthRoutes(
   sessionsService: SessionsService
 ) 
 {
-  app.post('/auth/register', async (request, reply) => {
-    const body = registerSchema.parse(request.body);
+  const typedApp = app.withTypeProvider<ZodTypeProvider>();
+
+  typedApp.post('/auth/register', { schema: { body: registerSchema } }, async (request, reply) => {
+    const body = request.body;
     const result = await authService.register({
       ...body,
       ipAddress: request.ip,
@@ -64,8 +82,8 @@ export async function registerAuthRoutes(
     return toPublicLoginResult(result);
   });
 
-  app.post('/auth/login', async (request, reply) => {
-    const body = loginSchema.parse(request.body);
+  typedApp.post('/auth/login', { schema: { body: loginSchema } }, async (request, reply) => {
+    const body = request.body;
     const result = await authService.login({
       ...body,
       ipAddress: request.ip,
@@ -79,8 +97,8 @@ export async function registerAuthRoutes(
     return toPublicLoginResult(result);
   });
 
-  app.post('/auth/login/2fa', async (request, reply) => {
-    const body = twoFactorLoginSchema.parse(request.body);
+  typedApp.post('/auth/login/2fa', { schema: { body: twoFactorLoginSchema } }, async (request, reply) => {
+    const body = request.body;
     const result = await authService.completeTwoFactorLogin({
       ...body,
       ipAddress: request.ip,
@@ -94,21 +112,18 @@ export async function registerAuthRoutes(
     return toPublicLoginResult(result);
   });
 
-  app.post('/auth/logout', async (request, reply) => {
+  typedApp.post('/auth/logout', async (request, reply) => {
     const token = request.cookies[securityConfig.cookieName];
     if (token) await sessionsService.revokeSession(token);
     clearSessionCookie(reply);
     return { ok: true };
   });
 
-  app.post('/auth/reauthenticate', { preHandler: requireAuth(sessionsService) }, async (request) => {
-    const body = z
-      .object({
-        password: z.string().min(1),
-        secondFactorCode: z.string().min(1).optional(),
-        secondFactorMethod: z.enum(['totp', 'recovery_code']).optional()
-      })
-      .parse(request.body);
+  typedApp.post('/auth/reauthenticate', {
+    preHandler: requireAuth(sessionsService),
+    schema: { body: reauthenticateSchema }
+  }, async (request) => {
+    const body = request.body;
     await authService.reauthenticate({
       userId: request.currentUser!.id,
       password: body.password,
@@ -119,8 +134,11 @@ export async function registerAuthRoutes(
     return { ok: true };
   });
 
-  app.post('/auth/password/change', { preHandler: requireAuth(sessionsService) }, async (request) => {
-    const body = z.object({ newPassword: z.string().min(12) }).parse(request.body);
+  typedApp.post('/auth/password/change', {
+    preHandler: requireAuth(sessionsService),
+    schema: { body: changePasswordSchema }
+  }, async (request) => {
+    const body = request.body;
     const reauthenticatedAt = request.currentSession!.reauthenticatedAt;
     if (!reauthenticatedAt || Date.now() - reauthenticatedAt.getTime() > securityConfig.sensitiveActionTtlMs) 
     {

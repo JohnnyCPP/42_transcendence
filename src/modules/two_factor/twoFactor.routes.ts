@@ -1,10 +1,13 @@
 import type { FastifyInstance } from 'fastify';
+import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { securityConfig } from '../../config/security.js';
 import { forbidden } from '../../shared/errors/httpErrors.js';
 import { requireAuth } from '../authorization/requireAuth.js';
 import type { SessionsService } from '../sessions/sessions.service.js';
 import type { TwoFactorService } from './twoFactor.service.js';
+
+const confirmTotpSchema = z.object({ code: z.string().regex(/^\d{6}$/) });
 
 function assertRecentReauthentication(reauthenticatedAt: Date | null): void 
 {
@@ -19,14 +22,19 @@ export async function registerTwoFactorRoutes(
   twoFactorService: TwoFactorService,
   sessionsService: SessionsService
 ) {
-  app.post('/2fa/setup', { preHandler: requireAuth(sessionsService) }, async (request) => {
+  const typedApp = app.withTypeProvider<ZodTypeProvider>();
+
+  typedApp.post('/2fa/setup', { preHandler: requireAuth(sessionsService) }, async (request) => {
     assertRecentReauthentication(request.currentSession!.reauthenticatedAt);
     return twoFactorService.beginTotpSetup(request.currentUser!.id);
   });
 
-  app.post('/2fa/confirm', { preHandler: requireAuth(sessionsService) }, async (request) => {
+  typedApp.post('/2fa/confirm', {
+    preHandler: requireAuth(sessionsService),
+    schema: { body: confirmTotpSchema }
+  }, async (request) => {
     assertRecentReauthentication(request.currentSession!.reauthenticatedAt);
-    const body = z.object({ code: z.string().min(6) }).parse(request.body);
+    const body = request.body;
     const recoveryCodes = await twoFactorService.confirmTotpSetup(request.currentUser!.id, body.code);
     return { recoveryCodes };
   });
