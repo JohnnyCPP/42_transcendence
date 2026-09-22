@@ -8,8 +8,7 @@ export interface TwoFactorRepository
   enableTotp(userId: string): Promise<void>;
   disableTotp(userId: string): Promise<void>;
   replaceRecoveryCodes(userId: string, codeHashes: string[]): Promise<void>;
-  listActiveRecoveryCodes(userId: string): Promise<RecoveryCodeRecord[]>;
-  markRecoveryCodeUsed(id: string): Promise<void>;
+  consumeRecoveryCodeHash(userId: string, codeHash: string): Promise<boolean>;
 }
 
 export class InMemoryTwoFactorRepository implements TwoFactorRepository 
@@ -82,18 +81,16 @@ export class InMemoryTwoFactorRepository implements TwoFactorRepository
     }
   }
 
-  async listActiveRecoveryCodes(userId: string): Promise<RecoveryCodeRecord[]> 
+  async consumeRecoveryCodeHash(userId: string, codeHash: string): Promise<boolean>
   {
-    return [...this.recoveryCodes.values()].filter(
-      (code) => code.userId === userId && !code.usedAt && !code.replacedAt
-    );
-  }
-
-  async markRecoveryCodeUsed(id: string): Promise<void> 
-  {
-    const code = this.recoveryCodes.get(id);
-    if (code && !code.usedAt) 
-      code.usedAt = new Date();
+    for (const code of this.recoveryCodes.values())
+    {
+      if (code.userId === userId && code.codeHash === codeHash && !code.usedAt && !code.replacedAt)
+      {
+        code.usedAt = new Date();
+        return true;
+      }
+    }
+    return false;
   }
 }
-

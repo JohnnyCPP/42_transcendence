@@ -1,17 +1,21 @@
 import { randomToken } from '../../shared/crypto/randomToken.js';
-import type { Board, CreateBoardInput, UpdateBoardInput } from './boards.types.js';
+import type { Board, BoardMember, CreateBoardInput, SetBoardMemberInput, UpdateBoardInput } from './boards.types.js';
+import { paginateArray, type Page, type PaginationInput } from '../../shared/pagination.js';
 
 export interface BoardsRepository 
 {
   create(input: CreateBoardInput): Promise<Board>;
-  listForOrganization(organizationId: string): Promise<Board[]>;
+  listForOrganization(organizationId: string, pagination: PaginationInput): Promise<Page<Board>>;
   findById(boardId: string): Promise<Board | null>;
+  findMember(boardId: string, userId: string): Promise<BoardMember | null>;
+  upsertMember(input: SetBoardMemberInput): Promise<BoardMember>;
   update(input: UpdateBoardInput): Promise<Board>;
 }
 
 export class InMemoryBoardsRepository implements BoardsRepository 
 {
   private readonly boards = new Map<string, Board>();
+  private readonly members = new Map<string, BoardMember>();
 
   async create(input: CreateBoardInput): Promise<Board> 
   {
@@ -27,14 +31,23 @@ export class InMemoryBoardsRepository implements BoardsRepository
       archivedAt: null
     };
     this.boards.set(board.id, board);
+    this.members.set(memberKey(board.id, input.actorUserId), {
+      boardId: board.id,
+      userId: input.actorUserId,
+      role: 'admin',
+      joinedAt: now
+    });
     return board;
   }
 
-  async listForOrganization(organizationId: string): Promise<Board[]> 
+  async listForOrganization(organizationId: string, pagination: PaginationInput): Promise<Page<Board>>
   {
-    return [...this.boards.values()]
+    const boards = [...this.boards.values()]
       .filter((board) => board.organizationId === organizationId && !board.archivedAt)
-      .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
+      .sort((left, right) =>
+        right.createdAt.getTime() - left.createdAt.getTime() || right.id.localeCompare(left.id)
+      );
+    return paginateArray(boards, pagination);
   }
 
   async findById(boardId: string): Promise<Board | null> 
@@ -43,6 +56,20 @@ export class InMemoryBoardsRepository implements BoardsRepository
     if (!board || board.archivedAt) 
       return null;
     return board;
+  }
+
+  async findMember(boardId: string, userId: string): Promise<BoardMember | null>
+  {
+    return this.members.get(memberKey(boardId, userId)) ?? null;
+  }
+
+  async upsertMember(input: SetBoardMemberInput): Promise<BoardMember>
+  {
+    const key = memberKey(input.boardId, input.userId);
+    const current = this.members.get(key);
+    const member: BoardMember = { ...input, joinedAt: current?.joinedAt ?? new Date() };
+    this.members.set(key, member);
+    return member;
   }
 
   async update(input: UpdateBoardInput): Promise<Board> 
@@ -55,4 +82,9 @@ export class InMemoryBoardsRepository implements BoardsRepository
     board.updatedAt = new Date();
     return board;
   }
+}
+
+function memberKey(boardId: string, userId: string): string
+{
+  return `${boardId}:${userId}`;
 }

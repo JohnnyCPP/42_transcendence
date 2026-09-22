@@ -3,6 +3,7 @@ import { randomToken } from '../../shared/crypto/randomToken.js';
 import { conflict } from '../../shared/errors/httpErrors.js';
 import type { CreateUserInput, User } from './users.types.js';
 import type { UsersRepository } from './users.repository.js';
+import type { Page, PaginationInput } from '../../shared/pagination.js';
 
 export class PrismaUsersRepository implements UsersRepository 
 {
@@ -44,10 +45,17 @@ export class PrismaUsersRepository implements UsersRepository
     return row ? mapUser(row) : null;
   }
 
-  async list(): Promise<User[]> 
+  async list(pagination: PaginationInput): Promise<Page<User>>
   {
-    const rows = await this.prisma.user.findMany({ orderBy: { createdAt: 'desc' } });
-    return rows.map(mapUser);
+    const [rows, total] = await Promise.all([
+      this.prisma.user.findMany({
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: pagination.limit,
+        skip: pagination.offset
+      }),
+      this.prisma.user.count()
+    ]);
+    return { items: rows.map(mapUser), total, ...pagination };
   }
 }
 

@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { randomToken } from '../../shared/crypto/randomToken.js';
-import type { RecoveryCodeRecord, TotpRecord } from './twoFactor.types.js';
+import type { TotpRecord } from './twoFactor.types.js';
 import type { TwoFactorRepository } from './twoFactor.repository.js';
 
 export class PrismaTwoFactorRepository implements TwoFactorRepository 
@@ -50,15 +50,13 @@ export class PrismaTwoFactorRepository implements TwoFactorRepository
     ]);
   }
 
-  async listActiveRecoveryCodes(userId: string): Promise<RecoveryCodeRecord[]> 
+  async consumeRecoveryCodeHash(userId: string, codeHash: string): Promise<boolean>
   {
-    const rows = await this.prisma.recoveryCode.findMany({ where: { userId, usedAt: null, replacedAt: null } });
-    return rows.map(mapRecoveryCode);
-  }
-
-  async markRecoveryCodeUsed(id: string): Promise<void> 
-  {
-    await this.prisma.recoveryCode.updateMany({ where: { id, usedAt: null }, data: { usedAt: new Date() } });
+    const result = await this.prisma.recoveryCode.updateMany({
+      where: { userId, codeHash, usedAt: null, replacedAt: null },
+      data: { usedAt: new Date() }
+    });
+    return result.count === 1;
   }
 }
 
@@ -72,17 +70,5 @@ function mapTotp(row: Awaited<ReturnType<PrismaClient['twoFactorTotp']['findUniq
     confirmedAt: row.confirmedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt
-  };
-}
-
-function mapRecoveryCode(row: Awaited<ReturnType<PrismaClient['recoveryCode']['findFirst']>> & object): RecoveryCodeRecord 
-{
-  return {
-    id: row.id,
-    userId: row.userId,
-    codeHash: row.codeHash,
-    createdAt: row.createdAt,
-    usedAt: row.usedAt,
-    replacedAt: row.replacedAt
   };
 }

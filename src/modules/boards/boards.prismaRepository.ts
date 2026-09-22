@@ -1,7 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import { randomToken } from '../../shared/crypto/randomToken.js';
 import type { BoardsRepository } from './boards.repository.js';
-import type { Board, CreateBoardInput, UpdateBoardInput } from './boards.types.js';
+import type { Board, BoardMember, CreateBoardInput, SetBoardMemberInput, UpdateBoardInput } from './boards.types.js';
+import type { Page, PaginationInput } from '../../shared/pagination.js';
 
 export class PrismaBoardsRepository implements BoardsRepository 
 {
@@ -9,20 +10,45 @@ export class PrismaBoardsRepository implements BoardsRepository
 
   async create(input: CreateBoardInput): Promise<Board> 
   {
-    const row = await this.prisma.board.create({ data: { id: randomToken(16), organizationId: input.organizationId, name: input.name.trim(), description: input.description?.trim() || null, createdByUserId: input.actorUserId } });
+    const id = randomToken(16);
+    const row = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.board.create({ data: { id, organizationId: input.organizationId, name: input.name.trim(), description: input.description?.trim() || null, createdByUserId: input.actorUserId } });
+      await tx.boardMember.create({ data: { boardId: id, userId: input.actorUserId, role: 'admin' } });
+      return created;
+    });
     return mapBoard(row);
   }
 
-  async listForOrganization(organizationId: string): Promise<Board[]> 
+  async listForOrganization(organizationId: string, pagination: PaginationInput): Promise<Page<Board>>
   {
-    const rows = await this.prisma.board.findMany({ where: { organizationId, archivedAt: null }, orderBy: { createdAt: 'desc' } });
-    return rows.map(mapBoard);
+    const where = { organizationId, archivedAt: null };
+    const [rows, total] = await Promise.all([
+      this.prisma.board.findMany({ where, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: pagination.limit, skip: pagination.offset }),
+      this.prisma.board.count({ where })
+    ]);
+    return { items: rows.map(mapBoard), total, ...pagination };
   }
 
   async findById(boardId: string): Promise<Board | null> 
   {
     const row = await this.prisma.board.findFirst({ where: { id: boardId, archivedAt: null } });
     return row ? mapBoard(row) : null;
+  }
+
+  async findMember(boardId: string, userId: string): Promise<BoardMember | null>
+  {
+    const row = await this.prisma.boardMember.findUnique({ where: { boardId_userId: { boardId, userId } } });
+    return row ? { boardId: row.boardId, userId: row.userId, role: row.role as BoardMember['role'], joinedAt: row.joinedAt } : null;
+  }
+
+  async upsertMember(input: SetBoardMemberInput): Promise<BoardMember>
+  {
+    const row = await this.prisma.boardMember.upsert({
+      where: { boardId_userId: { boardId: input.boardId, userId: input.userId } },
+      create: input,
+      update: { role: input.role }
+    });
+    return { boardId: row.boardId, userId: row.userId, role: row.role as BoardMember['role'], joinedAt: row.joinedAt };
   }
 
   async update(input: UpdateBoardInput): Promise<Board> 

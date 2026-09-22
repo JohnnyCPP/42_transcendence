@@ -3,7 +3,8 @@ import { randomToken } from '../../shared/crypto/randomToken.js';
 import { conflict } from '../../shared/errors/httpErrors.js';
 import type { OrganizationsRepository } from './organizations.repository.js';
 import { normalizeSlug } from './organizations.repository.js';
-import type { CreateOrganizationInput, Organization, OrganizationMember, OrganizationWithRole, UpdateOrganizationInput } from './organizations.types.js';
+import type { CreateOrganizationInput, Organization, OrganizationMember, OrganizationWithRole, SetOrganizationMemberInput, UpdateOrganizationInput } from './organizations.types.js';
+import type { Page, PaginationInput } from '../../shared/pagination.js';
 
 export class PrismaOrganizationsRepository implements OrganizationsRepository 
 {
@@ -28,14 +29,24 @@ export class PrismaOrganizationsRepository implements OrganizationsRepository
     }
   }
 
-  async listForUser(userId: string): Promise<OrganizationWithRole[]> 
+  async listForUser(userId: string, pagination: PaginationInput): Promise<Page<OrganizationWithRole>>
   {
-    const rows = await this.prisma.organization.findMany({
-      where: { archivedAt: null, members: { some: { userId } } },
-      include: { members: { where: { userId }, select: { role: true } } },
-      orderBy: { createdAt: 'desc' }
-    });
-    return rows.map((row) => ({ ...mapOrganization(row), role: row.members[0].role as OrganizationWithRole['role'] }));
+    const where = { archivedAt: null, members: { some: { userId } } };
+    const [rows, total] = await Promise.all([
+      this.prisma.organization.findMany({
+        where,
+        include: { members: { where: { userId }, select: { role: true } } },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: pagination.limit,
+        skip: pagination.offset
+      }),
+      this.prisma.organization.count({ where })
+    ]);
+    return {
+      items: rows.map((row) => ({ ...mapOrganization(row), role: row.members[0].role as OrganizationWithRole['role'] })),
+      total,
+      ...pagination
+    };
   }
 
   async findForUser(organizationId: string, userId: string): Promise<OrganizationWithRole | null> 
@@ -51,6 +62,16 @@ export class PrismaOrganizationsRepository implements OrganizationsRepository
   {
     const row = await this.prisma.organizationMember.findUnique({ where: { organizationId_userId: { organizationId, userId } } });
     return row ? { organizationId: row.organizationId, userId: row.userId, role: row.role as OrganizationMember['role'], joinedAt: row.joinedAt } : null;
+  }
+
+  async upsertMember(input: SetOrganizationMemberInput): Promise<OrganizationMember>
+  {
+    const row = await this.prisma.organizationMember.upsert({
+      where: { organizationId_userId: { organizationId: input.organizationId, userId: input.userId } },
+      create: input,
+      update: { role: input.role }
+    });
+    return { organizationId: row.organizationId, userId: row.userId, role: row.role as OrganizationMember['role'], joinedAt: row.joinedAt };
   }
 
   async update(input: UpdateOrganizationInput): Promise<Organization> 
