@@ -10,8 +10,10 @@ interface EmailLoginFormProps {
 }
 
 /**
- * Formulario de login con email y contraseña
- * Este es el método de autenticación más común
+ * Formulario controlado de acceso por email y contraseña.
+ *
+ * La pantalla padre decide qué pasa cuando el usuario envía el formulario;
+ * este componente solo gestiona inputs, validación básica y feedback visual.
  */
 export default function EmailLoginForm({
   onSubmit,
@@ -28,7 +30,7 @@ export default function EmailLoginForm({
       e.preventDefault();
       setLocalError(null);
 
-      // Validación básica
+      // Validación mínima antes de delegar al handler externo.
       if (!email.trim()) {
         setLocalError('Email is required');
         return;
@@ -53,11 +55,12 @@ export default function EmailLoginForm({
     [email, password, onSubmit]
   );
 
+  // Si llega un error desde el padre, tiene prioridad sobre el local.
   const displayError = error || localError;
 
   return (
     <form onSubmit={handleSubmit} className="w-full space-y-4">
-      {/* Campo de Email */}
+      {/* Campo de email: se usa para identificar al usuario en el login. */}
       <div className="space-y-2">
         <label htmlFor="email" className="text-sm font-medium text-on-surface">
           Email
@@ -73,7 +76,7 @@ export default function EmailLoginForm({
         />
       </div>
 
-      {/* Campo de Contraseña */}
+      {/* Campo de contraseña: permite alternar visibilidad para facilitar el uso. */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label htmlFor="password" className="text-sm font-medium text-on-surface">
@@ -109,7 +112,7 @@ export default function EmailLoginForm({
         </div>
       </div>
 
-      {/* Mensaje de error */}
+      {/* Mensaje de error compartido entre validación local y respuesta externa. */}
       {displayError && (
         <div className="p-3 bg-error/10 border border-error/20 rounded-lg text-error text-sm">
           <div className="flex items-start gap-2">
@@ -121,7 +124,7 @@ export default function EmailLoginForm({
         </div>
       )}
 
-      {/* Botón de login */}
+      {/* Acción principal del formulario. */}
       <button
         type="submit"
         disabled={isLoading}
@@ -134,7 +137,6 @@ export default function EmailLoginForm({
         )}
         <span>{isLoading ? 'Iniciando sesión...' : 'Entrar'}</span>
       </button>
-
     </form>
   );
 }

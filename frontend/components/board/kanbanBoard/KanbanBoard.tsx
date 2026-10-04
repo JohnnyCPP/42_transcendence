@@ -15,12 +15,13 @@ interface KanbanBoardProps {
 }
 
 /**
- * Tablero Kanban principal
- * Orquestador que combina hooks de estado y handlers
- * Responsable de renderizar columnas y modal
+ * Orquestador del tablero Kanban.
+ *
+ * Une el estado del tablero, los handlers de interacción y las vistas de cada
+ * columna. También abre el modal de tarea cuando hay una tarjeta seleccionada.
  */
 export default function KanbanBoard({ initialColumns, searchQuery }: KanbanBoardProps) {
-  // Estado del tablero (columnas, tarea seleccionada, filtrado)
+  // Estado central: columnas, tarea seleccionada y filtrado por texto.
   const {
     columns,
     setColumns,
@@ -31,7 +32,7 @@ export default function KanbanBoard({ initialColumns, searchQuery }: KanbanBoard
     filteredColumns,
   } = useKanbanState(initialColumns, searchQuery);
 
-  // Handlers del tablero (agregar tarea, guardar, eliminar, etc.)
+  // Acciones de interacción sobre el tablero.
   const {
     handleAddTask,
     handleTaskClick,
@@ -48,6 +49,7 @@ export default function KanbanBoard({ initialColumns, searchQuery }: KanbanBoard
 
   return (
     <div className="kanban-board flex-1">
+      {/* Una columna por cada estado visible después del filtrado. */}
       {filteredColumns.map((column) => (
         <KanbanColumn
           key={column.id}
@@ -57,7 +59,7 @@ export default function KanbanBoard({ initialColumns, searchQuery }: KanbanBoard
         />
       ))}
 
-      {/* Botón para agregar otra lista. */}
+      {/* Botón temporal para crear una nueva lista/columna. */}
       <button
         onClick={handleAddColumn}
         className="w-70 min-w-70 flex items-center gap-2 p-3 text-on-surface bg-surface-container hover:bg-surface-container-high rounded-lg hover:text-on-surface transition-colors h-fit text-[14px] font-medium cursor-pointer shrink-0"

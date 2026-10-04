@@ -7,33 +7,40 @@ import BoardHeader from '@/components/board/BoardHeader';
 import KanbanBoard from '@/components/board/kanbanBoard/KanbanBoard';
 import { initialColumns } from '@/data/mockBoardData';
 
-// Página principal del tablero Kanban.
+/**
+ * Pantalla principal de trabajo.
+ *
+ * Esta vista representa el tablero Kanban principal y, por ahora,
+ * usa datos simulados para que se pueda recorrer la interfaz sin backend.
+ * La idea es que aquí se vea el layout completo: sidebar, header, título del board
+ * y el tablero con sus columnas.
+ */
 export default function Home() {
-  // Estado compartido de búsqueda.
+  // El header y el tablero comparten este filtro para buscar tareas.
   const [searchQuery, setSearchQuery] = useState('');
-  // Estado del sidebar responsive en mobile.
+  // Controla la apertura del sidebar en pantallas pequeñas.
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  // Acción simple de ejemplo para crear una tarea.
+  // Acción temporal de ejemplo mientras la creación real de tareas no existe.
   const handleOpenNewTaskModal = () => {
     const title = prompt('Enter new task title:');
     if (!title || !title.trim()) return;
 
-    // En esta versión solo se muestra una alerta de confirmación.
+    // En esta versión solo se confirma la acción; no hay persistencia real.
     alert(`Task "${title}" created!`);
   };
 
   return (
     <>
-      {/* Navegación lateral. */}
+      {/* Sidebar global: navegación principal de la aplicación. */}
       <Sidebar
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
 
-      {/* Contenedor principal del contenido. */}
+      {/* Contenedor principal del tablero. */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
-        {/* Header reutilizable con búsqueda y acciones. */}
+        {/* Header reutilizable con búsqueda, menú mobile y acción rápida. */}
         <Header
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -41,10 +48,10 @@ export default function Home() {
           onOpenNewTaskModal={handleOpenNewTaskModal}
         />
 
-        {/* Encabezado del board actual. */}
+        {/* Encabezado contextual del board actual. */}
         <BoardHeader />
 
-        {/* Tablero con columnas y filtrado por texto. */}
+        {/* Tablero Kanban: renderiza columnas, tarjetas y modal de detalle. */}
         <KanbanBoard
           initialColumns={initialColumns}
           searchQuery={searchQuery}

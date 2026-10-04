@@ -10,6 +10,7 @@ interface HeaderProps {
   onOpenNewTaskModal?: () => void;
 }
 
+// Botón compacto para abrir la navegación lateral en mobile.
 function MobileMenuButton({ onClick }: { onClick: () => void }) {
   return (
     <button
@@ -22,6 +23,7 @@ function MobileMenuButton({ onClick }: { onClick: () => void }) {
   );
 }
 
+// Campo de búsqueda global compartido entre vistas principales.
 function SearchBar({
   value,
   onChange,
@@ -45,6 +47,7 @@ function SearchBar({
   );
 }
 
+// Botón genérico para acciones del header.
 function HeaderActionButton({
   icon,
   label,
@@ -67,6 +70,7 @@ function HeaderActionButton({
   );
 }
 
+// Notificación visual temporal hasta que exista el flujo real.
 function NotificationButton() {
   return (
     <button
@@ -80,6 +84,7 @@ function NotificationButton() {
   );
 }
 
+// Avatar estático usado como acceso al menú de perfil.
 function ProfileAvatar() {
   return (
     <button
@@ -97,6 +102,12 @@ function ProfileAvatar() {
   );
 }
 
+/**
+ * Header reutilizable en la aplicación.
+ *
+ * Reúne búsqueda, acceso rápido a nueva tarea, notificaciones y perfil.
+ * El mismo componente se usa tanto en el dashboard como en el tablero.
+ */
 export default function Header({
   searchQuery,
   onSearchChange,

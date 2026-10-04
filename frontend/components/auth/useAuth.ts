@@ -4,8 +4,10 @@ import { useState, useCallback, useEffect } from 'react';
 import { AuthState, AuthUser, LoginResponse } from './auth.types';
 
 /**
- * Hook personalizado para manejar autenticación
- * TODO: Integrar con backend real
+ * Hook de autenticación de la UI.
+ *
+ * De momento persiste estado en localStorage para simular sesión en frontend;
+ * más adelante debería depender de la sesión real del backend.
  */
 export function useAuth() {
   const [authState, setAuthState] = useState<AuthState>({
@@ -16,8 +18,9 @@ export function useAuth() {
   });
 
   /**
-   * Recuperar usuario guardado en localStorage al montar
-   * TODO: Validar token con backend
+   * Recupera una sesión simulada al montar el componente.
+   *
+   * Esto solo sirve mientras no exista integración real con cookies/sesión.
    */
   useEffect(() => {
     const checkAuth = () => {
@@ -45,8 +48,9 @@ export function useAuth() {
   }, []);
 
   /**
-   * Login con credenciales
-   * TODO: Llamar a backend real
+   * Login de frontend.
+   *
+   * El flujo real está comentado como guía de integración con la API.
    */
   const login = useCallback(async (email: string, password: string) => {
     setAuthState((prev) => ({ ...prev, isLoading: true, error: null }));
@@ -88,8 +92,8 @@ export function useAuth() {
   }, []);
 
   /**
-   * Logout del usuario
-   * TODO: Notificar al backend
+   * Logout de frontend.
+   * Limpia el estado simulado y deja el hook listo para una sesión real.
    */
   const logout = useCallback(async () => {
     setAuthState((prev) => ({ ...prev, isLoading: true }));
@@ -122,8 +126,9 @@ export function useAuth() {
   }, []);
 
   /**
-   * Signup con email y contraseña
-   * TODO: Implementar registro
+   * Registro de frontend.
+   *
+   * Está preparado para cuando exista la ruta real de creación de cuentas.
    */
   const signup = useCallback(async (email: string, password: string, name: string) => {
     setAuthState((prev) => ({ ...prev, isLoading: true, error: null }));
@@ -165,8 +170,8 @@ export function useAuth() {
   }, []);
 
   /**
-   * Refresh token
-   * TODO: Implementar token refresh
+   * Refresco de sesión simulado.
+   * Si falla, limpia la sesión local para evitar estados inconsistentes.
    */
   const refreshToken = useCallback(async () => {
     try {
@@ -191,7 +196,7 @@ export function useAuth() {
   }, [logout]);
 
   /**
-   * Reset error
+   * Limpia el mensaje de error mostrado en pantalla.
    */
   const clearError = useCallback(() => {
     setAuthState((prev) => ({ ...prev, error: null }));

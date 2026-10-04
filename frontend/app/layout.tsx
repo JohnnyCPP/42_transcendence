@@ -1,13 +1,21 @@
 import type { Metadata } from 'next';
 import './globals.css';
 
-// Metadata global de la app.
+/**
+ * Metadata global del frontend.
+ * Define el título y la descripción que hereda toda la aplicación.
+ */
 export const metadata: Metadata = {
   title: 'TaskFlow - Website Redesign Board',
   description: 'Enterprise Kanban Space - 42 Transcendence',
 };
 
-// Layout raíz que envuelve todas las rutas.
+/**
+ * Layout raíz del frontend.
+ *
+ * Aquí se cargan las fuentes globales y la base visual común para todas
+ * las rutas de la aplicación.
+ */
 export default function RootLayout({
   children,
 }: {

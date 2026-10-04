@@ -8,6 +8,13 @@ import BoardCard from '@/components/dashboard/BoardCard';
 import VelocityWidget from '@/components/dashboard/VelocityWidget';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
 
+/**
+ * Dashboard de resumen.
+ *
+ * Esta pantalla agrupa métricas, tarjetas de boards y actividad reciente.
+ * Usa contenido mock para mostrar la dirección visual del producto mientras
+ * se termina la integración real con datos de backend.
+ */
 const activeBoards = [
   {
     title: 'Marketing Q4',
@@ -69,17 +76,22 @@ const activeBoards = [
 ];
 
 export default function DashboardPage() {
+  // Filtro compartido por el header; de momento actúa como UI de ejemplo.
   const [searchQuery, setSearchQuery] = useState('');
+  // Control de navegación lateral en mobile.
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   return (
     <>
+      {/* Sidebar persistente para navegar entre áreas de la app. */}
       <Sidebar
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
 
+      {/* Estructura principal del dashboard. */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
+        {/* Header común reutilizado en varias pantallas. */}
         <Header
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -87,15 +99,19 @@ export default function DashboardPage() {
           onOpenNewTaskModal={() => alert('New Task created from Dashboard!')}
         />
 
+        {/* Contenido desplazable del dashboard. */}
         <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
+          {/* Hero con saludo y contexto general del usuario. */}
           <DashboardHero
             title="Good Morning, Jane"
             subtitle="Here's what's happening across your projects today."
           />
 
+          {/* Layout en dos columnas: boards activos + widgets laterales. */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
               <section>
+                {/* Sección principal con las tarjetas de boards. */}
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-[18px] font-semibold text-on-surface flex items-center gap-2">
                     <span className="material-symbols-outlined text-outline">
@@ -111,6 +127,7 @@ export default function DashboardPage() {
                   </button>
                 </div>
 
+                {/* Mock data temporal hasta conectar con el backend. */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   {activeBoards.map((board) => (
                     <BoardCard key={board.title} {...board} />
@@ -119,6 +136,7 @@ export default function DashboardPage() {
               </section>
             </div>
 
+            {/* Widgets auxiliares: métricas y actividad reciente. */}
             <div className="space-y-6">
               <VelocityWidget />
               <ActivityFeed />

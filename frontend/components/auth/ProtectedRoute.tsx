@@ -10,13 +10,10 @@ interface ProtectedRouteProps {
 }
 
 /**
- * Componente para proteger rutas
- * Solo usuarios autenticados pueden acceder
- * 
- * Uso:
- * <ProtectedRoute requiredRole="admin">
- *   <YourComponent />
- * </ProtectedRoute>
+ * Guardia de rutas para la UI.
+ *
+ * Comprueba si existe sesión simulada y, opcionalmente, si el rol coincide.
+ * Se usa como envoltorio para páginas o bloques que no deben ser públicos.
  */
 export default function ProtectedRoute({ 
   children, 
@@ -26,23 +23,23 @@ export default function ProtectedRoute({
   const { isAuthenticated, user, isLoading } = useAuth();
 
   useEffect(() => {
-    // Si está cargando, esperar
+    // Mientras se recupera la sesión, no hacemos nada.
     if (isLoading) return;
 
-    // Si no está autenticado, redirigir a login
+    // Si no hay sesión, mandamos al login.
     if (!isAuthenticated) {
       router.push('/login');
       return;
     }
 
-    // Si requiere un rol específico y el usuario no lo tiene
+    // Si la ruta exige un rol concreto, validamos acceso.
     if (requiredRole && user?.role !== requiredRole) {
       router.push('/');
       return;
     }
   }, [isAuthenticated, isLoading, requiredRole, user?.role, router]);
 
-  // Mostrar loading mientras se verifica autenticación
+  // Indicador visual mientras se comprueba el estado de acceso.
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -54,16 +51,16 @@ export default function ProtectedRoute({
     );
   }
 
-  // Si no está autenticado, no mostrar nada (redirect en progreso)
+  // Evita pintar contenido si la redirección ya está en marcha.
   if (!isAuthenticated) {
     return null;
   }
 
-  // Si requiere rol y no lo tiene, no mostrar nada (redirect en progreso)
+  // Misma idea para el caso de rol insuficiente.
   if (requiredRole && user?.role !== requiredRole) {
     return null;
   }
 
-  // Todo bien, mostrar contenido
+  // Si pasa las validaciones, renderizamos la ruta protegida.
   return <>{children}</>;
 }
