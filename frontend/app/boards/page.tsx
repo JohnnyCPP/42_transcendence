@@ -45,8 +45,7 @@ export default function BoardsPage() {
               Todos los boards disponibles
             </h1>
             <p className="max-w-2xl text-sm text-on-surface-variant md:text-base">
-              Esta vista centraliza los boards demo del frontend. El board de Website Redesign
-              ya tiene una experiencia más completa; el resto se mantiene como placeholder navegable.
+              Consulta los espacios de trabajo disponibles, retoma el board principal o explora rutas ya preparadas para las siguientes áreas del producto.
             </p>
           </section>
 

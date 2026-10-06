@@ -22,20 +22,29 @@ export default async function BoardPlaceholderPage({ params }: BoardPlaceholderP
       <section className="w-full max-w-2xl rounded-[28px] border border-outline-variant bg-white p-6 shadow-sm md:p-8 text-center space-y-5">
         <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant bg-surface-container-low px-3 py-1 text-sm text-on-surface-variant">
           <span className="material-symbols-outlined text-[18px] text-primary">dashboard</span>
-          Board placeholder
+          Vista del board
         </div>
 
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">{boardName}</h1>
           <p className="text-sm text-on-surface-variant md:text-base">
-            Este board todavía no tiene una experiencia dedicada en el frontend. Por ahora,
-            la navegación ya está preparada para que la UI no tenga tarjetas mudas.
+            Este board ya tiene su propia ruta dentro de la aplicación y queda listo para crecer con listas, métricas y colaboración contextual.
           </p>
         </div>
 
-        <div className="rounded-2xl border border-outline-variant bg-surface-container-low px-5 py-4 text-left text-sm text-on-surface-variant">
-          Cuando llegue el momento de integrarlo, esta ruta puede reutilizar el layout del board
-          principal y cargar su propio conjunto de listas y tareas.
+        <div className="grid grid-cols-1 gap-3 text-left sm:grid-cols-3">
+          <div className="rounded-2xl border border-outline-variant bg-surface-container-low px-5 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant">Estado</p>
+            <p className="mt-2 text-lg font-semibold text-on-surface">En preparación</p>
+          </div>
+          <div className="rounded-2xl border border-outline-variant bg-surface-container-low px-5 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant">Siguiente paso</p>
+            <p className="mt-2 text-lg font-semibold text-on-surface">Diseñar listas</p>
+          </div>
+          <div className="rounded-2xl border border-outline-variant bg-surface-container-low px-5 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant">Acceso</p>
+            <p className="mt-2 text-lg font-semibold text-on-surface">Ruta activa</p>
+          </div>
         </div>
 
         <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">

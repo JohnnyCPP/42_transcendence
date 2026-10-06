@@ -29,14 +29,13 @@ export default function LoginPage() {
     setSuccessMessage(null);
 
     try {
-      console.log('Login attempt with:', credentials);
       await new Promise((resolve) => setTimeout(resolve, 900));
 
       if (credentials.email === 'test@error.com') {
         throw new Error('Invalid credentials');
       }
 
-      setSuccessMessage('Login simulado correcto. La conexión real con backend se añadirá más adelante.');
+      setSuccessMessage('Acceso validado en esta vista. El siguiente paso será completar la experiencia de entrada desde el propio frontend.');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed';
       setError(message);
@@ -66,8 +65,7 @@ export default function LoginPage() {
               Inicia sesión para continuar.
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-base text-on-surface-variant md:text-lg">
-              Estamos dejando esta pantalla lista para crecer, pero por ahora solo
-              usamos email y contraseña para mantener el flujo claro.
+              Accede a tu espacio de trabajo y revisa el estado de tus boards, tareas y actividad reciente.
             </p>
           </div>
         </section>

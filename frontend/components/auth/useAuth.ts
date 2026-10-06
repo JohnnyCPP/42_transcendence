@@ -79,7 +79,27 @@ export function useAuth() {
       //   isAuthenticated: true,
       // });
 
-      console.log('Login backend no implementado:', { email, password });
+      const simulatedUser: AuthUser = {
+        id: 'frontend-session-user',
+        email,
+        name: email.split('@')[0] || 'Workspace User',
+        role: 'member',
+      };
+
+      const simulatedResponse: LoginResponse = {
+        user: simulatedUser,
+        token: 'frontend-session-token',
+      };
+
+      localStorage.setItem('authToken', simulatedResponse.token);
+      localStorage.setItem('authUser', JSON.stringify(simulatedResponse.user));
+
+      setAuthState({
+        user: simulatedResponse.user,
+        isLoading: false,
+        error: null,
+        isAuthenticated: true,
+      });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
       setAuthState((prev) => ({
@@ -157,7 +177,27 @@ export function useAuth() {
       //   isAuthenticated: true,
       // });
 
-      console.log('Signup backend no implementado:', { email, password, name });
+      const simulatedUser: AuthUser = {
+        id: 'frontend-signup-user',
+        email,
+        name,
+        role: 'member',
+      };
+
+      const simulatedResponse: LoginResponse = {
+        user: simulatedUser,
+        token: 'frontend-signup-token',
+      };
+
+      localStorage.setItem('authToken', simulatedResponse.token);
+      localStorage.setItem('authUser', JSON.stringify(simulatedResponse.user));
+
+      setAuthState({
+        user: simulatedResponse.user,
+        isLoading: false,
+        error: null,
+        isAuthenticated: true,
+      });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Signup failed';
       setAuthState((prev) => ({

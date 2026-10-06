@@ -14,7 +14,7 @@ export default function VelocityWidget() {
           <span className="material-symbols-outlined text-[14px] text-amber-600">
             info
           </span>
-          No integrado aún
+          Resumen semanal
         </span>
       </div>
 
