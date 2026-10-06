@@ -44,6 +44,8 @@ export default function KanbanBoard({ initialColumns, searchQuery }: KanbanBoard
     handleSaveTask,
     handleDeleteTask,
     handleAddColumn,
+    handleRenameColumn,
+    handleDeleteColumn,
   } = useKanbanHandlers({
     columns,
     selectedColumnId,
@@ -95,6 +97,8 @@ export default function KanbanBoard({ initialColumns, searchQuery }: KanbanBoard
           column={column}
           onAddTask={handleAddTask}
           onTaskClick={handleTaskClick}
+          onRenameColumn={handleRenameColumn}
+          onDeleteColumn={handleDeleteColumn}
         />
       ))}
 

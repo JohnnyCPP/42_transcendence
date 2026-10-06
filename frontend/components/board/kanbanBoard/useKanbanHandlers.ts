@@ -7,6 +7,8 @@ import {
   replaceOrMoveTask,
   deleteTaskFromColumns,
   addColumn,
+  renameColumn,
+  deleteColumn,
 } from './kanbanBoard.utils';
 
 interface UseKanbanHandlersProps {
@@ -23,6 +25,8 @@ interface UseKanbanHandlersReturn {
   handleSaveTask: (updatedTask: TaskItem, newColumnId: string) => void;
   handleDeleteTask: (taskId: string, columnId: string) => void;
   handleAddColumn: (title: string) => void;
+  handleRenameColumn: (columnId: string, title: string) => void;
+  handleDeleteColumn: (columnId: string) => void;
 }
 
 /**
@@ -81,11 +85,27 @@ export function useKanbanHandlers({
     onColumnsChange(addColumn(columns, title.trim()));
   }, [columns, onColumnsChange]);
 
+  /**
+   * Renombra una columna existente.
+   */
+  const handleRenameColumn = useCallback((columnId: string, title: string) => {
+    onColumnsChange(renameColumn(columns, columnId, title.trim()));
+  }, [columns, onColumnsChange]);
+
+  /**
+   * Elimina una columna completa del tablero.
+   */
+  const handleDeleteColumn = useCallback((columnId: string) => {
+    onColumnsChange(deleteColumn(columns, columnId));
+  }, [columns, onColumnsChange]);
+
   return {
     handleAddTask,
     handleTaskClick,
     handleSaveTask,
     handleDeleteTask,
     handleAddColumn,
+    handleRenameColumn,
+    handleDeleteColumn,
   };
 }

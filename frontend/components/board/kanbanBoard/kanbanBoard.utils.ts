@@ -109,6 +109,31 @@ export function addColumn(columns: BoardColumn[], title: string): BoardColumn[] 
 }
 
 /**
+ * Renombra una columna existente sin modificar sus tareas.
+ */
+export function renameColumn(
+  columns: BoardColumn[],
+  columnId: string,
+  title: string
+): BoardColumn[] {
+  return columns.map((column) => {
+    if (column.id !== columnId) return column;
+
+    return {
+      ...column,
+      title,
+    };
+  });
+}
+
+/**
+ * Elimina una columna completa junto con sus tareas.
+ */
+export function deleteColumn(columns: BoardColumn[], columnId: string): BoardColumn[] {
+  return columns.filter((column) => column.id !== columnId);
+}
+
+/**
  * Filtra las tareas de todas las columnas según un query de búsqueda
  * No modifica las columnas, solo filtra las tareas
  */
