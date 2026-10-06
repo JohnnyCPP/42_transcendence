@@ -6,6 +6,7 @@ import Header from '@/components/layout/Header';
 import BoardHeader from '@/components/board/BoardHeader';
 import KanbanBoard from '@/components/board/kanbanBoard/KanbanBoard';
 import { initialColumns } from '@/data/mockBoardData';
+import { InfoDialog } from '@/components/ui';
 
 /**
  * Pantalla principal de trabajo.
@@ -20,14 +21,11 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   // Controla la apertura del sidebar en pantallas pequeñas.
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isQuickTaskDialogOpen, setIsQuickTaskDialogOpen] = useState(false);
 
   // Acción temporal de ejemplo mientras la creación real de tareas no existe.
   const handleOpenNewTaskModal = () => {
-    const title = prompt('Enter new task title:');
-    if (!title || !title.trim()) return;
-
-    // En esta versión solo se confirma la acción; no hay persistencia real.
-    alert(`Task "${title}" created!`);
+    setIsQuickTaskDialogOpen(true);
   };
 
   return (
@@ -57,6 +55,13 @@ export default function Home() {
           searchQuery={searchQuery}
         />
       </main>
+
+      <InfoDialog
+        isOpen={isQuickTaskDialogOpen}
+        title="Crear tarea rápida"
+        description="De momento, crea nuevas tareas desde el botón + de cada columna para mantener el flujo dentro del tablero."
+        onClose={() => setIsQuickTaskDialogOpen(false)}
+      />
     </>
   );
 }

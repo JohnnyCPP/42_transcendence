@@ -22,7 +22,7 @@ interface UseKanbanHandlersReturn {
   handleTaskClick: (task: TaskItem, columnId: string) => void;
   handleSaveTask: (updatedTask: TaskItem, newColumnId: string) => void;
   handleDeleteTask: (taskId: string, columnId: string) => void;
-  handleAddColumn: () => void;
+  handleAddColumn: (title: string) => void;
 }
 
 /**
@@ -75,12 +75,9 @@ export function useKanbanHandlers({
   }, [columns, onColumnsChange]);
 
   /**
-   * Crea una nueva columna con un prompt
+   * Crea una nueva columna con el título recibido desde la UI.
    */
-  const handleAddColumn = useCallback(() => {
-    const title = prompt('Enter new list name:');
-    if (!title || !title.trim()) return;
-
+  const handleAddColumn = useCallback((title: string) => {
     onColumnsChange(addColumn(columns, title.trim()));
   }, [columns, onColumnsChange]);
 

@@ -7,6 +7,7 @@ import DashboardHero from '@/components/dashboard/DashboardHero';
 import BoardCard from '@/components/dashboard/BoardCard';
 import VelocityWidget from '@/components/dashboard/VelocityWidget';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
+import { InfoDialog } from '@/components/ui';
 
 /**
  * Dashboard de resumen.
@@ -80,6 +81,7 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
   // Control de navegación lateral en mobile.
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [activeDialog, setActiveDialog] = useState<'new-task' | 'view-all' | null>(null);
 
   return (
     <>
@@ -96,7 +98,7 @@ export default function DashboardPage() {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-          onOpenNewTaskModal={() => alert('New Task created from Dashboard!')}
+          onOpenNewTaskModal={() => setActiveDialog('new-task')}
         />
 
         {/* Contenido desplazable del dashboard. */}
@@ -120,7 +122,7 @@ export default function DashboardPage() {
                     Active Boards
                   </h3>
                   <button
-                    onClick={() => alert('View All no está implementado todavía.')}
+                    onClick={() => setActiveDialog('view-all')}
                     className="text-primary font-medium text-[13px] hover:underline cursor-pointer"
                   >
                     View All
@@ -144,6 +146,20 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
+
+      <InfoDialog
+        isOpen={activeDialog === 'new-task'}
+        title="Nueva tarea desde dashboard"
+        description="La creación de tareas desde el dashboard todavía no está conectada; por ahora se hace desde cada board."
+        onClose={() => setActiveDialog(null)}
+      />
+
+      <InfoDialog
+        isOpen={activeDialog === 'view-all'}
+        title="Listado completo de boards"
+        description="La vista dedicada de todos los boards todavía no está implementada en el frontend."
+        onClose={() => setActiveDialog(null)}
+      />
     </>
   );
 }

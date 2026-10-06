@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import { InfoDialog } from '@/components/ui';
 
 // Props del header global.
 interface HeaderProps {
@@ -72,33 +73,55 @@ function HeaderActionButton({
 
 // Notificación visual temporal hasta que exista el flujo real.
 function NotificationButton() {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   return (
-    <button
-      onClick={() => alert('Notifications no está implementado todavía.')}
-      className="text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center relative cursor-pointer"
-      title="Notifications"
-    >
-      <span className="material-symbols-outlined">notifications</span>
-      <span className="absolute top-0 right-0 w-2 h-2 bg-error rounded-full" />
-    </button>
+    <>
+      <button
+        onClick={() => setIsDialogOpen(true)}
+        className="text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center relative cursor-pointer"
+        title="Notifications"
+      >
+        <span className="material-symbols-outlined">notifications</span>
+        <span className="absolute top-0 right-0 w-2 h-2 bg-error rounded-full" />
+      </button>
+
+      <InfoDialog
+        isOpen={isDialogOpen}
+        title="Notificaciones pendientes"
+        description="La bandeja de notificaciones todavía no está implementada en el frontend."
+        onClose={() => setIsDialogOpen(false)}
+      />
+    </>
   );
 }
 
 // Avatar estático usado como acceso al menú de perfil.
 function ProfileAvatar() {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   return (
-    <button
-      type="button"
-      onClick={() => alert('Profile menu no está implementado todavía.')}
-      className="w-8 h-8 rounded-full overflow-hidden border border-outline-variant cursor-pointer hover:border-primary transition-colors"
-      aria-label="Profile menu"
-    >
-      <img
-        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSSuK40_tNbQ250GY_-XH073wfT_XbZrfkh2vJW7KXOuaUEoWrYBNRkY6U3o4vDe-9WwwIzMe39uRwhcse4x43xIQwFIQFuCxI_YI9sndOGtZgyOgMp5BD5ra2nsHkYbZDrKpz_63wzhBeKik27SuPqrOUT7ixIqSOVRTpyZk1OR6pEfR2tsE17AH_2lAanvxLgDPoHhwXi0W0Y6HyLddAJRd9vg4tfWQC7zZOdYqX0GJNZk4oez6H-w"
-        alt="User Profile"
-        className="w-full h-full object-cover"
+    <>
+      <button
+        type="button"
+        onClick={() => setIsDialogOpen(true)}
+        className="w-8 h-8 rounded-full overflow-hidden border border-outline-variant cursor-pointer hover:border-primary transition-colors"
+        aria-label="Profile menu"
+      >
+        <img
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSSuK40_tNbQ250GY_-XH073wfT_XbZrfkh2vJW7KXOuaUEoWrYBNRkY6U3o4vDe-9WwwIzMe39uRwhcse4x43xIQwFIQFuCxI_YI9sndOGtZgyOgMp5BD5ra2nsHkYbZDrKpz_63wzhBeKik27SuPqrOUT7ixIqSOVRTpyZk1OR6pEfR2tsE17AH_2lAanvxLgDPoHhwXi0W0Y6HyLddAJRd9vg4tfWQC7zZOdYqX0GJNZk4oez6H-w"
+          alt="User Profile"
+          className="w-full h-full object-cover"
+        />
+      </button>
+
+      <InfoDialog
+        isOpen={isDialogOpen}
+        title="Perfil en preparación"
+        description="El menú de perfil todavía no tiene acciones conectadas dentro del frontend."
+        onClose={() => setIsDialogOpen(false)}
       />
-    </button>
+    </>
   );
 }
 

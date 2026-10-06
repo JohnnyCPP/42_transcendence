@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { mockUsers } from '@/data/mockBoardData';
 import { BoardColumn } from '@/types/board';
+import { TextInputDialog } from '@/components/ui';
 import KanbanColumn from '../kanbanColumn';
 import TaskModal from '../taskModal/TaskModal';
 import { useKanbanState } from './useKanbanState';
@@ -21,6 +22,10 @@ interface KanbanBoardProps {
  * columna. También abre el modal de tarea cuando hay una tarjeta seleccionada.
  */
 export default function KanbanBoard({ initialColumns, searchQuery }: KanbanBoardProps) {
+  const [isAddColumnDialogOpen, setIsAddColumnDialogOpen] = useState(false);
+  const [newColumnTitle, setNewColumnTitle] = useState('');
+  const [newColumnError, setNewColumnError] = useState<string | null>(null);
+
   // Estado central: columnas, tarea seleccionada y filtrado por texto.
   const {
     columns,
@@ -50,6 +55,27 @@ export default function KanbanBoard({ initialColumns, searchQuery }: KanbanBoard
   const hasVisibleTasks = filteredColumns.some((column) => column.tasks.length > 0);
   const hasSearchQuery = searchQuery.trim().length > 0;
 
+  const handleOpenAddColumnDialog = () => {
+    setNewColumnTitle('');
+    setNewColumnError(null);
+    setIsAddColumnDialogOpen(true);
+  };
+
+  const handleCloseAddColumnDialog = () => {
+    setIsAddColumnDialogOpen(false);
+    setNewColumnError(null);
+  };
+
+  const handleConfirmAddColumn = () => {
+    if (!newColumnTitle.trim()) {
+      setNewColumnError('El nombre de la lista es obligatorio.');
+      return;
+    }
+
+    handleAddColumn(newColumnTitle);
+    handleCloseAddColumnDialog();
+  };
+
   return (
     <div className="kanban-board flex-1">
       {!hasVisibleTasks && hasSearchQuery && (
@@ -74,7 +100,7 @@ export default function KanbanBoard({ initialColumns, searchQuery }: KanbanBoard
 
       {/* Botón temporal para crear una nueva lista/columna. */}
       <button
-        onClick={handleAddColumn}
+        onClick={handleOpenAddColumnDialog}
         className="w-70 min-w-70 flex items-center gap-2 p-3 text-on-surface bg-surface-container hover:bg-surface-container-high rounded-lg hover:text-on-surface transition-colors h-fit text-[14px] font-medium cursor-pointer shrink-0"
       >
         <span className="material-symbols-outlined text-[20px]">add</span>
@@ -93,6 +119,26 @@ export default function KanbanBoard({ initialColumns, searchQuery }: KanbanBoard
           onDelete={handleDeleteTask}
         />
       )}
+
+      <TextInputDialog
+        isOpen={isAddColumnDialogOpen}
+        title="Crear nueva lista"
+        description="Añade una nueva columna al tablero actual."
+        label="Nombre de la lista"
+        value={newColumnTitle}
+        error={newColumnError}
+        placeholder="Ej. Review"
+        confirmLabel="Crear lista"
+        onChange={(value) => {
+          if (newColumnError && value.trim()) {
+            setNewColumnError(null);
+          }
+
+          setNewColumnTitle(value);
+        }}
+        onConfirm={handleConfirmAddColumn}
+        onClose={handleCloseAddColumnDialog}
+      />
     </div>
   );
 }

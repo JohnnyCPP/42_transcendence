@@ -15,6 +15,7 @@ import { LoginCredentials } from './auth.types';
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   /**
    * Login de prueba con email y contraseña.
@@ -25,6 +26,7 @@ export default function LoginPage() {
   const handleEmailLogin = useCallback(async (credentials: LoginCredentials) => {
     setIsLoading(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
       console.log('Login attempt with:', credentials);
@@ -34,7 +36,7 @@ export default function LoginPage() {
         throw new Error('Invalid credentials');
       }
 
-      alert('Login simulado exitoso. Backend no implementado aún.');
+      setSuccessMessage('Login simulado correcto. La conexión real con backend se añadirá más adelante.');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed';
       setError(message);
@@ -79,6 +81,12 @@ export default function LoginPage() {
                 Usa tu correo corporativo para entrar al tablero.
               </p>
             </div>
+
+            {successMessage && (
+              <div className="mb-4 rounded-xl border border-primary/20 bg-primary/10 p-3 text-sm text-primary">
+                {successMessage}
+              </div>
+            )}
 
             {/* Formulario controlado por estado local; aún no persiste sesión real. */}
             <EmailLoginForm

@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { InfoDialog } from '@/components/ui';
 
 // Props para controlar el sidebar en mobile.
 interface SidebarProps {
@@ -53,6 +54,7 @@ function NavItem({ href, icon, label, active, onClick, fill }: NavItemProps) {
 
 export default function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Estado visual de los enlaces activos.
   const isDashboardActive = pathname === '/dashboard';
@@ -113,13 +115,20 @@ export default function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
         {/* CTA inferior para crear proyectos. */}
         <div className="px-6 mt-auto">
           <button
-            onClick={() => alert('Create Project no está implementado todavía.')}
+            onClick={() => setIsDialogOpen(true)}
             className="w-full bg-primary text-white text-[12px] font-semibold py-2.5 rounded-lg hover:bg-primary-container transition-colors shadow-xs cursor-pointer active:scale-95"
           >
             Create Project
           </button>
         </div>
       </aside>
+
+      <InfoDialog
+        isOpen={isDialogOpen}
+        title="Crear proyecto"
+        description="El flujo de creación de proyectos todavía no está disponible en esta iteración del frontend."
+        onClose={() => setIsDialogOpen(false)}
+      />
     </>
   );
 }
