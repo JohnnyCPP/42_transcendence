@@ -47,8 +47,21 @@ export default function KanbanBoard({ initialColumns, searchQuery }: KanbanBoard
     onSelectedColumnIdChange: setSelectedColumnId,
   });
 
+  const hasVisibleTasks = filteredColumns.some((column) => column.tasks.length > 0);
+  const hasSearchQuery = searchQuery.trim().length > 0;
+
   return (
     <div className="kanban-board flex-1">
+      {!hasVisibleTasks && hasSearchQuery && (
+        <div className="w-80 min-w-80 rounded-xl border border-dashed border-outline-variant bg-surface-container-lowest p-6 text-center text-on-surface-variant shrink-0">
+          <span className="material-symbols-outlined text-[28px] text-outline">search_off</span>
+          <h3 className="mt-3 text-base font-semibold text-on-surface">No se encontraron tareas</h3>
+          <p className="mt-2 text-sm">
+            Prueba con otra búsqueda o crea una nueva tarea desde el tablero.
+          </p>
+        </div>
+      )}
+
       {/* Una columna por cada estado visible después del filtrado. */}
       {filteredColumns.map((column) => (
         <KanbanColumn

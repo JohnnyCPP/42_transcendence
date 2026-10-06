@@ -5,10 +5,11 @@ import TaskField from './TaskField';
 
 interface TaskTitleFieldProps {
   value: string;
+  error?: string | null;
   onChange: (value: string) => void;
 }
 
-export default function TaskTitleField({ value, onChange }: TaskTitleFieldProps) {
+export default function TaskTitleField({ value, error, onChange }: TaskTitleFieldProps) {
   return (
     <TaskField label="Task Title">
       <input
@@ -16,9 +17,14 @@ export default function TaskTitleField({ value, onChange }: TaskTitleFieldProps)
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Task title..."
-        className="w-full text-[18px] font-semibold text-on-surface border border-outline-variant rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+        className={`w-full text-[18px] font-semibold text-on-surface border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
+          error
+            ? 'border-error focus:ring-error/30'
+            : 'border-outline-variant focus:ring-primary'
+        }`}
         required
       />
+      {error && <p className="mt-2 text-sm font-medium text-error">{error}</p>}
     </TaskField>
   );
 }

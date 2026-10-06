@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { BoardColumn, TaskItem, TaskPriority } from '@/types/board';
 import TaskCard from '../TaskCard';
 import ColumnHeader from './ColumnHeader';
@@ -23,6 +23,8 @@ export default function KanbanColumn({
   onAddTask,
   onTaskClick,
 }: KanbanColumnProps) {
+  const [formError, setFormError] = useState<string | null>(null);
+
   const {
     isAdding,
     newTitle,
@@ -36,10 +38,29 @@ export default function KanbanColumn({
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim()) return;
+    if (!newTitle.trim()) {
+      setFormError('El título de la tarea es obligatorio.');
+      return;
+    }
     
     onAddTask(column.id, newTitle.trim(), newPriority);
+    setFormError(null);
     resetForm();
+  };
+
+  const handleTitleChange = (value: string) => {
+    setFormError(null);
+    setNewTitle(value);
+  };
+
+  const handleCancel = () => {
+    setFormError(null);
+    cancelAdding();
+  };
+
+  const handleStartAdding = () => {
+    setFormError(null);
+    startAdding();
   };
 
   const isDoneColumn = column.id === 'col-done';
@@ -63,13 +84,14 @@ export default function KanbanColumn({
           <AddTaskForm
             title={newTitle}
             priority={newPriority}
-            onTitleChange={setNewTitle}
+            error={formError}
+            onTitleChange={handleTitleChange}
             onPriorityChange={setNewPriority}
             onSubmit={handleFormSubmit}
-            onCancel={cancelAdding}
+            onCancel={handleCancel}
           />
         ) : (
-          <AddTaskButton onClick={startAdding} />
+          <AddTaskButton onClick={handleStartAdding} />
         )}
       </div>
     </div>

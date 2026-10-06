@@ -7,6 +7,7 @@ import { priorityOptions } from './kanbanColumn.constants';
 interface AddTaskFormProps {
   title: string;
   priority: TaskPriority;
+  error?: string | null;
   onTitleChange: (value: string) => void;
   onPriorityChange: (value: TaskPriority) => void;
   onSubmit: (event: React.FormEvent) => void;
@@ -20,6 +21,7 @@ interface AddTaskFormProps {
 export default function AddTaskForm({
   title,
   priority,
+  error,
   onTitleChange,
   onPriorityChange,
   onSubmit,
@@ -36,8 +38,16 @@ export default function AddTaskForm({
         value={title}
         onChange={(event) => onTitleChange(event.target.value)}
         placeholder="Enter card title..."
-        className="text-[14px] p-2 border border-outline-variant rounded focus:outline-none focus:ring-2 focus:ring-primary"
+        className={`text-[14px] p-2 border rounded focus:outline-none focus:ring-2 ${
+          error
+            ? 'border-error focus:ring-error/30'
+            : 'border-outline-variant focus:ring-primary'
+        }`}
       />
+
+      {error && (
+        <p className="text-[12px] text-error font-medium">{error}</p>
+      )}
 
       <div className="flex items-center justify-between gap-2">
         <select

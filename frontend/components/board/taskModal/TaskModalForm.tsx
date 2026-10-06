@@ -25,6 +25,7 @@ interface TaskModalFormProps {
   columns: BoardColumn[];
   users: User[];
   formData: TaskFormData;
+  titleError?: string | null;
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onColumnChange: (value: string) => void;
@@ -47,6 +48,7 @@ export default function TaskModalForm({
   columns,
   users,
   formData,
+  titleError,
   onTitleChange,
   onDescriptionChange,
   onColumnChange,
@@ -60,7 +62,11 @@ export default function TaskModalForm({
 }: TaskModalFormProps) {
   return (
     <form onSubmit={onSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-      <TaskTitleField value={formData.title} onChange={onTitleChange} />
+      <TaskTitleField
+        value={formData.title}
+        error={titleError}
+        onChange={onTitleChange}
+      />
 
       <TaskPropertiesPanel
         columns={columns}

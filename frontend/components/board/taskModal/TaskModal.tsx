@@ -38,7 +38,21 @@ export default function TaskModal({
   const { formData, updateField } = useTaskModalState(task, currentColumnId);
 
   // Lógica de envío del formulario
-  const { handleSubmit } = useTaskModalSubmit(task, formData, users, onSave, onClose);
+  const { titleError, clearTitleError, handleSubmit } = useTaskModalSubmit(
+    task,
+    formData,
+    users,
+    onSave,
+    onClose
+  );
+
+  const handleTitleChange = (value: string) => {
+    if (titleError && value.trim()) {
+      clearTitleError();
+    }
+
+    updateField.setTitle(value);
+  };
 
   // Atajos de teclado (ESC para cerrar)
   useModalKeyboard(onClose);
@@ -56,7 +70,8 @@ export default function TaskModal({
           columns={columns}
           users={users}
           formData={formData}
-          onTitleChange={updateField.setTitle}
+          titleError={titleError}
+          onTitleChange={handleTitleChange}
           onDescriptionChange={updateField.setDescription}
           onColumnChange={updateField.setColumnId}
           onPriorityChange={updateField.setPriority}

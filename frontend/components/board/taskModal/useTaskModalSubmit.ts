@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { TaskItem, TaskPriority } from '@/types/board';
 import { buildUpdatedTask } from './taskModal.utils';
 import { User } from '@/types/board';
@@ -16,6 +16,8 @@ interface TaskFormData {
 }
 
 interface UseTaskModalSubmitReturn {
+  titleError: string | null;
+  clearTitleError: () => void;
   handleSubmit: (event: React.FormEvent) => void;
 }
 
@@ -30,15 +32,23 @@ export function useTaskModalSubmit(
   onSave: (updatedTask: TaskItem, newColumnId: string) => void,
   onClose: () => void
 ): UseTaskModalSubmitReturn {
+  const [titleError, setTitleError] = useState<string | null>(null);
+
+  const clearTitleError = useCallback(() => {
+    setTitleError(null);
+  }, []);
+
   const handleSubmit = useCallback(
     (event: React.FormEvent) => {
       event.preventDefault();
 
       // Validación
       if (!formData.title.trim()) {
-        console.warn('Task title cannot be empty');
+        setTitleError('El título de la tarea es obligatorio.');
         return;
       }
+
+      setTitleError(null);
 
       // Transformación
       const updatedTask = buildUpdatedTask({
@@ -59,5 +69,5 @@ export function useTaskModalSubmit(
     [task, formData, users, onSave, onClose]
   );
 
-  return { handleSubmit };
+  return { titleError, clearTitleError, handleSubmit };
 }
