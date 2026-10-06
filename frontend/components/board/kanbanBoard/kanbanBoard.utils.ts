@@ -95,6 +95,33 @@ export function deleteTaskFromColumns(
 }
 
 /**
+ * Duplica una tarea dentro de la misma columna con un nuevo id.
+ */
+export function duplicateTaskInColumns(
+  columns: BoardColumn[],
+  columnId: string,
+  taskId: string
+): BoardColumn[] {
+  return columns.map((column) => {
+    if (column.id !== columnId) return column;
+
+    const sourceTask = column.tasks.find((task) => task.id === taskId);
+    if (!sourceTask) return column;
+
+    const duplicatedTask: TaskItem = {
+      ...sourceTask,
+      id: createTaskId(),
+      title: `${sourceTask.title} (copy)`,
+    };
+
+    return {
+      ...column,
+      tasks: [...column.tasks, duplicatedTask],
+    };
+  });
+}
+
+/**
  * Crea una nueva columna con título
  */
 export function addColumn(columns: BoardColumn[], title: string): BoardColumn[] {

@@ -13,6 +13,8 @@ interface KanbanColumnProps {
   column: BoardColumn;
   onAddTask: (columnId: string, title: string, priority: TaskPriority) => void;
   onTaskClick: (task: TaskItem, columnId: string) => void;
+  onDuplicateTask: (taskId: string, columnId: string) => void;
+  onDeleteTask: (taskId: string, columnId: string) => void;
   onRenameColumn: (columnId: string, title: string) => void;
   onDeleteColumn: (columnId: string) => void;
 }
@@ -25,6 +27,8 @@ export default function KanbanColumn({
   column,
   onAddTask,
   onTaskClick,
+  onDuplicateTask,
+  onDeleteTask,
   onRenameColumn,
   onDeleteColumn,
 }: KanbanColumnProps) {
@@ -111,6 +115,8 @@ export default function KanbanColumn({
               key={task.id}
               task={task}
               onClick={() => onTaskClick(task, column.id)}
+              onDuplicate={() => onDuplicateTask(task.id, column.id)}
+              onDelete={() => onDeleteTask(task.id, column.id)}
             />
           ))}
         </div>

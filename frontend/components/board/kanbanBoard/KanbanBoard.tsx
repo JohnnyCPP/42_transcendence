@@ -41,6 +41,7 @@ export default function KanbanBoard({ initialColumns, searchQuery }: KanbanBoard
   const {
     handleAddTask,
     handleTaskClick,
+    handleDuplicateTask,
     handleSaveTask,
     handleDeleteTask,
     handleAddColumn,
@@ -97,6 +98,8 @@ export default function KanbanBoard({ initialColumns, searchQuery }: KanbanBoard
           column={column}
           onAddTask={handleAddTask}
           onTaskClick={handleTaskClick}
+          onDuplicateTask={handleDuplicateTask}
+          onDeleteTask={handleDeleteTask}
           onRenameColumn={handleRenameColumn}
           onDeleteColumn={handleDeleteColumn}
         />

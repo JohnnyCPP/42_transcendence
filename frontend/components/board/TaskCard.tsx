@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import { ConfirmDialog } from '@/components/ui';
 import { TaskItem, TaskPriority } from '@/types/board';
 
 // Props de una tarjeta individual.
@@ -8,6 +9,8 @@ interface TaskCardProps {
   task: TaskItem;
   isDragging?: boolean;
   onClick?: () => void;
+  onDuplicate?: () => void;
+  onDelete?: () => void;
 }
 
 function getBadgeClass(priority: TaskPriority) {
@@ -29,11 +32,17 @@ function getBadgeClass(priority: TaskPriority) {
 
 function TaskCardHeader({
   priority,
-  onActionClick,
+  onEdit,
+  onDuplicate,
+  onDelete,
 }: {
   priority: TaskPriority;
-  onActionClick?: () => void;
+  onEdit?: () => void;
+  onDuplicate?: () => void;
+  onDelete?: () => void;
 }) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   return (
     <div className="flex justify-between items-start mb-2">
       <span
@@ -44,18 +53,63 @@ function TaskCardHeader({
         {priority}
       </span>
 
-      <button
-        onClick={(event) => {
-          event.stopPropagation();
-          onActionClick?.();
-        }}
-        className="text-outline hover:text-on-surface cursor-pointer"
-        aria-label="Card actions"
-      >
-        <span className="material-symbols-outlined text-[16px]">
-          more_horiz
-        </span>
-      </button>
+      <div className="relative">
+        <button
+          onClick={(event) => {
+            event.stopPropagation();
+            setIsMenuOpen((prev) => !prev);
+          }}
+          className="text-outline hover:text-on-surface cursor-pointer"
+          aria-label="Card actions"
+        >
+          <span className="material-symbols-outlined text-[16px]">
+            more_horiz
+          </span>
+        </button>
+
+        {isMenuOpen && (
+          <div className="absolute right-0 top-7 z-20 min-w-36 rounded-xl border border-outline-variant bg-white p-1 shadow-lg">
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setIsMenuOpen(false);
+                onEdit?.();
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-on-surface transition-colors hover:bg-surface-container"
+            >
+              <span className="material-symbols-outlined text-[18px]">edit</span>
+              Edit task
+            </button>
+
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setIsMenuOpen(false);
+                onDuplicate?.();
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-on-surface transition-colors hover:bg-surface-container"
+            >
+              <span className="material-symbols-outlined text-[18px]">content_copy</span>
+              Duplicate
+            </button>
+
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setIsMenuOpen(false);
+                onDelete?.();
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-error transition-colors hover:bg-error/10"
+            >
+              <span className="material-symbols-outlined text-[18px]">delete</span>
+              Delete
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -165,21 +219,43 @@ function TaskCardMeta({ task }: { task: TaskItem }) {
   );
 }
 
-export default function TaskCard({ task, isDragging, onClick }: TaskCardProps) {
+export default function TaskCard({ task, isDragging, onClick, onDuplicate, onDelete }: TaskCardProps) {
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
   return (
-    <div
-      onClick={onClick}
-      className={`kanban-card ${task.completed ? 'bg-surface-container-lowest' : 'bg-surface-container'} ${
-        isDragging || task.hasWireframePreview ? 'ring-2 ring-primary border-transparent' : ''
-      }`}
-    >
-      <TaskCardHeader priority={task.priority} onActionClick={onClick} />
+    <>
+      <div
+        onClick={onClick}
+        className={`kanban-card ${task.completed ? 'bg-surface-container-lowest' : 'bg-surface-container'} ${
+          isDragging || task.hasWireframePreview ? 'ring-2 ring-primary border-transparent' : ''
+        }`}
+      >
+        <TaskCardHeader
+          priority={task.priority}
+          onEdit={onClick}
+          onDuplicate={onDuplicate}
+          onDelete={() => setIsDeleteDialogOpen(true)}
+        />
 
-      <TaskCardTitle title={task.title} completed={task.completed} />
+        <TaskCardTitle title={task.title} completed={task.completed} />
 
-      {task.hasWireframePreview && <TaskWireframePreview />}
+        {task.hasWireframePreview && <TaskWireframePreview />}
 
-      <TaskCardMeta task={task} />
-    </div>
+        <TaskCardMeta task={task} />
+      </div>
+
+      <ConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        title="Eliminar tarea"
+        description="Se eliminará esta tarea del board actual."
+        confirmLabel="Eliminar"
+        tone="danger"
+        onConfirm={() => {
+          onDelete?.();
+          setIsDeleteDialogOpen(false);
+        }}
+        onClose={() => setIsDeleteDialogOpen(false)}
+      />
+    </>
   );
 }

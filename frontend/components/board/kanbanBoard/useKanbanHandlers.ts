@@ -6,6 +6,7 @@ import {
   addTaskToColumns,
   replaceOrMoveTask,
   deleteTaskFromColumns,
+  duplicateTaskInColumns,
   addColumn,
   renameColumn,
   deleteColumn,
@@ -22,6 +23,7 @@ interface UseKanbanHandlersProps {
 interface UseKanbanHandlersReturn {
   handleAddTask: (columnId: string, title: string, priority: TaskPriority) => void;
   handleTaskClick: (task: TaskItem, columnId: string) => void;
+  handleDuplicateTask: (taskId: string, columnId: string) => void;
   handleSaveTask: (updatedTask: TaskItem, newColumnId: string) => void;
   handleDeleteTask: (taskId: string, columnId: string) => void;
   handleAddColumn: (title: string) => void;
@@ -58,6 +60,13 @@ export function useKanbanHandlers({
     onSelectedTaskChange(task);
     onSelectedColumnIdChange(columnId);
   }, [onSelectedTaskChange, onSelectedColumnIdChange]);
+
+  /**
+   * Duplica una tarea dentro de su misma columna.
+   */
+  const handleDuplicateTask = useCallback((taskId: string, columnId: string) => {
+    onColumnsChange(duplicateTaskInColumns(columns, columnId, taskId));
+  }, [columns, onColumnsChange]);
 
   /**
    * Guarda cambios de una tarea y la mueve si cambió de columna
@@ -102,6 +111,7 @@ export function useKanbanHandlers({
   return {
     handleAddTask,
     handleTaskClick,
+    handleDuplicateTask,
     handleSaveTask,
     handleDeleteTask,
     handleAddColumn,
