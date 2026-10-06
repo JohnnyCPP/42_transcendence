@@ -1,6 +1,6 @@
 'use client';
 
-import { BoardColumn, TaskItem, TaskPriority } from '@/types/board';
+import { BoardColumn, BoardFilters, TaskItem, TaskPriority } from '@/types/board';
 
 /**
  * Genera un ID único para una tarea basado en timestamp
@@ -166,14 +166,21 @@ export function deleteColumn(columns: BoardColumn[], columnId: string): BoardCol
  */
 export function filterColumnsByQuery(
   columns: BoardColumn[],
-  searchQuery: string
+  searchQuery: string,
+  filters?: BoardFilters
 ): BoardColumn[] {
   const normalizedQuery = searchQuery.toLowerCase();
 
   return columns.map((column) => ({
     ...column,
-    tasks: column.tasks.filter((task) =>
-      task.title.toLowerCase().includes(normalizedQuery)
-    ),
+    tasks: column.tasks.filter((task) => {
+      const matchesQuery = task.title.toLowerCase().includes(normalizedQuery);
+      const matchesPriority =
+        !filters || filters.priorities.length === 0 || filters.priorities.includes(task.priority);
+      const matchesCompleted =
+        !filters || !filters.showCompletedOnly || task.completed === true;
+
+      return matchesQuery && matchesPriority && matchesCompleted;
+    }),
   }));
 }

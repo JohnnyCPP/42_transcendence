@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { mockUsers } from '@/data/mockBoardData';
-import { BoardColumn } from '@/types/board';
+import { BoardColumn, BoardFilters } from '@/types/board';
 import { TextInputDialog } from '@/components/ui';
 import KanbanColumn from '../kanbanColumn';
 import TaskModal from '../taskModal/TaskModal';
@@ -13,6 +13,7 @@ import { useKanbanHandlers } from './useKanbanHandlers';
 interface KanbanBoardProps {
   initialColumns: BoardColumn[];
   searchQuery: string;
+  filters: BoardFilters;
 }
 
 /**
@@ -21,7 +22,7 @@ interface KanbanBoardProps {
  * Une el estado del tablero, los handlers de interacción y las vistas de cada
  * columna. También abre el modal de tarea cuando hay una tarjeta seleccionada.
  */
-export default function KanbanBoard({ initialColumns, searchQuery }: KanbanBoardProps) {
+export default function KanbanBoard({ initialColumns, searchQuery, filters }: KanbanBoardProps) {
   const [isAddColumnDialogOpen, setIsAddColumnDialogOpen] = useState(false);
   const [newColumnTitle, setNewColumnTitle] = useState('');
   const [newColumnError, setNewColumnError] = useState<string | null>(null);
@@ -35,7 +36,7 @@ export default function KanbanBoard({ initialColumns, searchQuery }: KanbanBoard
     selectedColumnId,
     setSelectedColumnId,
     filteredColumns,
-  } = useKanbanState(initialColumns, searchQuery);
+  } = useKanbanState(initialColumns, searchQuery, filters);
 
   // Acciones de interacción sobre el tablero.
   const {

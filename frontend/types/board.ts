@@ -1,6 +1,11 @@
 // Tipos compartidos por el tablero Kanban.
 export type TaskPriority = 'Low' | 'Medium' | 'Urgent' | 'Enhancement' | 'Complete';
 
+export interface BoardFilters {
+  priorities: TaskPriority[];
+  showCompletedOnly: boolean;
+}
+
 // Persona que puede asignarse a una tarea.
 export interface User {
   id: string;

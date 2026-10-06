@@ -7,6 +7,12 @@ import BoardHeader from '@/components/board/BoardHeader';
 import KanbanBoard from '@/components/board/kanbanBoard/KanbanBoard';
 import { initialColumns } from '@/data/mockBoardData';
 import { InfoDialog } from '@/components/ui';
+import { BoardFilters, TaskPriority } from '@/types/board';
+
+const initialBoardFilters: BoardFilters = {
+  priorities: [],
+  showCompletedOnly: false,
+};
 
 /**
  * Pantalla principal de trabajo.
@@ -22,10 +28,31 @@ export default function Home() {
   // Controla la apertura del sidebar en pantallas pequeñas.
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isQuickTaskDialogOpen, setIsQuickTaskDialogOpen] = useState(false);
+  const [boardFilters, setBoardFilters] = useState<BoardFilters>(initialBoardFilters);
 
   // Acción temporal de ejemplo mientras la creación real de tareas no existe.
   const handleOpenNewTaskModal = () => {
     setIsQuickTaskDialogOpen(true);
+  };
+
+  const handleTogglePriority = (priority: TaskPriority) => {
+    setBoardFilters((prev) => ({
+      ...prev,
+      priorities: prev.priorities.includes(priority)
+        ? prev.priorities.filter((item) => item !== priority)
+        : [...prev.priorities, priority],
+    }));
+  };
+
+  const handleToggleCompletedOnly = () => {
+    setBoardFilters((prev) => ({
+      ...prev,
+      showCompletedOnly: !prev.showCompletedOnly,
+    }));
+  };
+
+  const handleClearFilters = () => {
+    setBoardFilters(initialBoardFilters);
   };
 
   return (
@@ -47,12 +74,18 @@ export default function Home() {
         />
 
         {/* Encabezado contextual del board actual. */}
-        <BoardHeader />
+        <BoardHeader
+          filters={boardFilters}
+          onTogglePriority={handleTogglePriority}
+          onToggleCompletedOnly={handleToggleCompletedOnly}
+          onClearFilters={handleClearFilters}
+        />
 
         {/* Tablero Kanban: renderiza columnas, tarjetas y modal de detalle. */}
         <KanbanBoard
           initialColumns={initialColumns}
           searchQuery={searchQuery}
+          filters={boardFilters}
         />
       </main>
 

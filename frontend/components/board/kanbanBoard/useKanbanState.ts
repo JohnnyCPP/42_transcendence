@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
-import { BoardColumn, TaskItem } from '@/types/board';
+import { BoardColumn, BoardFilters, TaskItem } from '@/types/board';
 import { filterColumnsByQuery } from './kanbanBoard.utils';
 
 interface UseKanbanStateReturn {
@@ -24,7 +24,8 @@ interface UseKanbanStateReturn {
  */
 export function useKanbanState(
   initialColumns: BoardColumn[],
-  searchQuery: string
+  searchQuery: string,
+  filters: BoardFilters
 ): UseKanbanStateReturn {
   // Estado de columnas
   const [columns, setColumns] = useState<BoardColumn[]>(initialColumns);
@@ -37,8 +38,8 @@ export function useKanbanState(
 
   // Columnas filtradas por búsqueda (memoizado)
   const filteredColumns = useMemo(
-    () => filterColumnsByQuery(columns, searchQuery),
-    [columns, searchQuery]
+    () => filterColumnsByQuery(columns, searchQuery, filters),
+    [columns, searchQuery, filters]
   );
 
   return {
