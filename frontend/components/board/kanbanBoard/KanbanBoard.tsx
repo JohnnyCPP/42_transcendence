@@ -112,7 +112,7 @@ export default function KanbanBoard({ initialColumns, searchQuery, filters }: Ka
         className="w-70 min-w-70 flex items-center gap-2 p-3 text-on-surface bg-surface-container hover:bg-surface-container-high rounded-lg hover:text-on-surface transition-colors h-fit text-[14px] font-medium cursor-pointer shrink-0"
       >
         <span className="material-symbols-outlined text-[20px]">add</span>
-        Add another list
+        Añadir otra columna
       </button>
 
       {/* Modal de detalle y edición de tarea. */}
