@@ -15,31 +15,31 @@ const activities: ActivityItem[] = [
     icon: 'check_circle',
     iconClassName: 'text-primary',
     actor: 'Mark',
-    action: 'completed',
-    highlight: 'Finalize Copy',
+    action: 'completó',
+    highlight: 'Finalizar textos',
     context: 'Marketing Q4',
-    time: '10m ago',
+    time: 'hace 10 min',
     showConnector: true,
   },
   {
     icon: 'attach_file',
     iconClassName: 'text-on-surface-variant',
     actor: 'Sarah',
-    action: 'attached',
+    action: 'adjuntó',
     highlight: 'v2_mockups.fig',
     context: 'Website Redesign',
-    time: '1h ago',
-    previewText: 'Preview attached',
+    time: 'hace 1 h',
+    previewText: 'Vista previa adjunta',
     showConnector: true,
   },
   {
     icon: 'comment',
     iconClassName: 'text-primary',
-    actor: 'You',
-    action: 'commented on',
-    highlight: 'Launch Timeline',
+    actor: 'Tú',
+    action: 'comentaste en',
+    highlight: 'Cronograma de lanzamiento',
     context: 'Product Launch',
-    time: '3h ago',
+    time: 'hace 3 h',
   },
 ];
 
@@ -82,7 +82,7 @@ export default function ActivityFeed() {
       <div className="p-4 border-b border-surface-container-highest flex justify-between items-center bg-surface-container-lowest/80 backdrop-blur-xs rounded-t-xl sticky top-0">
         <h3 className="text-[16px] font-semibold text-on-surface flex items-center gap-2">
           <span className="material-symbols-outlined text-outline">history</span>
-          Recent Activity
+          Actividad reciente
         </h3>
       </div>
 

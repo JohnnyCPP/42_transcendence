@@ -4,6 +4,14 @@ import React, { useState } from 'react';
 import { ConfirmDialog } from '@/components/ui';
 import { TaskItem, TaskPriority } from '@/types/board';
 
+const priorityLabels: Record<TaskPriority, string> = {
+  Low: 'Baja',
+  Medium: 'Media',
+  Urgent: 'Urgente',
+  Enhancement: 'Mejora',
+  Complete: 'Completada',
+};
+
 // Props de una tarjeta individual.
 interface TaskCardProps {
   task: TaskItem;
@@ -50,7 +58,7 @@ function TaskCardHeader({
           priority
         )}`}
       >
-        {priority}
+        {priorityLabels[priority]}
       </span>
 
       <div className="relative">
@@ -60,7 +68,7 @@ function TaskCardHeader({
             setIsMenuOpen((prev) => !prev);
           }}
           className="text-outline hover:text-on-surface cursor-pointer"
-          aria-label="Card actions"
+          aria-label="Acciones de la tarjeta"
         >
           <span className="material-symbols-outlined text-[16px]">
             more_horiz
@@ -79,7 +87,7 @@ function TaskCardHeader({
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-on-surface transition-colors hover:bg-surface-container"
             >
               <span className="material-symbols-outlined text-[18px]">edit</span>
-              Edit task
+              Editar tarea
             </button>
 
             <button
@@ -92,7 +100,7 @@ function TaskCardHeader({
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-on-surface transition-colors hover:bg-surface-container"
             >
               <span className="material-symbols-outlined text-[18px]">content_copy</span>
-              Duplicate
+              Duplicar
             </button>
 
             <button
@@ -105,7 +113,7 @@ function TaskCardHeader({
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-error transition-colors hover:bg-error/10"
             >
               <span className="material-symbols-outlined text-[18px]">delete</span>
-              Delete
+              Eliminar
             </button>
           </div>
         )}

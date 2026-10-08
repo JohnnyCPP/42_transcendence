@@ -5,6 +5,13 @@ import { BoardFilters, TaskPriority } from '@/types/board';
 import { Dialog } from '@/components/ui';
 
 const priorityOptions: TaskPriority[] = ['Low', 'Medium', 'Urgent', 'Enhancement', 'Complete'];
+const priorityLabels: Record<TaskPriority, string> = {
+  Low: 'Baja',
+  Medium: 'Media',
+  Urgent: 'Urgente',
+  Enhancement: 'Mejora',
+  Complete: 'Completada',
+};
 
 interface BoardHeaderProps {
   filters: BoardFilters;
@@ -27,7 +34,7 @@ function HeaderTitle(){
           className={`transition-colors cursor-pointer ${
             isStarred ? 'text-amber-500' : 'text-outline-variant hover:text-primary'
           }`}
-          title="Star board"
+          title="Marcar board como favorito"
         >
           <span
             className="material-symbols-outlined"
@@ -92,12 +99,12 @@ function HeaderButtonsList({
       <div className="flex items-center gap-3 flex-wrap">
       	    <HeaderButton
           icon="filter_list"
-          label={activeFilterCount > 0 ? `Filter (${activeFilterCount})` : 'Filter'}
+          label={activeFilterCount > 0 ? `Filtros (${activeFilterCount})` : 'Filtros'}
           onClick={() => setIsFilterOpen(true)}
           active={activeFilterCount > 0}
         />
 
-        <HeaderButton icon="person_add" label="Share" onClick={() => setIsShareOpen(true)} />
+        <HeaderButton icon="person_add" label="Compartir" onClick={() => setIsShareOpen(true)} />
       	</div>
 
       <Dialog
@@ -142,7 +149,7 @@ function HeaderButtonsList({
                         : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
                     }`}
                   >
-                    {priority}
+                    {priorityLabels[priority]}
                   </button>
                 );
               })}

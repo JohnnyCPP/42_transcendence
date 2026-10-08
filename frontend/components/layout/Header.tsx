@@ -17,7 +17,7 @@ function MobileMenuButton({ onClick }: { onClick: () => void }) {
     <button
       onClick={onClick}
       className="md:hidden mr-4 text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
-      aria-label="Open navigation menu"
+      aria-label="Abrir menú de navegación"
     >
       <span className="material-symbols-outlined">menu</span>
     </button>
@@ -41,7 +41,7 @@ function SearchBar({
         type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="Search tasks, boards..."
+        placeholder="Buscar tareas y tableros..."
         className="w-full bg-surface-container-lowest border border-outline-variant rounded-md pl-10 pr-4 py-1.5 text-[14px] text-on-surface placeholder-outline focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
       />
     </div>
@@ -80,7 +80,7 @@ function NotificationButton() {
       <button
         onClick={() => setIsDialogOpen(true)}
         className="text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center relative cursor-pointer"
-        title="Notifications"
+        title="Notificaciones"
       >
         <span className="material-symbols-outlined">notifications</span>
         <span className="absolute top-0 right-0 w-2 h-2 bg-error rounded-full" />
@@ -106,11 +106,11 @@ function ProfileAvatar() {
         type="button"
         onClick={() => setIsDialogOpen(true)}
         className="w-8 h-8 rounded-full overflow-hidden border border-outline-variant cursor-pointer hover:border-primary transition-colors"
-        aria-label="Profile menu"
+        aria-label="Menú de perfil"
       >
         <img
           src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSSuK40_tNbQ250GY_-XH073wfT_XbZrfkh2vJW7KXOuaUEoWrYBNRkY6U3o4vDe-9WwwIzMe39uRwhcse4x43xIQwFIQFuCxI_YI9sndOGtZgyOgMp5BD5ra2nsHkYbZDrKpz_63wzhBeKik27SuPqrOUT7ixIqSOVRTpyZk1OR6pEfR2tsE17AH_2lAanvxLgDPoHhwXi0W0Y6HyLddAJRd9vg4tfWQC7zZOdYqX0GJNZk4oez6H-w"
-          alt="User Profile"
+          alt="Perfil de usuario"
           className="w-full h-full object-cover"
         />
       </button>
@@ -148,7 +148,7 @@ export default function Header({
 
         <HeaderActionButton
           icon="add"
-          label="New Task"
+          label="Nueva tarea"
           onClick={onOpenNewTaskModal ?? (() => {})}
           className="hidden md:flex border border-primary text-primary px-3 py-1.5 rounded font-semibold text-[12px] hover:bg-primary/5"
         />

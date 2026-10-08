@@ -31,7 +31,7 @@ export default function TaskModalFooter({
           className="flex items-center gap-1 text-error hover:bg-error/10 px-3 py-2 rounded-md text-[13px] font-semibold transition-colors cursor-pointer"
         >
           <span className="material-symbols-outlined text-[18px]">delete</span>
-          Delete Task
+          Eliminar tarea
         </button>
 
         <div className="flex items-center gap-3">
@@ -40,13 +40,13 @@ export default function TaskModalFooter({
             onClick={onClose}
             className="px-4 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-md text-[14px] font-medium transition-colors cursor-pointer"
           >
-            Cancel
+            Cancelar
           </button>
           <button
             type="submit"
             className="px-5 py-2 bg-primary hover:bg-primary-container text-white rounded-md text-[14px] font-semibold transition-colors shadow-xs cursor-pointer"
           >
-            Save Changes
+            Guardar cambios
           </button>
         </div>
       </div>

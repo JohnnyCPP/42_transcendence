@@ -2,6 +2,14 @@ import { BoardColumn, TaskPriority } from '@/types/board';
 import TaskField from './TaskField';
 import { taskPriorityBadgeClasses, taskPriorityOptions } from './taskModal.constants';
 
+const priorityLabels: Record<TaskPriority, string> = {
+  Low: 'Baja',
+  Medium: 'Media',
+  Urgent: 'Urgente',
+  Enhancement: 'Mejora',
+  Complete: 'Completada',
+};
+
 interface TaskPropertiesPanelProps {
   columns: BoardColumn[];
   columnId: string;
@@ -27,7 +35,7 @@ export default function TaskPropertiesPanel({
 }: TaskPropertiesPanelProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-surface-container-low rounded-lg border border-surface-container-highest">
-      <TaskField label="List / Status">
+      <TaskField label="Lista / estado">
         <select
           value={columnId}
           onChange={(event) => onColumnChange(event.target.value)}
@@ -41,7 +49,7 @@ export default function TaskPropertiesPanel({
         </select>
       </TaskField>
 
-      <TaskField label="Priority">
+      <TaskField label="Prioridad">
         <select
           value={priority}
           onChange={(event) => onPriorityChange(event.target.value as TaskPriority)}
@@ -49,18 +57,18 @@ export default function TaskPropertiesPanel({
         >
           {taskPriorityOptions.map((option) => (
             <option key={option} value={option}>
-              {option}
+              {priorityLabels[option]}
             </option>
           ))}
         </select>
       </TaskField>
 
-      <TaskField label="Due Date">
+      <TaskField label="Fecha límite">
         <input
           type="text"
           value={dueDate}
           onChange={(event) => onDueDateChange(event.target.value)}
-          placeholder="e.g. Oct 15"
+          placeholder="Ej. 15 Oct"
           className="w-full text-[13px] font-medium bg-white text-on-surface border border-outline-variant rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </TaskField>
@@ -73,7 +81,7 @@ export default function TaskPropertiesPanel({
             onChange={(event) => onCompletedChange(event.target.checked)}
             className="w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer"
           />
-          Mark as Completed
+          Marcar como completada
         </label>
       </div>
     </div>

@@ -7,7 +7,7 @@ export default function VelocityWidget() {
       <div className="mb-4 flex items-start justify-between gap-3">
         <h3 className="text-[16px] font-semibold text-on-surface flex items-center gap-2">
           <span className="material-symbols-outlined text-outline">insights</span>
-          Velocity
+          Velocidad
         </h3>
 
         <span className="inline-flex items-center gap-1 rounded-full border border-outline-variant bg-surface-container-low px-2 py-1 text-[11px] font-medium text-on-surface-variant">
@@ -21,7 +21,7 @@ export default function VelocityWidget() {
       <div className="flex items-end justify-between">
         <div>
           <p className="text-[11px] font-semibold text-on-surface-variant mb-1 uppercase tracking-wider">
-            Tasks Completed
+            Tareas completadas
           </p>
           <div className="flex items-baseline gap-2">
             <span className="text-[36px] font-black text-on-surface leading-none">
@@ -35,7 +35,7 @@ export default function VelocityWidget() {
             </span>
           </div>
           <p className="text-[12px] text-on-surface-variant mt-1">
-            vs 37 last week
+            vs 37 la semana pasada
           </p>
         </div>
 

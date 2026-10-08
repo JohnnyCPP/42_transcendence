@@ -42,7 +42,7 @@ export const initialColumns: BoardColumn[] = [
     tasks: [
       {
         id: 't-1',
-        title: 'Audit existing site architecture',
+        title: 'Auditar la arquitectura actual del sitio',
         priority: 'Low',
         hasAttachment: true,
         checklist: { completed: 0, total: 4 },
@@ -50,13 +50,13 @@ export const initialColumns: BoardColumn[] = [
       },
       {
         id: 't-2',
-        title: "Draft new copy for 'About Us' page",
+        title: "Redactar nuevos textos para la página 'Sobre nosotros'",
         priority: 'Medium',
         dueDate: 'Oct 12',
       },
       {
         id: 't-3',
-        title: 'Explore WebGL header concepts',
+        title: 'Explorar conceptos de cabecera con WebGL',
         priority: 'Enhancement',
         commentsCount: 2,
         assignees: [mockUsers[4]],
@@ -65,11 +65,11 @@ export const initialColumns: BoardColumn[] = [
   },
   {
     id: 'col-todo',
-    title: 'To Do',
+    title: 'Por hacer',
     tasks: [
       {
         id: 't-4',
-        title: 'Finalize color palette and typography tokens',
+        title: 'Finalizar paleta de color y tokens tipográficos',
         priority: 'Urgent',
         dueDate: 'Oct 10',
         hasAttachment: true,
@@ -77,7 +77,7 @@ export const initialColumns: BoardColumn[] = [
       },
       {
         id: 't-5',
-        title: 'Create wireframes for homepage',
+        title: 'Crear wireframes para la página de inicio',
         priority: 'Medium',
         checklist: { completed: 2, total: 5 },
         assignees: [mockUsers[1]],
@@ -86,11 +86,11 @@ export const initialColumns: BoardColumn[] = [
   },
   {
     id: 'col-in-progress',
-    title: 'In Progress',
+    title: 'En curso',
     tasks: [
       {
         id: 't-6',
-        title: 'Implement responsive navigation shell',
+        title: 'Implementar estructura de navegación responsive',
         priority: 'Urgent',
         hasAttachment: true,
         commentsCount: 4,
@@ -101,18 +101,18 @@ export const initialColumns: BoardColumn[] = [
   },
   {
     id: 'col-done',
-    title: 'Done',
+    title: 'Completado',
     tasks: [
       {
         id: 't-7',
-        title: 'Project Kickoff Meeting',
+        title: 'Reunión de arranque del proyecto',
         priority: 'Complete',
         dueDate: 'Oct 1',
         completed: true,
       },
       {
         id: 't-8',
-        title: 'Initial stakeholder interviews',
+        title: 'Entrevistas iniciales con stakeholders',
         priority: 'Complete',
         checklist: { completed: 3, total: 3 },
         assignees: [mockUsers[0]],

@@ -18,8 +18,8 @@ export interface DashboardBoardItem {
 export const mockDashboardBoards: DashboardBoardItem[] = [
   {
     title: 'Marketing Q4',
-    updatedText: 'Updated 2 hrs ago',
-    label: 'Q4 Priority',
+    updatedText: 'Actualizado hace 2 h',
+    label: 'Prioridad Q4',
     href: '/boards/marketing-q4',
     imageUrl:
       'https://lh3.googleusercontent.com/aida-public/AB6AXuC6m0bkauJ9UarMy2nSahfQna2RaBFZLLfAHIiqIA8Q8ga7bsRaRhjLqQuXo_q7kFb5GQAct_nDwaH7AAdUk3ny6OC7qhCpjGrAWgst2HVM8YB2QNirQTeEaV_RYVicg3EXClyUySnrVRKIb8xoIjEhvgSdX0j9rKc0mXLkU7UvbdYruhGaxK79GwX6HXxngrEAs97BYNFzjD36hrtJ-IQ7MWlaWQ9g3WWP4GiDgIHzmwIVjus4MtI5OA',
@@ -39,8 +39,8 @@ export const mockDashboardBoards: DashboardBoardItem[] = [
   },
   {
     title: 'Website Redesign',
-    updatedText: 'Updated 1 day ago',
-    label: 'Design',
+    updatedText: 'Actualizado hace 1 día',
+    label: 'Diseño',
     href: '/',
     imageUrl:
       'https://lh3.googleusercontent.com/aida-public/AB6AXuBeTVcuiX735Tv0NIy-Y54SGxDaW_YpZIJv4nkpv3eI9GolKhp4Sd7iDBX5kfr2q5mAotlFPoRt3x0mRE4ZRcZe_q0YDi5cye1DTSuslbpueqhFhEpAVAnK2ERGktEtlVowHx2q3z7wSHRKH5zGfGRKi1C8E9nbuQgyqhVa7np8xG-xcz_NeMC6X1hWU6aIByZWW3OlKRs1tQoiNyrksCEmaGCag7EQGJG-09_MsOjOAeffPFhJLlPJYQ',
@@ -56,8 +56,8 @@ export const mockDashboardBoards: DashboardBoardItem[] = [
   },
   {
     title: 'Product Launch',
-    updatedText: 'Updated 3 days ago',
-    label: 'Launch',
+    updatedText: 'Actualizado hace 3 días',
+    label: 'Lanzamiento',
     href: '/boards/product-launch',
     imageUrl:
       'https://lh3.googleusercontent.com/aida-public/AB6AXuBMU7om3wSC3rCwPhEzdMSvUN67BcI-DpEA4Vwiu-Nfbp9h8-1kEZhBRKuHtZEqslf0GuBkEZWHO7B9Mcsc0-13suMNCqMsG6DmbSHHeW_2rVIc8SdWWueKT0-6AKPmjhXdqA9jzgXcLARm5OC97eJu1L75Zoxsux5QWfEepN2phqvIbAK9KD2QxNtj3Au5hEELF2BAtYEFiz5IF39gUoJNTc_LXNaLUBgLhzt70MQmI5BvbBU8pJGxBA',

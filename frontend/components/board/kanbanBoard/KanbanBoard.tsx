@@ -150,3 +150,7 @@ export default function KanbanBoard({ initialColumns, searchQuery, filters }: Ka
     </div>
   );
 }
+
+
+
+

@@ -4,6 +4,14 @@ import React from 'react';
 import { TaskPriority } from '@/types/board';
 import { priorityOptions } from './kanbanColumn.constants';
 
+const priorityLabels: Record<TaskPriority, string> = {
+  Low: 'Baja',
+  Medium: 'Media',
+  Urgent: 'Urgente',
+  Enhancement: 'Mejora',
+  Complete: 'Completada',
+};
+
 interface AddTaskFormProps {
   title: string;
   priority: TaskPriority;
@@ -37,7 +45,7 @@ export default function AddTaskForm({
         autoFocus
         value={title}
         onChange={(event) => onTitleChange(event.target.value)}
-        placeholder="Enter card title..."
+        placeholder="Escribe el título de la tarjeta..."
         className={`text-[14px] p-2 border rounded focus:outline-none focus:ring-2 ${
           error
             ? 'border-error focus:ring-error/30'
@@ -57,7 +65,7 @@ export default function AddTaskForm({
         >
           {priorityOptions.map((option) => (
             <option key={option} value={option}>
-              {option}
+              {priorityLabels[option]}
             </option>
           ))}
         </select>
@@ -67,14 +75,14 @@ export default function AddTaskForm({
             type="submit"
             className="bg-primary text-white px-3 py-1 rounded text-[12px] font-medium hover:bg-primary-container cursor-pointer"
           >
-            Add
+            Añadir
           </button>
           <button
             type="button"
             onClick={onCancel}
             className="text-on-surface-variant px-2 py-1 text-[12px] hover:text-on-surface cursor-pointer"
           >
-            Cancel
+            Cancelar
           </button>
         </div>
       </div>

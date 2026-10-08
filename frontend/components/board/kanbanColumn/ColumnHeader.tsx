@@ -35,7 +35,7 @@ export default function ColumnHeader({
           type="button"
           onClick={() => setIsMenuOpen((prev) => !prev)}
           className="rounded-md p-1 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
-          aria-label="Column actions"
+          aria-label="Acciones de la columna"
         >
           <span className="material-symbols-outlined text-[18px]">more_horiz</span>
         </button>
@@ -51,7 +51,7 @@ export default function ColumnHeader({
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-on-surface transition-colors hover:bg-surface-container"
             >
               <span className="material-symbols-outlined text-[18px]">edit</span>
-              Edit name
+              Editar nombre
             </button>
 
             <button
@@ -63,7 +63,7 @@ export default function ColumnHeader({
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-error transition-colors hover:bg-error/10"
             >
               <span className="material-symbols-outlined text-[18px]">delete</span>
-              Delete column
+              Eliminar columna
             </button>
           </div>
         )}

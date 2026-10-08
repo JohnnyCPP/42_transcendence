@@ -16,7 +16,7 @@ export default function AddTaskButton({ onClick }: AddTaskButtonProps) {
       className="w-full flex items-center gap-2 p-2 text-on-surface-variant hover:bg-surface-container-lowest rounded hover:text-on-surface transition-colors cursor-pointer"
     >
       <span className="material-symbols-outlined text-[18px]">add</span>
-      <span className="text-[14px]">Add a card</span>
+      <span className="text-[14px]">Añadir una tarjeta</span>
     </button>
   );
 }

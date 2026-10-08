@@ -84,7 +84,7 @@ export default function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
               TaskFlow
             </h1>
             <p className="text-[11px] font-medium text-on-surface-variant">
-              Enterprise Space
+              Espacio de trabajo
             </p>
           </div>
         </div>
@@ -95,7 +95,7 @@ export default function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
             href="/dashboard"
             onClick={onCloseMobile}
             icon="dashboard"
-            label="Dashboard"
+            label="Panel"
             active={isDashboardActive}
             fill={isDashboardActive}
           />
@@ -104,7 +104,7 @@ export default function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
             href="/boards"
             onClick={onCloseMobile}
             icon="view_kanban"
-            label="Boards"
+            label="Tableros"
             active={isBoardsActive}
             fill={isBoardsActive}
           />
@@ -117,7 +117,7 @@ export default function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
             onClick={onCloseMobile}
             className="flex w-full items-center justify-center bg-primary text-white text-[13px] font-semibold py-3.5 rounded-xl hover:bg-primary-container transition-colors shadow-xs cursor-pointer active:scale-95"
           >
-            Create Project
+            Crear proyecto
           </Link>
         </div>
       </aside>

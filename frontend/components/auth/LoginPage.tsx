@@ -41,7 +41,7 @@ function LoginFormCard({successMessage, isLoading, error, handleEmailLogin}: {
     <section>
       <div className="w-full rounded-[28px] border border-outline-variant bg-white p-6 shadow-sm md:p-8">
         <div className="mb-6 text-center">
-          <h2 className="text-2xl font-semibold text-on-surface">Email login</h2>
+          <h2 className="text-2xl font-semibold text-on-surface">Acceso por correo</h2>
           <p className="mt-2 text-sm text-on-surface-variant">
             Usa tu correo corporativo para entrar al tablero.
           </p>
@@ -90,12 +90,12 @@ export default function LoginPage() {
       await new Promise((resolve) => setTimeout(resolve, 900));
 
       if (credentials.email === 'test@error.com') {
-        throw new Error('Invalid credentials');
+        throw new Error('Credenciales inválidas');
       }
 
       setSuccessMessage('Acceso validado en esta vista. El siguiente paso será completar la experiencia de entrada desde el propio frontend.');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Login failed';
+      const message = err instanceof Error ? err.message : 'No se pudo iniciar sesión';
       setError(message);
     } finally {
       setIsLoading(false);

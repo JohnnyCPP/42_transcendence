@@ -47,8 +47,8 @@ export default function DashboardPage() {
         <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
           {/* Hero con saludo y contexto general del usuario. */}
           <DashboardHero
-            title="Good Morning, Jane"
-            subtitle="Here's what's happening across your projects today."
+            title="Buenos días, Jane"
+            subtitle="Este es el estado actual de tus proyectos y tareas para hoy."
           />
 
           {/* Layout en dos columnas: boards activos + widgets laterales. */}
@@ -61,10 +61,10 @@ export default function DashboardPage() {
                     <span className="material-symbols-outlined text-outline">
                       view_cozy
                     </span>
-                    Active Boards
+                    Tableros activos
                   </h3>
                   <Link href="/boards" className="text-primary font-medium text-[13px] hover:underline cursor-pointer">
-                    View All
+                    Ver todos
                   </Link>
                 </div>
 
