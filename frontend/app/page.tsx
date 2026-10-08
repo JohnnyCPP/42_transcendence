@@ -30,7 +30,7 @@ export default function Home() {
   const [isQuickTaskDialogOpen, setIsQuickTaskDialogOpen] = useState(false);
   const [boardFilters, setBoardFilters] = useState<BoardFilters>(initialBoardFilters);
 
-  // Acción temporal de ejemplo mientras la creación real de tareas no existe.
+  // Acción rápida de creación desde el encabezado.
   const handleOpenNewTaskModal = () => {
     setIsQuickTaskDialogOpen(true);
   };
@@ -92,7 +92,7 @@ export default function Home() {
       <InfoDialog
         isOpen={isQuickTaskDialogOpen}
         title="Crear tarea rápida"
-        description="De momento, crea nuevas tareas desde el botón + de cada columna para mantener el flujo dentro del tablero."
+        description="Puedes crear nuevas tareas desde el botón + de cada columna para mantener el flujo dentro del tablero."
         onClose={() => setIsQuickTaskDialogOpen(false)}
       />
     </>

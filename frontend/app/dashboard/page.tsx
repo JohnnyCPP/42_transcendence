@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
 import DashboardHero from '@/components/dashboard/DashboardHero';
@@ -9,7 +9,8 @@ import BoardCard from '@/components/dashboard/BoardCard';
 import VelocityWidget from '@/components/dashboard/VelocityWidget';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
 import { InfoDialog } from '@/components/ui';
-import { mockDashboardBoards } from '@/data/mockDashboardBoards';
+import { DashboardBoardItem, mockDashboardBoards } from '@/data/mockDashboardBoards';
+import { getLocalProjects, mapLocalProjectToBoardCard } from '@/data/localProjects';
 
 /**
  * Dashboard de resumen.
@@ -19,11 +20,27 @@ import { mockDashboardBoards } from '@/data/mockDashboardBoards';
  * se termina la integración real con datos de backend.
  */
 export default function DashboardPage() {
-  // Filtro compartido por el header; de momento actúa como UI de ejemplo.
+  // Filtro compartido por el header.
   const [searchQuery, setSearchQuery] = useState('');
   // Control de navegación lateral en mobile.
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [activeDialog, setActiveDialog] = useState<'new-task' | null>(null);
+  const [dashboardBoards, setDashboardBoards] = useState<DashboardBoardItem[]>(mockDashboardBoards);
+
+  useEffect(() => {
+    const localBoards = getLocalProjects().map(mapLocalProjectToBoardCard);
+    setDashboardBoards([...localBoards, ...mockDashboardBoards]);
+  }, []);
+
+  const filteredBoards = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return dashboardBoards;
+    }
+
+    return dashboardBoards.filter((board) => board.title.toLowerCase().includes(normalizedQuery));
+  }, [dashboardBoards, searchQuery]);
 
   return (
     <>
@@ -68,12 +85,27 @@ export default function DashboardPage() {
                   </Link>
                 </div>
 
-                {/* Mock data temporal hasta conectar con el backend. */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {mockDashboardBoards.map((board) => (
-                    <BoardCard key={board.title} {...board} />
-                  ))}
-                </div>
+                {filteredBoards.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {filteredBoards.map((board) => (
+                      <BoardCard key={`${board.title}-${board.href}`} {...board} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-outline-variant bg-surface-container-lowest p-8 text-center">
+                    <span className="material-symbols-outlined text-[28px] text-outline">search_off</span>
+                    <h4 className="mt-3 text-base font-semibold text-on-surface">No hay tableros para esta búsqueda</h4>
+                    <p className="mt-2 text-sm text-on-surface-variant">
+                      Ajusta el texto de búsqueda o crea un nuevo proyecto para verlo aquí.
+                    </p>
+                    <Link
+                      href="/projects/new"
+                      className="mt-4 inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-container"
+                    >
+                      Crear proyecto
+                    </Link>
+                  </div>
+                )}
               </section>
             </div>
 
@@ -89,7 +121,7 @@ export default function DashboardPage() {
       <InfoDialog
         isOpen={activeDialog === 'new-task'}
         title="Nueva tarea desde dashboard"
-        description="La creación de tareas desde el dashboard todavía no está conectada; por ahora se hace desde cada board."
+        description="Puedes crear tareas directamente desde cada board para mantener el flujo de trabajo por columnas."
         onClose={() => setActiveDialog(null)}
       />
 

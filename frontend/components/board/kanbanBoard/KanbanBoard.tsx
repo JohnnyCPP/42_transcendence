@@ -106,7 +106,7 @@ export default function KanbanBoard({ initialColumns, searchQuery, filters }: Ka
         />
       ))}
 
-      {/* Botón temporal para crear una nueva lista/columna. */}
+      {/* Acción para crear una nueva lista/columna. */}
       <button
         onClick={handleOpenAddColumnDialog}
         className="w-70 min-w-70 flex items-center gap-2 p-3 text-on-surface bg-surface-container hover:bg-surface-container-high rounded-lg hover:text-on-surface transition-colors h-fit text-[14px] font-medium cursor-pointer shrink-0"
