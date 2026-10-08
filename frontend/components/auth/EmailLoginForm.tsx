@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { LoginCredentials } from './auth.types';
+import Link from 'next/link';
 
 interface EmailLoginFormProps {
   onSubmit: (credentials: LoginCredentials) => Promise<void>;
@@ -32,24 +33,24 @@ export default function EmailLoginForm({
 
       // Validación mínima antes de delegar al handler externo.
       if (!email.trim()) {
-        setLocalError('Email is required');
+        setLocalError('El correo electrónico es obligatorio');
         return;
       }
 
       if (!password) {
-        setLocalError('Password is required');
+        setLocalError('La contraseña es obligatoria');
         return;
       }
 
       if (!email.includes('@')) {
-        setLocalError('Please enter a valid email');
+        setLocalError('Introduce un correo electrónico válido');
         return;
       }
 
       try {
         await onSubmit({ email: email.trim(), password });
       } catch (err) {
-        setLocalError(err instanceof Error ? err.message : 'Login failed');
+        setLocalError(err instanceof Error ? err.message : 'No se pudo iniciar sesión');
       }
     },
     [email, password, onSubmit]
@@ -60,10 +61,10 @@ export default function EmailLoginForm({
 
   return (
     <form onSubmit={handleSubmit} className="w-full space-y-4">
-      {/* Campo de email: se usa para identificar al usuario en el login. */}
+      {/* Campo de correo: se usa para identificar al usuario en el login. */}
       <div className="space-y-2">
         <label htmlFor="email" className="text-sm font-medium text-on-surface">
-          Email
+          Correo electrónico
         </label>
         <input
           id="email"
@@ -82,12 +83,12 @@ export default function EmailLoginForm({
           <label htmlFor="password" className="text-sm font-medium text-on-surface">
             Contraseña
           </label>
-          <a
+          <Link
             href="/forgot-password"
             className="text-xs text-primary hover:text-primary-container transition-colors"
           >
             ¿Olvidaste tu contraseña?
-          </a>
+          </Link>
         </div>
         <div className="relative">
           <input
@@ -102,6 +103,8 @@ export default function EmailLoginForm({
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
+            aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            aria-pressed={showPassword}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant transition-colors hover:text-on-surface disabled:opacity-50"
             disabled={isLoading}
           >
