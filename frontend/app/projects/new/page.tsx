@@ -2,11 +2,14 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { createLocalProject } from '@/data/localProjects';
 
 export default function NewProjectPage() {
+  const router = useRouter();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [visibility, setVisibility] = useState('private');
+  const [visibility, setVisibility] = useState<'private' | 'team'>('private');
   const [message, setMessage] = useState<string | null>(null);
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -17,7 +20,17 @@ export default function NewProjectPage() {
       return;
     }
 
-    setMessage('La base del flujo ya está lista. El siguiente paso será conectar este formulario con la creación real del proyecto.');
+    try {
+      const createdProject = createLocalProject({
+        name,
+        description,
+        visibility,
+      });
+
+      router.push(`/boards/${createdProject.id}`);
+    } catch {
+      setMessage('No se pudo guardar el proyecto en este navegador. Inténtalo de nuevo.');
+    }
   };
 
   return (
@@ -51,7 +64,7 @@ export default function NewProjectPage() {
           />
           <select
             value={visibility}
-            onChange={(event) => setVisibility(event.target.value)}
+            onChange={(event) => setVisibility(event.target.value as 'private' | 'team')}
             className="w-full rounded-xl border border-outline-variant bg-surface-bright px-4 py-3 text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
             <option value="private">Privado</option>
@@ -69,7 +82,7 @@ export default function NewProjectPage() {
               type="submit"
               className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-3 font-semibold text-white transition-colors hover:bg-primary-container"
             >
-              Continuar
+              Crear proyecto
             </button>
             <Link
               href="/dashboard"

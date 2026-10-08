@@ -56,7 +56,7 @@ export default function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
 
   // Estado visual de los enlaces activos.
   const isDashboardActive = pathname === '/dashboard';
-  const isBoardsActive = pathname === '/' || pathname === '/boards';
+  const isBoardsActive = pathname === '/boards' || pathname.startsWith('/boards/');
 
   return (
     <>
@@ -101,7 +101,7 @@ export default function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
           />
 
           <NavItem
-            href="/"
+            href="/boards"
             onClick={onCloseMobile}
             icon="view_kanban"
             label="Boards"

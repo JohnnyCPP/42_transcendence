@@ -1,26 +1,33 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
 import BoardCard from '@/components/dashboard/BoardCard';
 import { mockDashboardBoards } from '@/data/mockDashboardBoards';
+import { getLocalProjects, mapLocalProjectToBoardCard } from '@/data/localProjects';
 
 export default function BoardsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [localBoards, setLocalBoards] = useState(mockDashboardBoards);
+
+  useEffect(() => {
+    const localProjectBoards = getLocalProjects().map(mapLocalProjectToBoardCard);
+    setLocalBoards([...localProjectBoards, ...mockDashboardBoards]);
+  }, []);
 
   const filteredBoards = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
     if (!normalizedQuery) {
-      return mockDashboardBoards;
+      return localBoards;
     }
 
-    return mockDashboardBoards.filter((board) =>
+    return localBoards.filter((board) =>
       board.title.toLowerCase().includes(normalizedQuery)
     );
-  }, [searchQuery]);
+  }, [searchQuery, localBoards]);
 
   return (
     <>

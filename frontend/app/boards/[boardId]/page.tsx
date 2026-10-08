@@ -28,7 +28,7 @@ export default async function BoardPlaceholderPage({ params }: BoardPlaceholderP
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">{boardName}</h1>
           <p className="text-sm text-on-surface-variant md:text-base">
-            Este board ya tiene su propia ruta dentro de la aplicación y queda listo para crecer con listas, métricas y colaboración contextual.
+            Este board ya tiene su propia ruta dentro de la aplicación. También puede crearse desde el frontend sin backend y mostrarse aquí al instante.
           </p>
         </div>
 
@@ -39,7 +39,7 @@ export default async function BoardPlaceholderPage({ params }: BoardPlaceholderP
           </div>
           <div className="rounded-2xl border border-outline-variant bg-surface-container-low px-5 py-4">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant">Siguiente paso</p>
-            <p className="mt-2 text-lg font-semibold text-on-surface">Diseñar listas</p>
+            <p className="mt-2 text-lg font-semibold text-on-surface">Cargar listas del proyecto</p>
           </div>
           <div className="rounded-2xl border border-outline-variant bg-surface-container-low px-5 py-4">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant">Acceso</p>
