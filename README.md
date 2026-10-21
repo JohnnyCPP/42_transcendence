@@ -207,6 +207,7 @@ AI was not used for any task or any part of the project.
 | Runtime | Node.js with ESM | Modern JavaScript runtime and native cryptographic APIs |
 | Language | TypeScript 5.9, strict mode | Static checks across routes, services, and repositories |
 | Backend framework | Fastify 5 | Routing, lifecycle hooks, plugins, and request injection |
+| Frontend framework | Next.js 16 | File-based routing, multiple rendering per-page, image optimization, font optimization, code splitting |
 | Validation | Zod 4 and `fastify-type-provider-zod` | Runtime validation with inferred request types |
 | Database | PostgreSQL 16 | Relational integrity, transactions, and concurrency controls |
 | ORM | Prisma 6 | Typed database access and schema relationships |
