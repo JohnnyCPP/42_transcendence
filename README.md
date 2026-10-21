@@ -2,7 +2,7 @@
 
 *This project has been created as part of the 42 curriculum by pablgarc, jonnavar, [TODO].*
 
-# Transcendence
+# TaskFlow
 
 ## Table of Contents
 
@@ -58,6 +58,7 @@ Updated: 2026-10-22
 ## Description
 
 **TODO:** Clearly presents the project, including its goal and a brief overview.
+
 **TODO:** Should also contain a clear name for the project and its key features.
 
 TaskFlow is a work-management web application inspired by Trello.
@@ -73,6 +74,7 @@ Users can authenticate, enable two-factor authentication, create shared organiza
 ## Instructions
 
 **TODO:** Contains any relevant information about compilation, installation, and/or execution.
+
 **TODO:** Should mention all the needed prerequisites (software, tools, versions, configuration like .env setup, etc.), and step-by-step instructions to run the project.
 
 ### Prerequisites
@@ -176,21 +178,28 @@ AI was not used for any task or any part of the project.
 ## Team Information
 
 **TODO:** For each team member mentioned at the top of the README.md, provide:
+
 - Assigned role(s): Product Owner, Project Manager/Scrum Master, Technical Lead, and Developer.
 - Brief description of their responsibilities.
 
 ## Project Management
 
 **TODO:** How the team organized the work (task distribution, meetings, etc.).
+
 **TODO:** Tools used for project management (GitHub Issues, Trello, etc.).
+
 **TODO:** Communication channels used (Discord, Slack, etc.).
 
 ## Technical Stack
 
 **TODO:** Frontend technologies and frameworks used.
+
 **TODO:** Backend technologies and frameworks used.
+
 **TODO:** Database system and why it was chosen.
+
 **TODO:** Any other significant technologies or libraries.
+
 **TODO:** Justification for major technical choices.
 
 | Area | Technology | Reason for use |
@@ -208,7 +217,9 @@ AI was not used for any task or any part of the project.
 ## Database Schema
 
 **TODO:** Visual representation or description of the database structure.
+
 **TODO:** Tables/collections and their relationships.
+
 **TODO:** Key fields and data types.
 
 The main relationships are:
@@ -245,20 +256,28 @@ The initial migration contains the current schema:
 ## Features List
 
 **TODO:** Complete list of implemented features.
+
 **TODO:** Which team member(s) worked on each feature.
+
 **TODO:** Brief description of each feature’s functionality.
 
 ## Modules
 
 **TODO:** List of all chosen modules (Major and Minor).
+
 **TODO:** Point calculation (Major = 2pts, Minor = 1pt).
+
 **TODO:** Justification for each module choice, especially for custom "Modules of choice".
+
 **TODO:** How each module was implemented.
+
 **TODO:** Which team member(s) worked on each module.
 
 ## Individual Contributions
 
 **TODO:** Detailed breakdown of what each team member contributed.
+
 **TODO:** Specific features, modules, or components implemented by each person.
+
 **TODO:** Any challenges faced and how they were overcome.
 
