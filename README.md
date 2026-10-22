@@ -1,6 +1,4 @@
-**TODO:** Write 42 logins.
-
-*This project has been created as part of the 42 curriculum by pablgarc, jonnavar, [TODO].*
+*This project has been created as part of the 42 curriculum by pablgarc, jonnavar, gsoteldo, jorexpos, jdiaz-he.*
 
 # TaskFlow
 
