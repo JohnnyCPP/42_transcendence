@@ -41,7 +41,7 @@ export const mockDashboardBoards: DashboardBoardItem[] = [
     title: 'Website Redesign',
     updatedText: 'Actualizado hace 1 día',
     label: 'Diseño',
-    href: '/',
+    href: '/boards/website-redesign',
     imageUrl:
       'https://lh3.googleusercontent.com/aida-public/AB6AXuBeTVcuiX735Tv0NIy-Y54SGxDaW_YpZIJv4nkpv3eI9GolKhp4Sd7iDBX5kfr2q5mAotlFPoRt3x0mRE4ZRcZe_q0YDi5cye1DTSuslbpueqhFhEpAVAnK2ERGktEtlVowHx2q3z7wSHRKH5zGfGRKi1C8E9nbuQgyqhVa7np8xG-xcz_NeMC6X1hWU6aIByZWW3OlKRs1tQoiNyrksCEmaGCag7EQGJG-09_MsOjOAeffPFhJLlPJYQ',
     avatars: [
