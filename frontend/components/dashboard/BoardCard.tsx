@@ -1,23 +1,6 @@
 import Link from 'next/link';
+import { BoardCardProps } from './dashboard.types';
 
-interface BoardAvatar {
-  src: string;
-  alt: string;
-}
-
-interface BoardCardProps {
-  title: string;
-  updatedText: string;
-  label: string;
-  href?: string;
-  imageUrl: string;
-  avatars: BoardAvatar[];
-  progressPercent: number;
-  labelClassName: string;
-  progressClassName: string;
-  imageOverlayClassName?: string;
-  className?: string;
-}
 
 function BoardCardContent({
   title,
@@ -80,7 +63,7 @@ function BoardCardContent({
   );
 }
 
-export default function BoardCard({ href, className, ...contentProps }: BoardCardProps) {
+export function BoardCard({ href, className, ...contentProps }: BoardCardProps) {
   const cardClassName = `group block bg-surface-container-lowest rounded-xl border border-surface-container-highest overflow-hidden hover:shadow-lg transition-all duration-300 hover:border-primary/30 ${className ?? ''}`;
 
   if (href) {
