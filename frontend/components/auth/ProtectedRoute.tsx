@@ -45,7 +45,7 @@ export default function ProtectedRoute({
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-on-surface-variant">Loading...</p>
+          <p className="text-on-surface-variant">Comprobando sesión...</p>
         </div>
       </div>
     );

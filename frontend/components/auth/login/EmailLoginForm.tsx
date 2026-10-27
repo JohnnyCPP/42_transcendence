@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { LoginCredentials } from './auth.types';
+import { LoginCredentials } from '../auth.types';
 import Link from 'next/link';
 
 interface EmailLoginFormProps {
@@ -10,8 +10,21 @@ interface EmailLoginFormProps {
   error?: string | null;
 }
 
+
+function ValidateLoginForm(username: string, password: string): string | null {
+
+      if (!username.trim()) {
+        return 'El nombre de usuario es obligatorio';
+      }
+
+      else if (!password) {
+        return 'La contraseña es obligatoria';
+      }
+      return null;
+}
+
 /**
- * Formulario controlado de acceso por email y contraseña.
+ * Formulario controlado de acceso por usuario y contraseña.
  *
  * La pantalla padre decide qué pasa cuando el usuario envía el formulario;
  * este componente solo gestiona inputs, validación básica y feedback visual.
@@ -21,7 +34,7 @@ export default function EmailLoginForm({
   isLoading = false,
   error,
 }: EmailLoginFormProps) {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -32,28 +45,19 @@ export default function EmailLoginForm({
       setLocalError(null);
 
       // Validación mínima antes de delegar al handler externo.
-      if (!email.trim()) {
-        setLocalError('El correo electrónico es obligatorio');
-        return;
-      }
-
-      if (!password) {
-        setLocalError('La contraseña es obligatoria');
-        return;
-      }
-
-      if (!email.includes('@')) {
-        setLocalError('Introduce un correo electrónico válido');
+      const validationError = ValidateLoginForm(username, password);
+      if (validationError) {
+        setLocalError(validationError);
         return;
       }
 
       try {
-        await onSubmit({ email: email.trim(), password });
+        await onSubmit({ username: username.trim(), password });
       } catch (err) {
         setLocalError(err instanceof Error ? err.message : 'No se pudo iniciar sesión');
       }
     },
-    [email, password, onSubmit]
+    [username, password, onSubmit]
   );
 
   // Si llega un error desde el padre, tiene prioridad sobre el local.
@@ -61,17 +65,17 @@ export default function EmailLoginForm({
 
   return (
     <form onSubmit={handleSubmit} className="w-full space-y-4">
-      {/* Campo de correo: se usa para identificar al usuario en el login. */}
+      {/* Campo de usuario: se usa para identificar al usuario en el login. */}
       <div className="space-y-2">
-        <label htmlFor="email" className="text-sm font-medium text-on-surface">
-          Correo electrónico
+        <label htmlFor="username" className="text-sm font-medium text-on-surface">
+          Nombre de usuario
         </label>
         <input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="tu@empresa.com"
+          id="username"
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="usuario"
           disabled={isLoading}
           className="w-full rounded-xl border border-outline-variant bg-surface-bright px-4 py-3 text-on-surface placeholder-on-surface-variant transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
         />
