@@ -2,6 +2,13 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import {
+  AuthCard,
+  Button,
+  buttonClassName,
+  TextInput,
+  uiStyles,
+} from '@/components/ui';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -19,51 +26,33 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <main className="min-h-screen bg-surface-bright px-4 py-10 text-on-surface md:px-8 flex items-center justify-center">
-      <section className="w-full max-w-xl rounded-[28px] border border-outline-variant bg-white p-6 shadow-sm md:p-8 space-y-5">
-        <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant bg-surface-container-low px-3 py-1 text-sm text-on-surface-variant">
-          <span className="material-symbols-outlined text-[18px] text-primary">lock_reset</span>
-          Acceso y recuperación
+    <AuthCard
+      badgeIcon="lock_reset"
+      badgeLabel="Acceso y recuperación"
+      title="Recuperar contraseña"
+      description="Indica tu correo para preparar el siguiente paso del flujo de recuperación desde la propia interfaz."
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <TextInput
+          id="forgot-email"
+          name="email"
+          type="email"
+          value={email}
+          placeholder="tu@empresa.com"
+          onChange={setEmail}
+        />
+
+        {message && <div className={uiStyles.infoCallout}>{message}</div>}
+
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button type="submit" variant="primary" size="lg">
+            Continuar
+          </Button>
+          <Link href="/login" className={buttonClassName({ variant: 'secondary', size: 'lg' })}>
+            Volver al login
+          </Link>
         </div>
-
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Recuperar contraseña</h1>
-          <p className="text-sm text-on-surface-variant md:text-base">
-            Indica tu correo para preparar el siguiente paso del flujo de recuperación desde la propia interfaz.
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            type="email"
-            placeholder="tu@empresa.com"
-            className="w-full rounded-xl border border-outline-variant bg-surface-bright px-4 py-3 text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-          />
-
-          {message && (
-            <div className="rounded-xl border border-primary/20 bg-primary/10 p-3 text-sm text-primary">
-              {message}
-            </div>
-          )}
-
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-3 font-semibold text-white transition-colors hover:bg-primary-container"
-            >
-              Continuar
-            </button>
-            <Link
-              href="/login"
-              className="inline-flex items-center justify-center rounded-xl border border-outline-variant px-4 py-3 font-medium text-on-surface transition-colors hover:bg-surface-container"
-            >
-              Volver al login
-            </Link>
-          </div>
-        </form>
-      </section>
-    </main>
+      </form>
+    </AuthCard>
   );
 }

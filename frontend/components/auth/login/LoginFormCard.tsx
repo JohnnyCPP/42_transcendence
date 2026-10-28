@@ -1,5 +1,6 @@
 import EmailLoginForm from './EmailLoginForm';
 import { LoginFormCardProps } from './login.types';
+import { uiStyles } from '@/components/ui';
 
 /**
  * Contenedor visual del formulario de login.
@@ -9,7 +10,7 @@ import { LoginFormCardProps } from './login.types';
 export function LoginFormCard({ isLoading, error, onSubmit }: LoginFormCardProps) {
   return (
     <section>
-      <div className="w-full rounded-[28px] border border-outline-variant bg-white p-6 shadow-sm md:p-8">
+      <div className={`w-full ${uiStyles.authCard}`}>
         <div className="mb-6 text-center">
           <h2 className="text-2xl font-semibold text-on-surface">Acceso por usuario</h2>
           <p className="mt-2 text-sm text-on-surface-variant">
@@ -17,7 +18,6 @@ export function LoginFormCard({ isLoading, error, onSubmit }: LoginFormCardProps
           </p>
         </div>
 
-        {/* Formulario presentacional; la lógica de envío la define el contenedor. */}
         <EmailLoginForm
           onSubmit={onSubmit}
           isLoading={isLoading}

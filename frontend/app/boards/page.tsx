@@ -7,6 +7,11 @@ import { mapBoardToCard, useBoards } from '@/components/boards';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { AppShell } from '@/components/layout/AppShell';
 import { RequireActiveOrg, useOrg } from '@/components/org';
+import {
+  EmptyState,
+  buttonClassName,
+  uiStyles,
+} from '@/components/ui';
 
 /**
  * Listado completo de boards (tableros) de la organización activa.
@@ -39,38 +44,29 @@ export default function BoardsPage() {
     <ProtectedRoute>
       <RequireActiveOrg>
         <AppShell searchQuery={searchQuery} onSearchChange={setSearchQuery}>
-          <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
+          <div className={uiStyles.pageContent}>
             <section className="space-y-2">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">
-                Boards
-              </p>
-              <h1 className="text-3xl font-bold tracking-tight text-on-surface md:text-4xl">
+              <p className={uiStyles.pageKicker}>Boards</p>
+              <h1 className={uiStyles.pageTitle}>
                 Tableros de {activeOrganization?.name ?? 'tu workspace'}
               </h1>
-              <p className="max-w-2xl text-sm text-on-surface-variant md:text-base">
+              <p className={`max-w-2xl ${uiStyles.pageLead}`}>
                 Consulta y abre los tableros de este espacio de trabajo.
               </p>
             </section>
 
             {isLoading ? (
-              <section className="rounded-2xl border border-dashed border-outline-variant bg-surface-container-lowest p-8 text-center">
-                <span className="material-symbols-outlined animate-pulse text-[28px] text-outline">
-                  progress_activity
-                </span>
-                <p className="mt-3 text-sm text-on-surface-variant">
-                  Cargando tableros…
-                </p>
-              </section>
+              <EmptyState
+                icon="progress_activity"
+                pulse
+                description="Cargando tableros…"
+              />
             ) : error ? (
-              <section className="rounded-2xl border border-dashed border-outline-variant bg-surface-container-lowest p-8 text-center">
-                <span className="material-symbols-outlined text-[28px] text-outline">
-                  error
-                </span>
-                <h2 className="mt-3 text-lg font-semibold text-on-surface">
-                  No se pudieron cargar los tableros
-                </h2>
-                <p className="mt-2 text-sm text-on-surface-variant">{error}</p>
-              </section>
+              <EmptyState
+                icon="error"
+                title="No se pudieron cargar los tableros"
+                description={error}
+              />
             ) : filteredBoards.length > 0 ? (
               <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {filteredBoards.map((board) => (
@@ -78,29 +74,28 @@ export default function BoardsPage() {
                 ))}
               </section>
             ) : (
-              <section className="rounded-2xl border border-dashed border-outline-variant bg-surface-container-lowest p-8 text-center">
-                <span className="material-symbols-outlined text-[28px] text-outline">
-                  {searchQuery.trim() ? 'search_off' : 'view_kanban'}
-                </span>
-                <h2 className="mt-3 text-lg font-semibold text-on-surface">
-                  {searchQuery.trim()
+              <EmptyState
+                icon={searchQuery.trim() ? 'search_off' : 'view_kanban'}
+                title={
+                  searchQuery.trim()
                     ? 'No hay boards que coincidan'
-                    : 'Aún no hay tableros'}
-                </h2>
-                <p className="mt-2 text-sm text-on-surface-variant">
-                  {searchQuery.trim()
+                    : 'Aún no hay tableros'
+                }
+                description={
+                  searchQuery.trim()
                     ? 'Ajusta la búsqueda del header para encontrar otro board.'
-                    : 'Crea el primer tablero de este workspace.'}
-                </p>
+                    : 'Crea el primer tablero de este workspace.'
+                }
+              >
                 {!searchQuery.trim() && (
                   <Link
                     href="/projects/new"
-                    className="mt-4 inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-container"
+                    className={`mt-4 ${buttonClassName({ variant: 'primary', size: 'sm' })}`}
                   >
                     Crear proyecto
                   </Link>
                 )}
-              </section>
+              </EmptyState>
             )}
           </div>
         </AppShell>

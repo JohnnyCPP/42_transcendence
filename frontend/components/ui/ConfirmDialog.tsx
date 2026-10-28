@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Dialog from './Dialog';
+import Button from './Button';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -9,11 +10,17 @@ interface ConfirmDialogProps {
   description: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  /** `danger` pinta el botón de confirmar en rojo (eliminaciones). */
   tone?: 'danger' | 'primary';
   onConfirm: () => void;
   onClose: () => void;
 }
 
+/**
+ * Diálogo de confirmación (cancelar + confirmar).
+ *
+ * Usa `Button` ghost + primary/danger. Típico en eliminar tarea/columna.
+ */
 export default function ConfirmDialog({
   isOpen,
   title,
@@ -32,24 +39,15 @@ export default function ConfirmDialog({
       onClose={onClose}
       footer={(
         <>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl px-4 py-2 font-medium text-on-surface-variant transition-colors hover:bg-surface-container-high"
-          >
+          <Button variant="ghost" onClick={onClose}>
             {cancelLabel}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant={tone === 'danger' ? 'danger' : 'primary'}
             onClick={onConfirm}
-            className={`rounded-xl px-4 py-2 font-semibold text-white transition-colors ${
-              tone === 'danger'
-                ? 'bg-error hover:bg-error/90'
-                : 'bg-primary hover:bg-primary-container'
-            }`}
           >
             {confirmLabel}
-          </button>
+          </Button>
         </>
       )}
     />

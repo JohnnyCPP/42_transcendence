@@ -10,17 +10,14 @@ import {
   useOrg,
 } from '@/components/org';
 import type { OrganizationWithRole } from '@/components/org/org.types';
+import { EmptyState, uiStyles } from '@/components/ui';
 
 function WorkspaceHeader() {
   return (
     <section className="space-y-2">
-      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">
-        Workspace
-      </p>
-      <h1 className="text-3xl font-bold tracking-tight text-on-surface md:text-4xl">
-        Tus workspaces
-      </h1>
-      <p className="max-w-2xl text-sm text-on-surface-variant md:text-base">
+      <p className={uiStyles.pageKicker}>Workspace</p>
+      <h1 className={uiStyles.pageTitle}>Tus workspaces</h1>
+      <p className={`max-w-2xl ${uiStyles.pageLead}`}>
         Elige el workspace activo. Los tableros y listas dependerán del
         espacio de trabajo seleccionado.
       </p>
@@ -30,14 +27,12 @@ function WorkspaceHeader() {
 
 function WorkspaceLoading() {
   return (
-    <section className="rounded-xl border border-dashed border-outline-variant bg-surface-container-lowest p-8 text-center">
-      <span className="material-symbols-outlined animate-pulse text-[28px] text-outline">
-        progress_activity
-      </span>
-      <p className="mt-3 text-sm text-on-surface-variant">
-        Cargando workspaces…
-      </p>
-    </section>
+    <EmptyState
+      icon="progress_activity"
+      pulse
+      description="Cargando workspaces…"
+      className="rounded-xl"
+    />
   );
 }
 
@@ -77,7 +72,7 @@ export default function WorkspacePage() {
   return (
     <ProtectedRoute>
       <AppShell searchQuery={searchQuery} onSearchChange={setSearchQuery}>
-        <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
+        <div className={uiStyles.pageContent}>
           <WorkspaceHeader />
 
           {isLoading && organizations.length === 0 ? (
@@ -111,17 +106,13 @@ export default function WorkspacePage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-dashed border-outline-variant bg-surface-container-lowest p-8 text-center">
-                    <span className="material-symbols-outlined text-[28px] text-outline">
-                      domain_add
-                    </span>
-                    <h3 className="mt-3 text-base font-semibold text-on-surface">
-                      Aún no tienes workspaces
-                    </h3>
-                    <p className="mt-2 text-sm text-on-surface-variant">
-                      Crea el primero con el formulario de la derecha.
-                    </p>
-                  </div>
+                  <EmptyState
+                    icon="domain_add"
+                    title="Aún no tienes workspaces"
+                    description="Crea el primero con el formulario de la derecha."
+                    className="rounded-xl"
+                    titleClassName="mt-3 text-base font-semibold text-on-surface"
+                  />
                 )}
               </section>
 

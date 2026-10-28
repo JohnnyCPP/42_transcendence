@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { mockUsers } from '@/data/mockBoardData';
 import { BoardColumn, BoardFilters } from '@/types/board';
-import { TextInputDialog } from '@/components/ui';
+import { EmptyState, Icon, TextInputDialog } from '@/components/ui';
 import KanbanColumn from '../kanbanColumn';
 import TaskModal from '../taskModal/TaskModal';
 import { useKanbanState } from './useKanbanState';
@@ -83,13 +83,13 @@ export default function KanbanBoard({ initialColumns, searchQuery, filters }: Ka
   return (
     <div className="kanban-board flex-1">
       {!hasVisibleTasks && hasSearchQuery && (
-        <div className="w-80 min-w-80 rounded-xl border border-dashed border-outline-variant bg-surface-container-lowest p-6 text-center text-on-surface-variant shrink-0">
-          <span className="material-symbols-outlined text-[28px] text-outline">search_off</span>
-          <h3 className="mt-3 text-base font-semibold text-on-surface">No se encontraron tareas</h3>
-          <p className="mt-2 text-sm">
-            Prueba con otra búsqueda o crea una nueva tarea desde el tablero.
-          </p>
-        </div>
+        <EmptyState
+          icon="search_off"
+          title="No se encontraron tareas"
+          description="Prueba con otra búsqueda o crea una nueva tarea desde el tablero."
+          className="w-80 min-w-80 shrink-0 rounded-xl p-6 text-on-surface-variant"
+          titleClassName="mt-3 text-base font-semibold text-on-surface"
+        />
       )}
 
       {/* Una columna por cada estado visible después del filtrado. */}
@@ -111,7 +111,7 @@ export default function KanbanBoard({ initialColumns, searchQuery, filters }: Ka
         onClick={handleOpenAddColumnDialog}
         className="w-70 min-w-70 flex items-center gap-2 p-3 text-on-surface bg-surface-container hover:bg-surface-container-high rounded-lg hover:text-on-surface transition-colors h-fit text-[14px] font-medium cursor-pointer shrink-0"
       >
-        <span className="material-symbols-outlined text-[20px]">add</span>
+        <Icon name="add" size="lg" />
         Añadir otra columna
       </button>
 

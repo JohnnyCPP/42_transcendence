@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import LegalLinks from '@/components/layout/LegalLinks';
+import { uiStyles, cx } from '@/components/ui';
 import { LoginHeader, LoginFormCard, LoginPageViewProps } from './';
 
 /**
@@ -8,12 +9,15 @@ import { LoginHeader, LoginFormCard, LoginPageViewProps } from './';
  */
 export function LoginPageView({ isLoading, error, onSubmit }: LoginPageViewProps) {
   return (
-    <main className="relative min-h-screen bg-surface-bright px-4 py-10 text-on-surface md:px-8 flex items-center justify-center">
+    <main
+      className={cx(
+        uiStyles.authShell,
+        'relative'
+      )}
+    >
       <div className="w-full max-w-xl space-y-6 pb-16">
-        {/* Cabecera informativa del acceso. */}
         <LoginHeader />
 
-        {/* Tarjeta con el formulario de autenticación. */}
         <LoginFormCard
           isLoading={isLoading}
           error={error}

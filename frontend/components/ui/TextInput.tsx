@@ -1,3 +1,6 @@
+import { cx, uiStyles } from './ui.styles';
+
+/** Shape de ejemplo para formularios de auth (signup). */
 export type FormValues = {
   username: string;
   email: string;
@@ -12,11 +15,30 @@ export type TextInputProps = {
   value: string;
   placeholder?: string;
   disabled?: boolean;
+  /** Si hay error, borde/ring en tono error + mensaje debajo. */
   error?: string | null;
   onChange: (value: string) => void;
+  /** Clases extra sobre `uiStyles.input`. */
+  className?: string;
+  autoFocus?: boolean;
 };
 
-
+/**
+ * Input de texto controlado con label y mensaje de error opcionales.
+ *
+ * Usa `uiStyles.input` / `formLabel`. Exportado desde el barrel `components/ui`.
+ * También lo consume `TextInputDialog`.
+ *
+ * @example
+ * <TextInput
+ *   id="email"
+ *   name="email"
+ *   type="email"
+ *   label="Correo"
+ *   value={email}
+ *   onChange={setEmail}
+ * />
+ */
 export default function TextInput({
   id,
   name,
@@ -27,10 +49,16 @@ export default function TextInput({
   disabled,
   error,
   onChange,
+  className,
+  autoFocus,
 }: TextInputProps) {
   return (
     <div className="space-y-1">
-      {label && <label htmlFor={id}>{label}</label>}
+      {label && (
+        <label htmlFor={id} className={uiStyles.formLabel}>
+          {label}
+        </label>
+      )}
       <input
         id={id}
         name={name}
@@ -38,10 +66,15 @@ export default function TextInput({
         value={value}
         placeholder={placeholder}
         disabled={disabled}
+        autoFocus={autoFocus}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-outline-variant bg-surface-bright px-4 py-3 text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+        className={cx(
+          uiStyles.input,
+          error && 'border-error focus:ring-error/30',
+          className
+        )}
       />
-      {error && <p>{error}</p>}
+      {error && <p className="text-sm font-medium text-error">{error}</p>}
     </div>
   );
 }

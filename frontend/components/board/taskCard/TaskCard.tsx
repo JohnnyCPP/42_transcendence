@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ConfirmDialog } from '@/components/ui';
+import { ConfirmDialog, Icon, uiStyles } from '@/components/ui';
 import { TaskItem, TaskPriority } from '@/types/board';
 
 const priorityLabels: Record<TaskPriority, string> = {
@@ -70,9 +70,7 @@ function TaskCardHeader({
           className="text-outline hover:text-on-surface cursor-pointer"
           aria-label="Acciones de la tarjeta"
         >
-          <span className="material-symbols-outlined text-[16px]">
-            more_horiz
-          </span>
+          <Icon name="more_horiz" size="md" className="text-[16px]" />
         </button>
 
         {isMenuOpen && (
@@ -84,9 +82,9 @@ function TaskCardHeader({
                 setIsMenuOpen(false);
                 onEdit?.();
               }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-on-surface transition-colors hover:bg-surface-container"
+              className={uiStyles.dropdownItem}
             >
-              <span className="material-symbols-outlined text-[18px]">edit</span>
+              <Icon name="edit" size="md" />
               Editar tarea
             </button>
 
@@ -97,9 +95,9 @@ function TaskCardHeader({
                 setIsMenuOpen(false);
                 onDuplicate?.();
               }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-on-surface transition-colors hover:bg-surface-container"
+              className={uiStyles.dropdownItem}
             >
-              <span className="material-symbols-outlined text-[18px]">content_copy</span>
+              <Icon name="content_copy" size="md" />
               Duplicar
             </button>
 
@@ -110,9 +108,9 @@ function TaskCardHeader({
                 setIsMenuOpen(false);
                 onDelete?.();
               }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-error transition-colors hover:bg-error/10"
+              className={uiStyles.dropdownItemDanger}
             >
-              <span className="material-symbols-outlined text-[18px]">delete</span>
+              <Icon name="delete" size="md" />
               Eliminar
             </button>
           </div>
@@ -147,7 +145,7 @@ function TaskWireframePreview() {
 }
 
 function TaskMetaIcon({ icon }: { icon: string }) {
-  return <span className="material-symbols-outlined text-[14px]">{icon}</span>;
+  return <Icon name={icon} size="sm" />;
 }
 
 function TaskMetaItem({

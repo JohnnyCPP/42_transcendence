@@ -1,16 +1,24 @@
 'use client';
 
 import React from 'react';
+import Icon from './Icon';
 
 interface DialogProps {
   isOpen: boolean;
   title: string;
   description?: string;
   children?: React.ReactNode;
+  /** Acciones del pie (suele montar `Button`). */
   footer?: React.ReactNode;
   onClose: () => void;
 }
 
+/**
+ * Modal base (overlay + panel + cabecera + footer opcional).
+ *
+ * Base de `InfoDialog`, `ConfirmDialog` y `TextInputDialog`.
+ * No gestiona foco/escape; los wrappers añaden el caso de uso.
+ */
 export default function Dialog({
   isOpen,
   title,
@@ -42,7 +50,7 @@ export default function Dialog({
             className="rounded-md p-1 text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
             aria-label="Cerrar diálogo"
           >
-            <span className="material-symbols-outlined text-[20px]">close</span>
+            <Icon name="close" size="lg" />
           </button>
         </div>
 

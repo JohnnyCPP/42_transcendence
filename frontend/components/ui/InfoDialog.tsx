@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Dialog from './Dialog';
+import Button from './Button';
 
 interface InfoDialogProps {
   isOpen: boolean;
@@ -11,6 +12,11 @@ interface InfoDialogProps {
   onClose: () => void;
 }
 
+/**
+ * Diálogo informativo con un solo CTA (cierra al confirmar).
+ *
+ * Ejemplo: aviso “Nueva tarea desde dashboard”.
+ */
 export default function InfoDialog({
   isOpen,
   title,
@@ -25,13 +31,9 @@ export default function InfoDialog({
       description={description}
       onClose={onClose}
       footer={(
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-xl bg-primary px-4 py-2 font-semibold text-white transition-colors hover:bg-primary-container"
-        >
+        <Button variant="primary" onClick={onClose}>
           {buttonLabel}
-        </button>
+        </Button>
       )}
     />
   );

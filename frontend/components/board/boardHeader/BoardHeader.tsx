@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { BoardFilters, TaskPriority } from '@/types/board';
-import { Dialog } from '@/components/ui';
+import { Button, Dialog, Icon, uiStyles } from '@/components/ui';
 
 const priorityOptions: TaskPriority[] = ['Low', 'Medium', 'Urgent', 'Enhancement', 'Complete'];
 const priorityLabels: Record<TaskPriority, string> = {
@@ -20,48 +20,53 @@ interface BoardHeaderProps {
   onClearFilters: () => void;
 }
 
-// Título del board con opción de favorito.
-function HeaderTitle(){
-	const [isStarred, setIsStarred] = useState(false);
+function HeaderTitle() {
+  const [isStarred, setIsStarred] = useState(false);
 
-	return (
-		<div className="flex items-center gap-3">
-        <h2 className="text-[32px] font-bold text-on-surface tracking-tight leading-none">
-          Website Redesign
-        </h2>
-        <button
-          onClick={() => setIsStarred(!isStarred)}
-          className={`transition-colors cursor-pointer ${
-            isStarred ? 'text-amber-500' : 'text-outline-variant hover:text-primary'
-          }`}
-          title="Marcar board como favorito"
-        >
-          <span
-            className="material-symbols-outlined"
-            style={{
-              fontVariationSettings: isStarred ? "'FILL' 1" : "'FILL' 0",
-            }}
-          >
-            star
-          </span>
-        </button>
-      </div>
-	);
-} 
-
-// Botón reutilizable para acciones del encabezado.
-function HeaderButton({icon, label, onClick, active = false}: {icon: string, label: string, onClick: () => void, active?: boolean}) {
-	return (
-    <button onClick={onClick} className={`flex items-center gap-1.5 px-3 py-1.5 rounded font-semibold text-[12px] transition-colors cursor-pointer ${active ? 'bg-primary/10 text-primary' : 'bg-surface-container hover:bg-surface-container-high text-on-surface'}`}>
-    		<span className="material-symbols-outlined text-[18px]">
-    			{icon}
-    		</span>
-    		{label}
-    	</button>
-	);
+  return (
+    <div className="flex items-center gap-3">
+      <h2 className="text-[32px] font-bold text-on-surface tracking-tight leading-none">
+        Website Redesign
+      </h2>
+      <button
+        onClick={() => setIsStarred(!isStarred)}
+        className={`transition-colors cursor-pointer ${
+          isStarred ? 'text-amber-500' : 'text-outline-variant hover:text-primary'
+        }`}
+        title="Marcar board como favorito"
+      >
+        <Icon name="star" filled={isStarred} />
+      </button>
+    </div>
+  );
 }
 
-// Grupo de acciones rápidas del board.
+function HeaderButton({
+  icon,
+  label,
+  onClick,
+  active = false,
+}: {
+  icon: string;
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded font-semibold text-[12px] transition-colors cursor-pointer ${
+        active
+          ? 'bg-primary/10 text-primary'
+          : 'bg-surface-container hover:bg-surface-container-high text-on-surface'
+      }`}
+    >
+      <Icon name={icon} size="md" />
+      {label}
+    </button>
+  );
+}
+
 function HeaderButtonsList({
   filters,
   onTogglePriority,
@@ -77,10 +82,12 @@ function HeaderButtonsList({
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
-  const activeFilterCount = filters.priorities.length + (filters.showCompletedOnly ? 1 : 0);
+  const activeFilterCount =
+    filters.priorities.length + (filters.showCompletedOnly ? 1 : 0);
   const boardLink = 'https://taskflow.local/boards/website-redesign';
   const shareDescription = useMemo(
-    () => `Comparte este board con el resto del equipo mediante un enlace de referencia.`,
+    () =>
+      `Comparte este board con el resto del equipo mediante un enlace de referencia.`,
     []
   );
 
@@ -94,18 +101,26 @@ function HeaderButtonsList({
     }
   };
 
-	return (
+  return (
     <>
       <div className="flex items-center gap-3 flex-wrap">
-      	    <HeaderButton
+        <HeaderButton
           icon="filter_list"
-          label={activeFilterCount > 0 ? `Filtros (${activeFilterCount})` : 'Filtros'}
+          label={
+            activeFilterCount > 0
+              ? `Filtros (${activeFilterCount})`
+              : 'Filtros'
+          }
           onClick={() => setIsFilterOpen(true)}
           active={activeFilterCount > 0}
         />
 
-        <HeaderButton icon="person_add" label="Compartir" onClick={() => setIsShareOpen(true)} />
-      	</div>
+        <HeaderButton
+          icon="person_add"
+          label="Compartir"
+          onClick={() => setIsShareOpen(true)}
+        />
+      </div>
 
       <Dialog
         isOpen={isFilterOpen}
@@ -114,26 +129,20 @@ function HeaderButtonsList({
         onClose={() => setIsFilterOpen(false)}
         footer={(
           <>
-            <button
-              type="button"
-              onClick={onClearFilters}
-              className="rounded-xl px-4 py-2 font-medium text-on-surface-variant transition-colors hover:bg-surface-container-high"
-            >
+            <Button variant="ghost" onClick={onClearFilters}>
               Limpiar
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsFilterOpen(false)}
-              className="rounded-xl bg-primary px-4 py-2 font-semibold text-white transition-colors hover:bg-primary-container"
-            >
+            </Button>
+            <Button variant="primary" onClick={() => setIsFilterOpen(false)}>
               Cerrar
-            </button>
+            </Button>
           </>
         )}
       >
         <div className="space-y-5">
           <div>
-            <p className="mb-2 text-sm font-semibold text-on-surface">Prioridades</p>
+            <p className="mb-2 text-sm font-semibold text-on-surface">
+              Prioridades
+            </p>
             <div className="flex flex-wrap gap-2">
               {priorityOptions.map((priority) => {
                 const isActive = filters.priorities.includes(priority);
@@ -177,18 +186,14 @@ function HeaderButtonsList({
           setIsCopied(false);
         }}
         footer={(
-          <button
-            type="button"
-            onClick={() => setIsShareOpen(false)}
-            className="rounded-xl bg-primary px-4 py-2 font-semibold text-white transition-colors hover:bg-primary-container"
-          >
+          <Button variant="primary" onClick={() => setIsShareOpen(false)}>
             Cerrar
-          </button>
+          </Button>
         )}
       >
         <div className="space-y-4">
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-on-surface">Enlace del board</label>
+            <label className={uiStyles.formLabel}>Enlace del board</label>
             <div className="flex items-center gap-2">
               <input
                 readOnly
@@ -213,10 +218,9 @@ function HeaderButtonsList({
         </div>
       </Dialog>
     </>
-	);
+  );
 }
 
-// Encabezado principal del tablero.
 export default function BoardHeader({
   filters,
   onTogglePriority,
@@ -225,14 +229,14 @@ export default function BoardHeader({
 }: BoardHeaderProps) {
   return (
     <div className="px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0 bg-surface-container-lowest border-b border-outline-variant">
-		<HeaderTitle />
+      <HeaderTitle />
 
-    <HeaderButtonsList
-      filters={filters}
-      onTogglePriority={onTogglePriority}
-      onToggleCompletedOnly={onToggleCompletedOnly}
-      onClearFilters={onClearFilters}
-    />
+      <HeaderButtonsList
+        filters={filters}
+        onTogglePriority={onTogglePriority}
+        onToggleCompletedOnly={onToggleCompletedOnly}
+        onClearFilters={onClearFilters}
+      />
     </div>
   );
 }
