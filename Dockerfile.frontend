@@ -1,3 +1,11 @@
+#/**
+# * Imagen del frontend (Next.js) servida por HTTPS.
+# *
+# * Cuatro etapas: dependencias, dependencias de producción, build (que
+# * también genera el certificado autofirmado) y ejecución.
+# * INTERNAL_API_URL llega como argumento de build porque Next fija los
+# * rewrites al compilar. El contenedor arranca con server.mjs.
+# */
 FROM node:20-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./

@@ -1,3 +1,10 @@
+#/**
+# * Exclusiones del contexto de build de Dockerfile.backend.
+# *
+# * Lo que aparece aquí no se envía a Docker al construir la imagen del
+# * backend: dependencias y compilados locales (se generan dentro de la
+# * imagen), secretos como .env y carpetas ajenas como frontend/ o document/.
+# */
 /node_modules
 /dist
 

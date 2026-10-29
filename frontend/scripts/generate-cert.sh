@@ -1,4 +1,12 @@
 #!/bin/sh
+#/**
+# * Genera un certificado TLS autofirmado para localhost.
+# *
+# * Crea cert.pem y key.pem en la carpeta indicada (por defecto ./certs).
+# * Se ejecuta durante el build de la imagen. El navegador avisará porque
+# * no lo firma ninguna autoridad; en local es lo esperado.
+# * Uso: sh scripts/generate-cert.sh [carpeta]
+# */
 set -eu
 
 OUT_DIR="${1:-./certs}"

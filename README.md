@@ -1,3 +1,13 @@
+<!--
+/**
+ * Documentación principal del proyecto.
+ *
+ * La sección Instructions explica como levantar todo con Docker, las
+ * variables de entorno necesarias y como confiar en el certificado
+ * autofirmado de https://localhost.
+ */
+-->
+
 *This project has been created as part of the 42 curriculum by pablgarc, jonnavar, gsoteldo, jorexpos, jdiaz-he.*
 
 # TaskFlow

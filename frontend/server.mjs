@@ -1,3 +1,11 @@
+/**
+ * Servidor HTTPS que ejecuta la app de Next.js.
+ *
+ * next start no sirve HTTPS, así que este servidor carga el certificado,
+ * termina TLS y entrega cada petición a Next.js. Comprueba antes las
+ * variables obligatorias y se cierra limpio con docker compose down.
+ */
+
 import { readFileSync } from 'node:fs';
 import { createServer } from 'node:https';
 import next from 'next';

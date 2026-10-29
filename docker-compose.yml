@@ -1,3 +1,11 @@
+#/**
+# * Levanta el proyecto completo con: docker compose up --build
+# *
+# * Navegador --HTTPS:443--> nextjs --HTTP--> fastify --> postgres
+# * Solo nextjs publica un puerto; fastify y postgres solo se ven dentro
+# * de la red de compose. Los healthchecks fijan el orden de arranque y
+# * los valores ${VAR} se leen del .env de la raíz.
+# */
 services:
   postgres:
     image: postgres:16-alpine

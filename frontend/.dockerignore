@@ -1,3 +1,9 @@
+#/**
+# * Exclusiones del contexto de build de Dockerfile.frontend.
+# *
+# * Evita enviar a Docker node_modules, .next, certificados y archivos
+# * .env locales: todo eso se genera o se configura dentro de la imagen.
+# */
 node_modules
 .next
 certs

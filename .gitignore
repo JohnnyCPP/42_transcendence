@@ -1,3 +1,10 @@
+#/**
+# * Archivos que git no debe seguir.
+# *
+# * Además de dependencias, compilados y logs, excluye los certificados
+# * TLS autofirmados (frontend/certs/, *.pem), que se generan en cada
+# * build y nunca deben subirse al repositorio.
+# */
 node_modules/
 dist/
 .npm-cache/
