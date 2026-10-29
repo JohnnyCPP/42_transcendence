@@ -6,3 +6,5 @@ dist/
 .worktrees/
 starter/
 tests/
+frontend/certs/
+*.pem

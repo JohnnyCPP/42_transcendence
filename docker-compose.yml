@@ -1,15 +1,57 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: transcendence-postgres
     environment:
-      POSTGRES_DB: transcendence
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: ${POSTGRES_DB:-transcendence}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env (copy .env.example)}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  fastify:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-transcendence}
+      COOKIE_SECURE: "true"
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-sid}
+      SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-14}
+      TOTP_ISSUER: ${TOTP_ISSUER:-Transcendence}
+      TOTP_ENCRYPTION_KEY_BASE64: ${TOTP_ENCRYPTION_KEY_BASE64:?Set TOTP_ENCRYPTION_KEY_BASE64 in .env (openssl rand -base64 32)}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  nextjs:
+    build:
+      context: ./frontend
+      dockerfile: ../Dockerfile.frontend
+      args:
+        INTERNAL_API_URL: http://fastify:3000
+    environment:
+      INTERNAL_API_URL: http://fastify:3000
+      COOKIE_SECURE: "true"
+    depends_on:
+      fastify:
+        condition: service_healthy
+    ports:
+      - "443:3000"
 
 volumes:
   postgres_data:

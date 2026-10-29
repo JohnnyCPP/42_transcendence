@@ -1,0 +1,8 @@
+node_modules
+.next
+certs
+*.pem
+
+.env*
+npm-debug.log*
+*.tsbuildinfo
