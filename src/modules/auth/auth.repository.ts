@@ -19,7 +19,7 @@ export interface AuthRepository
   updatePasswordCredential(input: PasswordCredential): Promise<void>;
   createLoginChallenge(input: Omit<LoginChallenge, 'id' | 'createdAt' | 'consumedAt'>): Promise<LoginChallenge>;
   findLoginChallengeByTokenHash(tokenHash: string): Promise<LoginChallenge | null>;
-  consumeLoginChallenge(id: string): Promise<void>;
+  claimLoginChallenge(id: string, now: Date): Promise<boolean>;
 }
 
 export class InMemoryAuthRepository implements AuthRepository 
@@ -59,10 +59,11 @@ export class InMemoryAuthRepository implements AuthRepository
     return [...this.challenges.values()].find((challenge) => challenge.tokenHash === tokenHash) ?? null;
   }
 
-  async consumeLoginChallenge(id: string): Promise<void> 
+  async claimLoginChallenge(id: string, now: Date): Promise<boolean>
   {
     const challenge = this.challenges.get(id);
-    if (challenge && !challenge.consumedAt) challenge.consumedAt = new Date();
+    if (!challenge || challenge.consumedAt || challenge.expiresAt <= now) return false;
+    challenge.consumedAt = now;
+    return true;
   }
 }
-

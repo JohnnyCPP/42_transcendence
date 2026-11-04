@@ -235,7 +235,7 @@
           <div class="section-heading">
             <div>
               <p class="eyebrow">03 · Espacio de trabajo</p>
-              <h2 id="workspace-title">Organizaciones, tableros y listas</h2>
+              <h2 id="workspace-title">Organizaciones, tableros, listas y tarjetas</h2>
             </div>
             <button class="secondary-button" type="button" id="reloadWorkspace">Recargar todo</button>
           </div>
@@ -289,6 +289,24 @@
             </form>
           </div>
 
+          <div class="card-grid two-columns workspace-cards">
+            <form class="card" id="cardForm">
+              <div class="card-heading"><span class="step">4</span><div><h3>Tarjeta</h3><p>Crea una tarjeta en la lista seleccionada.</p></div></div>
+              <label>Lista<select id="listSelect"><option value="">Sin listas</option></select></label>
+              <label>Título<input name="title" value="Manual test card" required /></label>
+              <label>Descripción<textarea name="description"></textarea></label>
+              <label>Fecha límite<input name="dueDate" type="datetime-local" /></label>
+              <div class="button-row"><button class="primary-button" type="submit">Crear tarjeta</button><button class="secondary-button" type="button" id="reloadCards">Cargar tarjetas</button></div>
+            </form>
+            <section class="card">
+              <div class="card-heading"><span class="step">CRUD</span><div><h3>Operaciones de tarjeta</h3><p>Edita, mueve o archiva la tarjeta seleccionada.</p></div></div>
+              <label>Tarjeta actual<select id="cardSelect"><option value="">Sin tarjetas</option></select></label>
+              <form class="inline-form" id="cardEditForm"><label>Nuevo título<input name="title" required /></label><button class="primary-button" type="submit">Editar</button></form>
+              <label>Mover a lista<select id="targetListSelect"><option value="">Selecciona una lista</option></select></label>
+              <div class="button-row"><button class="secondary-button" type="button" id="moveCard">Mover tarjeta</button><button class="danger-button" type="button" id="archiveCard">Archivar tarjeta</button></div>
+              <pre class="result-box" id="cardPreview">Selecciona una tarjeta.</pre>
+            </section>
+          </div>
           <section class="card workspace-state">
             <div class="card-heading">
               <span class="step">JSON</span>

@@ -1,6 +1,7 @@
 import { conflict } from '../../shared/errors/httpErrors.js';
 import { randomToken } from '../../shared/crypto/randomToken.js';
 import type { CreateUserInput, User } from './users.types.js';
+import { paginateArray, type Page, type PaginationInput } from '../../shared/pagination.js';
 
 export interface UsersRepository 
 {
@@ -8,7 +9,7 @@ export interface UsersRepository
   findById(id: string): Promise<User | null>;
   findByUsername(username: string): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
-  list(): Promise<User[]>;
+  list(pagination: PaginationInput): Promise<Page<User>>;
 }
 
 export class InMemoryUsersRepository implements UsersRepository 
@@ -56,8 +57,12 @@ export class InMemoryUsersRepository implements UsersRepository
     return [...this.users.values()].find((user) => user.email === normalizedEmail) ?? null;
   }
 
-  async list(): Promise<User[]> 
+  async list(pagination: PaginationInput): Promise<Page<User>>
   {
-    return [...this.users.values()];
+    const users = [...this.users.values()]
+      .sort((left, right) =>
+        right.createdAt.getTime() - left.createdAt.getTime() || right.id.localeCompare(left.id)
+      );
+    return paginateArray(users, pagination);
   }
 }

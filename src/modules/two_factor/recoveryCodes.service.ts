@@ -1,4 +1,3 @@
-import { timingSafeEqual } from 'node:crypto';
 import { hashToken } from '../../shared/crypto/hashToken.js';
 import { randomToken } from '../../shared/crypto/randomToken.js';
 import type { TwoFactorRepository } from './twoFactor.repository.js';
@@ -17,18 +16,7 @@ export class RecoveryCodesService
   async consume(userId: string, code: string): Promise<boolean> 
   {
     const codeHash = hashToken(code.trim());
-    const activeCodes = await this.twoFactorRepository.listActiveRecoveryCodes(userId);
-    for (const record of activeCodes) 
-    {
-      const left = Buffer.from(record.codeHash);
-      const right = Buffer.from(codeHash);
-      if (left.length === right.length && timingSafeEqual(left, right)) 
-      {
-        await this.twoFactorRepository.markRecoveryCodeUsed(record.id);
-        return true;
-      }
-    }
-    return false;
+    // The repository consumes the code conditionally in one atomic operation.
+    return this.twoFactorRepository.consumeRecoveryCodeHash(userId, codeHash);
   }
 }
-

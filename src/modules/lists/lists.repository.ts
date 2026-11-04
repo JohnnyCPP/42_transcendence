@@ -1,11 +1,12 @@
 import { badRequest } from '../../shared/errors/httpErrors.js';
 import { randomToken } from '../../shared/crypto/randomToken.js';
 import type { BoardList, CreateListInput, ReorderListsInput, UpdateListInput } from './lists.types.js';
+import { paginateArray, type Page, type PaginationInput } from '../../shared/pagination.js';
 
 export interface ListsRepository 
 {
   create(input: CreateListInput): Promise<BoardList>;
-  listForBoard(boardId: string): Promise<BoardList[]>;
+  listForBoard(boardId: string, pagination: PaginationInput): Promise<Page<BoardList>>;
   findById(listId: string): Promise<BoardList | null>;
   update(input: UpdateListInput): Promise<BoardList>;
   reorder(input: ReorderListsInput): Promise<BoardList[]>;
@@ -18,7 +19,7 @@ export class InMemoryListsRepository implements ListsRepository
   async create(input: CreateListInput): Promise<BoardList> 
   {
     const now = new Date();
-    const currentLists = await this.listForBoard(input.boardId);
+    const currentLists = this.activeLists(input.boardId);
     const nextPosition = currentLists.length ? Math.max(...currentLists.map((list) => list.position)) + 1000 : 1000;
     const list: BoardList = {
       id: randomToken(16),
@@ -33,11 +34,9 @@ export class InMemoryListsRepository implements ListsRepository
     return list;
   }
 
-  async listForBoard(boardId: string): Promise<BoardList[]> 
+  async listForBoard(boardId: string, pagination: PaginationInput): Promise<Page<BoardList>>
   {
-    return [...this.lists.values()]
-      .filter((list) => list.boardId === boardId && !list.archivedAt)
-      .sort((left, right) => left.position - right.position);
+    return paginateArray(this.activeLists(boardId), pagination);
   }
 
   async findById(listId: string): Promise<BoardList | null> 
@@ -58,7 +57,7 @@ export class InMemoryListsRepository implements ListsRepository
 
   async reorder(input: ReorderListsInput): Promise<BoardList[]> 
   {
-    const currentLists = await this.listForBoard(input.boardId);
+    const currentLists = this.activeLists(input.boardId);
     assertSameListSet(currentLists.map((list) => list.id), input.listIds);
 
     const now = new Date();
@@ -68,7 +67,14 @@ export class InMemoryListsRepository implements ListsRepository
       list.updatedAt = now;
     });
 
-    return this.listForBoard(input.boardId);
+    return this.activeLists(input.boardId);
+  }
+
+  private activeLists(boardId: string): BoardList[]
+  {
+    return [...this.lists.values()]
+      .filter((list) => list.boardId === boardId && !list.archivedAt)
+      .sort((left, right) => left.position - right.position);
   }
 }
 

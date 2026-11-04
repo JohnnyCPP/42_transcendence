@@ -1,247 +1,323 @@
-# Transcendence Backend
+<!--
+/**
+ * Documentación principal del proyecto.
+ *
+ * La sección Instructions explica como levantar todo con Docker, las
+ * variables de entorno necesarias y como confiar en el certificado
+ * autofirmado de https://localhost.
+ */
+-->
 
-Backend modular para una aplicacion de gestion de trabajo estilo Trello. El proyecto combina autenticacion segura, gestion de organizaciones, tableros y listas, con una pequeña interfaz web para probar manualmente los flujos principales.
+*This project has been created as part of the 42 curriculum by pablgarc, jonnavar, gsoteldo, jorexpos, jdiaz-he.*
 
-En la carpeta docs hay imagenes que explican el flujo y una cheet_sheet  
+# TaskFlow
 
-Nuevo posible ejemplo de estructura
+## Table of Contents
 
-## Modulos principales:
+- Description
+- Instructions
+- Resources
+- Team Information
+- Project Management
+- Technical Stack
+- Database Schema
+- Features List
+- Modules
+- Individual Contributions
 
-| Módulo                 |  Puntos |
+## Tree
 
--Framework frontend y backend | 2 |
-
--Tiempo real con WebSockets   | 2 |
-
--Sistema de organizaciones    | 2 |
-
--Permisos avanzados           | 2 |
-
--API pública asegurada        | 2 |
-
--ORM con Prisma               | 1 |
-
--2FA completo                 | 1 |
-
--Notificaciones completas     | 1 |
-
--Colaboración en tiempo real  | 1 |
-
-**Total asegurado**        | **14** |
-
-## Modulos de reserva
-
--Módulo                  | Puntos |
-
--Búsqueda avanzada            | 1 |
-
--PWA con soporte offline      | 1 |
-
-**Total potencial**        | **16** |
-
-
-
-
-
-
-
-
-## Estado actual
-
-Actualmente estan implementados:
-
-- Registro e inicio de sesion con usuario, email opcional y contraseña.
-- Sesiones mediante cookie `HttpOnly`, con expiracion y revocacion.
-- Reautenticacion para operaciones sensibles.
-- Autenticacion de dos factores mediante TOTP.
-- Codigos de recuperacion de un solo uso.
-- Organizaciones con roles `owner`, `admin` y `member`.
-- Tableros asociados a organizaciones.
-- Listas de tablero, edicion y reordenacion.
-- Autorizacion por sesion, rol y pertenencia a la organizacion.
-- Validacion de cuerpos y parametros con Zod.
-- Migraciones SQL idempotentes ejecutadas al arrancar con PostgreSQL.
-- Pruebas de integracion para autenticacion, organizaciones, tableros, listas e interfaz.
-
-La interfaz incluida en `public/` es una UI de pruebas manuales,
-
-## Tecnologias
-
-- Node.js con modulos ESM.
-- TypeScript en modo estricto.
-- Fastify .
-- PostgreSQL 16 mediante Docker Compose.
-- Prisma 6 como cliente y generador de tipos.
-- Zod para validacion.
-- `otplib` para TOTP.
-- `scrypt` de Node.js para contraseñas.
-- Node Test Runner para las pruebas de integracion.
-
-## Arquitectura
-
-El codigo esta organizado por modulos de dominio:
+Updated: 2026-10-22
 
 ```text
-src/
-├── app.ts                 # Construccion de Fastify y registro de modulos
-├── server.ts              # Punto de entrada del servidor
-├── config/                # Configuracion y seguridad
-├── db/                    # Cliente Prisma y migraciones
-├── modules/
-│   ├── auth/              # Registro, login, logout y contraseñas
-│   ├── authorization/     # Sesion actual y control de roles
-│   ├── lists/             # Listas y reordenacion
-│   ├── organizations/     # Organizaciones y membresias
-│   ├── boards/            # Tableros
-│   ├── sessions/          # Sesiones persistentes
-│   ├── two_factor/        # TOTP y codigos de recuperacion
-│   └── users/             # Usuarios y rutas administrativas
-├── shared/                # Criptografia, cookies, errores y rate limiting
-└── ui/                    # Rutas de la interfaz manual
+.
+├── docker-compose.yml
+├── document
+│   ├── md
+│   ├── pdf
+│   └── png
+├── package.json
+├── package-lock.json
+├── prisma
+│   ├── migrations
+│   └── schema.prisma
+├── src
+│   ├── app.ts
+│   ├── config
+│   ├── db
+│   ├── modules
+│   │   ├── auth
+│   │   ├── authorization
+│   │   ├── boards
+│   │   ├── cards
+│   │   ├── lists
+│   │   ├── organizations
+│   │   ├── sessions
+│   │   ├── two_factor
+│   │   └── users
+│   ├── server.ts
+│   └── shared
+│       ├── crypto
+│       ├── errors
+│       └── http
+└── tsconfig.json
 ```
 
-Cada modulo separa rutas, servicios, tipos y repositorios. Los servicios reciben repositorios, por lo que la aplicacion utiliza implementaciones Prisma en desarrollo/produccion y en memoria cuando `NODE_ENV=test`.
+## Description
 
-## Requisitos
+**TODO:** Clearly presents the project, including its goal and a brief overview.
 
-- Node.js compatible con TypeScript 5.9 y Prisma 6.
-- npm.
-- Docker y Docker Compose si se quiere ejecutar con PostgreSQL.
+**TODO:** Should also contain a clear name for the project and its key features.
 
-## Instalacion y configuracion
+TaskFlow is a work-management web application inspired by Trello.
 
-1. Instalar dependencias:
+The implemented domain follows this hierarchy:
+
+```text
+Organization -> Board -> List -> Card
+```
+
+Users can authenticate, enable two-factor authentication, create shared organizations and boards, organize work into ordered lists, and create, edit, move, or archive cards.
+
+## Instructions
+
+The whole stack (PostgreSQL, Fastify backend and Next.js frontend) runs with Docker Compose. No Node.js or PostgreSQL installation is needed on the host.
+
+```text
+Browser --HTTPS:443--> nextjs (Next.js + TLS) --HTTP--> fastify (API) --TCP--> postgres
+```
+
+Only the `nextjs` container publishes a port (`443`). `fastify` and `postgres` are reachable only inside the Compose network, so every browser request goes through HTTPS.
+
+### Prerequisites
+
+- Docker Engine with the Compose plugin (`docker compose version` must work).
+- OpenSSL, only to generate the TOTP key below.
+- Port `443` free on the host.
+
+### Quick start
+
+1. Create your environment file from the example:
 
    ```bash
-   npm install
+   cp .env.example .env
    ```
 
-2. Copiar `.env.example` a `.env` y completar al menos una clave para TOTP:
+2. Replace `TOTP_ENCRYPTION_KEY_BASE64` in `.env` with a real key (32 random bytes, Base64):
 
    ```bash
-   TOTP_ENCRYPTION_KEY_BASE64=<32 bytes aleatorios codificados en base64>
+   openssl rand -base64 32
    ```
 
-3. Arrancar PostgreSQL:
+3. Build and start everything:
 
    ```bash
-   docker compose up -d postgres
+   docker compose up --build
    ```
 
-4. Generar el cliente Prisma y compilar:
+   Startup order is enforced by healthchecks: `postgres` becomes healthy, then `fastify` applies the Prisma migrations (`prisma migrate deploy`) and becomes healthy, then `nextjs` starts.
 
-   ```bash
-   npm run build
+4. Open the application:
+
+   ```text
+   https://localhost/
    ```
 
-5. Iniciar el servidor:
+   The certificate is self-signed, so the browser shows a security warning the first time. Accept it, or trust the certificate as described below.
 
-   ```bash
-   npm start
-   ```
+### Stopping and resetting
 
-Por defecto queda disponible en `http://127.0.0.1:3000`. Las migraciones de `db/migrations/` se ejecutan automaticamente durante el arranque cuando existe `DATABASE_URL`.
+| Command | Effect |
+| --- | --- |
+| `docker compose down` | Stops and removes the containers; database data is kept |
+| `docker compose down -v` | Also deletes the `postgres_data` volume (empty database on next start) |
+| `docker compose ps` | Shows each service and its health |
+| `docker compose logs -f fastify` | Follows the logs of one service |
 
-## Variables de entorno
+### Environment variables used by Compose
 
-| Variable | Uso | Valor habitual |
+Compose reads `${VAR}` values from the root `.env` file.
+
+| Variable | Used by | Notes |
 | --- | --- | --- |
-| `NODE_ENV` | Entorno de ejecucion | `development`, `test` o `production` |
-| `HOST` / `PORT` | Interfaz y puerto HTTP | `127.0.0.1` / `3000` |
-| `DATABASE_URL` | Conexion PostgreSQL | `postgres://postgres:postgres@127.0.0.1:5432/transcendence` |
-| `COOKIE_SECURE` | Cookies solo por HTTPS | `false` en local |
-| `SESSION_COOKIE_NAME` | Nombre de la cookie de sesion | `sid` |
-| `SESSION_TTL_DAYS` | Duracion de sesion | `14` |
-| `TOTP_ISSUER` | Emisor mostrado por la app TOTP | `Transcendence` |
-| `TOTP_ENCRYPTION_KEY_BASE64` | Cifrado de secretos TOTP | Obligatoria |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | postgres, fastify | Database credentials; `fastify` builds its `DATABASE_URL` from them, pointing to the `postgres` service |
+| `TOTP_ENCRYPTION_KEY_BASE64` | fastify | Required; 32 random bytes in Base64 |
+| `SESSION_COOKIE_NAME`, `SESSION_TTL_DAYS`, `TOTP_ISSUER` | fastify | Optional; defaults `sid`, `14`, `Transcendence` |
 
-En tests se omite `DATABASE_URL` y se utilizan repositorios en memoria.
+Fixed values are set by the images or by `docker-compose.yml`: `NODE_ENV=production`, `HOST=0.0.0.0`, `PORT=3000`, `COOKIE_SECURE=true`, `INTERNAL_API_URL=http://fastify:3000` (build-time and runtime, used by the Next.js rewrites), `HTTPS_CERT_PATH` and `HTTPS_KEY_PATH`.
 
-## Scripts disponibles
+### HTTPS and the self-signed certificate
+
+- `frontend/server.mjs` is a small Node.js HTTPS server that wraps Next.js, because `next start` cannot serve HTTPS.
+- `frontend/scripts/generate-cert.sh` creates the certificate with OpenSSL while the image is built (valid for `localhost` and `127.0.0.1`, 365 days). It is never committed.
+- `frontend/next.config.ts` proxies every `/api/*` request to Fastify without changing the path, so the browser only talks to `https://localhost`.
+
+#### How to trust the certificate locally
+
+The warning is expected and safe to accept for local evaluation. To remove it, export the certificate and add it as a trusted authority:
 
 ```bash
-npm run dev              # Compilacion incremental en modo watch
-npm run build            # Prisma generate + compilacion TypeScript
-npm start                # Arranca dist/server.js
-npm test                 # Genera Prisma y ejecuta pruebas de integracion
-npm run prisma:generate  # Regenera el cliente Prisma
-npm run prisma:format    # Formatea el schema Prisma
-npm run prisma:validate  # Valida el schema Prisma
+docker compose cp nextjs:/app/certs/cert.pem ./localhost-cert.pem
 ```
 
-## API principal
+- **Windows:** double-click `localhost-cert.pem` (rename it to `.crt` if needed), choose *Install Certificate*, *Local Machine*, and place it in *Trusted Root Certification Authorities*.
+- **macOS:** open it with *Keychain Access*, add it to the *System* keychain and set *Always Trust*.
+- **Linux (Chrome):** `chrome://settings/certificates`, *Authorities*, *Import*.
+- **Firefox (any OS):** *Settings*, *Privacy & Security*, *View Certificates*, *Authorities*, *Import*.
 
-Todas las rutas protegidas utilizan la cookie de sesion configurada en `SESSION_COOKIE_NAME`.
+A new certificate is generated every time the `nextjs` image is rebuilt, so import it again after a rebuild. Delete `localhost-cert.pem` afterwards; it is ignored by Git.
 
-### Salud y usuario
+### Backend development without Docker (optional)
 
-- `GET /health`
-- `GET /me`
-- `GET /admin/users` — requiere rol `admin`.
+PostgreSQL is not published on the host, so to run the backend with npm publish it temporarily:
 
-### Autenticacion
-
-- `POST /auth/register`
-- `POST /auth/login`
-- `POST /auth/login/2fa`
-- `POST /auth/logout`
-- `POST /auth/reauthenticate`
-- `POST /auth/password/change`
-
-Las contraseñas nuevas deben tener al menos 12 caracteres. Las operaciones sensibles requieren una reautenticacion reciente.
-
-### Segundo factor
-
-- `POST /2fa/setup`
-- `POST /2fa/confirm`
-- `POST /2fa/recovery-codes/regenerate`
-- `DELETE /2fa`
-
-### Organizaciones, tableros y listas
-
-- `POST /organizations`
-- `GET /organizations`
-- `GET /organizations/:organizationId`
-- `PATCH /organizations/:organizationId`
-- `POST /organizations/:organizationId/boards`
-- `GET /organizations/:organizationId/boards`
-- `GET /boards/:boardId`
-- `PATCH /boards/:boardId`
-- `POST /boards/:boardId/lists`
-- `GET /boards/:boardId/lists`
-- `PATCH /lists/:listId`
-- `POST /boards/:boardId/lists/reorder`
-
-Los servicios verifican que el usuario pertenece a la organizacion antes de permitir el acceso a sus tableros y listas. Las listas activas se reordenan enviando todos sus IDs exactamente una vez.
-
-## Persistencia
-
-El esquema se define en `prisma/schema.prisma`. Cuatro migraciones SQL ordenadas definen las tablas activas:
-
-1. `001_auth_base.sql`: usuarios, credenciales, sesiones, 2FA y codigos de recuperacion.
-2. `002_trello_core.sql`: organizaciones y membresias.
-3. `003_trello_boards.sql`: tableros.
-4. `004_trello_lists.sql`: listas y posiciones.
-
-
-Los secretos de sesion y los codigos de recuperacion se almacenan mediante hashes. El secreto TOTP se cifra antes de persistirse.
-
-## Interfaz manual
-
-Con el servidor ejecutandose, abrir `http://127.0.0.1:3000/`. La UI permite probar registro, login, sesiones, reautenticacion, TOTP, organizaciones, tableros y listas. El panel lateral de actividad registra cada accion con su metodo, ruta, estado HTTP, duracion, peticion y respuesta.
-
-## Manejo de errores
-
-Las respuestas de error siguen una forma comun:
-
-```json
-{
-  "error": "ERROR_CODE",
-  "message": "Human readable message"
-}
+```bash
+docker compose run --rm -d -p 127.0.0.1:5432:5432 --name transcendence-db postgres
+npm install
+npm run prisma:migrate:deploy
+npm run build
+npm start                      # http://127.0.0.1:3000/
+docker stop transcendence-db   # when finished
 ```
 
-Los errores de validacion devuelven `400`, la falta de autenticacion `401`, los permisos insuficientes `403`, los conflictos de dominio `409` y los errores inesperados `500`.
+This uses the local values of `.env` (`HOST=127.0.0.1`, `DATABASE_URL` pointing to `127.0.0.1`).
 
+### Available scripts
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Compile TypeScript continuously in watch mode |
+| `npm run build` | Generate Prisma Client and compile `src/` into `dist/` |
+| `npm start` | Start `dist/server.js` |
+| `npm run prisma:generate` | Regenerate Prisma Client |
+| `npm run prisma:migrate:dev` | Create and apply a migration during development |
+| `npm run prisma:migrate:deploy` | Apply pending migrations in staging or production |
+| `npm run prisma:migrate:status` | Show migration status |
+| `npm run prisma:format` | Format `prisma/schema.prisma` |
+| `npm run prisma:validate` | Validate the Prisma schema |
+
+## Resources
+
+**TODO:** Lists classic references related to the topic (documentation, articles, tutorials, etc.).
+
+Primary technical references:
+
+- [Fastify documentation](https://fastify.dev/docs/latest/)
+- [Prisma documentation](https://www.prisma.io/docs)
+- [PostgreSQL documentation](https://www.postgresql.org/docs/)
+- [Zod documentation](https://zod.dev/)
+- [Node.js Crypto documentation](https://nodejs.org/api/crypto.html)
+- [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
+- [WCAG 2.1](https://www.w3.org/TR/WCAG21/)
+
+### AI usage
+
+AI was not used for any task or any part of the project.
+
+## Team Information
+
+**TODO:** For each team member mentioned at the top of the README.md, provide:
+
+- Assigned role(s): Product Owner, Project Manager/Scrum Master, Technical Lead, and Developer.
+- Brief description of their responsibilities.
+
+## Project Management
+
+**TODO:** How the team organized the work (task distribution, meetings, etc.).
+
+**TODO:** Tools used for project management (GitHub Issues, Trello, etc.).
+
+**TODO:** Communication channels used (Discord, Slack, etc.).
+
+## Technical Stack
+
+**TODO:** Frontend technologies and frameworks used.
+
+**TODO:** Backend technologies and frameworks used.
+
+**TODO:** Database system and why it was chosen.
+
+**TODO:** Any other significant technologies or libraries.
+
+**TODO:** Justification for major technical choices.
+
+| Area | Technology | Reason for use |
+| --- | --- | --- |
+| Runtime | Node.js with ESM | Modern JavaScript runtime and native cryptographic APIs |
+| Language | TypeScript 5.9, strict mode | Static checks across routes, services, and repositories |
+| Backend framework | Fastify 5 | Routing, lifecycle hooks, plugins, and request injection |
+| Frontend framework | Next.js 16 | File-based routing, multiple rendering per-page, image optimization, font optimization, code splitting |
+| Validation | Zod 4 and `fastify-type-provider-zod` | Runtime validation with inferred request types |
+| Database | PostgreSQL 16 | Relational integrity, transactions, and concurrency controls |
+| ORM | Prisma 6 | Typed database access and schema relationships |
+| Authentication | Cookies, `scrypt`, TOTP | Stateful sessions and optional second-factor protection |
+| Local infrastructure | Docker Compose | Reproducible PostgreSQL service for development |
+| Manual UI | HTML, CSS, and browser JavaScript | Development-only API testing without a separate client build |
+
+## Database Schema
+
+**TODO:** Visual representation or description of the database structure.
+
+**TODO:** Tables/collections and their relationships.
+
+**TODO:** Key fields and data types.
+
+The main relationships are:
+
+```text
+User
+|-- PasswordCredential
+|-- Session
+|-- LoginChallenge
+|-- TwoFactorTotp
+|-- RecoveryCode
+|-- OrganizationMember -> Organization
+|-- BoardMember ---------> Board
+`-- created cards and comments
+
+Organization
+`-- Board
+    |-- BoardMember
+    |-- BoardList
+    |   `-- Card
+    |       |-- CardAssignee -> User
+    |       |-- Comment ------> User
+    |       `-- CardLabel ----> Label
+    `-- Label
+```
+
+Lists and cards use integer positions with gaps (`1000`, `2000`, `3000`, and so on). PostgreSQL advisory locks protect position allocation and list reordering from concurrent requests. Cards are archived through `archivedAt` rather than physically deleted.
+Prisma Migrate is the only migration system used by the project. The schema is defined in `prisma/schema.prisma`, and migration history is stored in `prisma/migrations`.
+
+The initial migration contains the current schema:
+
+1. `prisma/migrations/20260920120000_init/migration.sql`: users, credentials, sessions, 2FA, organizations, boards, lists, cards, board members, assignees, comments, and labels.
+
+## Features List
+
+**TODO:** Complete list of implemented features.
+
+**TODO:** Which team member(s) worked on each feature.
+
+**TODO:** Brief description of each feature’s functionality.
+
+## Modules
+
+**TODO:** List of all chosen modules (Major and Minor).
+
+**TODO:** Point calculation (Major = 2pts, Minor = 1pt).
+
+**TODO:** Justification for each module choice, especially for custom "Modules of choice".
+
+**TODO:** How each module was implemented.
+
+**TODO:** Which team member(s) worked on each module.
+
+## Individual Contributions
+
+**TODO:** Detailed breakdown of what each team member contributed.
+
+**TODO:** Specific features, modules, or components implemented by each person.
+
+**TODO:** Any challenges faced and how they were overcome.
 

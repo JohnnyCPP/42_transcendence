@@ -33,3 +33,9 @@ export type UpdateOrganizationInput = {
   name?: string;
   slug?: string;
 };
+
+export type SetOrganizationMemberInput = {
+  organizationId: string;
+  userId: string;
+  role: Exclude<OrganizationRole, 'owner'>;
+};

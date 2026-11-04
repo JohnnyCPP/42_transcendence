@@ -49,9 +49,13 @@ export class PrismaAuthRepository implements AuthRepository
     return row ? mapChallenge(row) : null;
   }
 
-  async consumeLoginChallenge(id: string): Promise<void> 
+  async claimLoginChallenge(id: string, now: Date): Promise<boolean>
   {
-    await this.prisma.loginChallenge.updateMany({ where: { id, consumedAt: null }, data: { consumedAt: new Date() } });
+    const result = await this.prisma.loginChallenge.updateMany({
+      where: { id, consumedAt: null, expiresAt: { gt: now } },
+      data: { consumedAt: now }
+    });
+    return result.count === 1;
   }
 }
 

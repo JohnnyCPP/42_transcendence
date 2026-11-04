@@ -1,8 +1,11 @@
 import type { FastifyInstance } from 'fastify';
+import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { requireAuth } from '../authorization/requireAuth.js';
 import type { SessionsService } from '../sessions/sessions.service.js';
 import type { ListsService } from './lists.service.js';
+import { paginationQuerySchema } from '../../shared/http/pagination.js';
+import { paginationMetadata } from '../../shared/pagination.js';
 
 const createListSchema = z.object({
   name: z.string().trim().min(1).max(80)
@@ -16,16 +19,23 @@ const reorderListsSchema = z.object({
   listIds: z.array(z.string().min(1)).min(1)
 });
 
+const boardParamsSchema = z.object({ boardId: z.string().min(1) });
+const listParamsSchema = z.object({ listId: z.string().min(1) });
+
 export async function registerListRoutes(
   app: FastifyInstance,
   listsService: ListsService,
   sessionsService: SessionsService
 ) 
 {
-  
-  app.post('/boards/:boardId/lists', { preHandler: requireAuth(sessionsService) }, async (request) => {
-    const params = z.object({ boardId: z.string().min(1) }).parse(request.params);
-    const body = createListSchema.parse(request.body);
+  const typedApp = app.withTypeProvider<ZodTypeProvider>();
+
+  typedApp.post('/boards/:boardId/lists', {
+    preHandler: requireAuth(sessionsService),
+    schema: { params: boardParamsSchema, body: createListSchema }
+  }, async (request) => {
+    const params = request.params;
+    const body = request.body;
     const list = await listsService.createList({
       boardId: params.boardId,
       actorUserId: request.currentUser!.id,
@@ -34,15 +44,21 @@ export async function registerListRoutes(
     return { list };
   });
 
-  app.get('/boards/:boardId/lists', { preHandler: requireAuth(sessionsService) }, async (request) => {
-    const params = z.object({ boardId: z.string().min(1) }).parse(request.params);
-    const lists = await listsService.listBoardLists(params.boardId, request.currentUser!.id);
-    return { lists };
+  typedApp.get('/boards/:boardId/lists', {
+    preHandler: requireAuth(sessionsService),
+    schema: { params: boardParamsSchema, querystring: paginationQuerySchema }
+  }, async (request) => {
+    const params = request.params;
+    const page = await listsService.listBoardLists(params.boardId, request.currentUser!.id, request.query);
+    return { lists: page.items, pagination: paginationMetadata(page) };
   });
 
-  app.patch('/lists/:listId', { preHandler: requireAuth(sessionsService) }, async (request) => {
-    const params = z.object({ listId: z.string().min(1) }).parse(request.params);
-    const body = updateListSchema.parse(request.body);
+  typedApp.patch('/lists/:listId', {
+    preHandler: requireAuth(sessionsService),
+    schema: { params: listParamsSchema, body: updateListSchema }
+  }, async (request) => {
+    const params = request.params;
+    const body = request.body;
     const list = await listsService.updateList({
       listId: params.listId,
       actorUserId: request.currentUser!.id,
@@ -51,9 +67,12 @@ export async function registerListRoutes(
     return { list };
   });
 
-  app.post('/boards/:boardId/lists/reorder', { preHandler: requireAuth(sessionsService) }, async (request) => {
-    const params = z.object({ boardId: z.string().min(1) }).parse(request.params);
-    const body = reorderListsSchema.parse(request.body);
+  typedApp.post('/boards/:boardId/lists/reorder', {
+    preHandler: requireAuth(sessionsService),
+    schema: { params: boardParamsSchema, body: reorderListsSchema }
+  }, async (request) => {
+    const params = request.params;
+    const body = request.body;
     const lists = await listsService.reorderLists({
       boardId: params.boardId,
       actorUserId: request.currentUser!.id,

@@ -1,10 +1,12 @@
 import cookie from '@fastify/cookie';
 import Fastify from 'fastify';
-import { ZodError } from 'zod';
+import {
+  hasZodFastifySchemaValidationErrors,
+  validatorCompiler
+} from 'fastify-type-provider-zod';
 import { env } from './config/env.js';
 import { securityConfig } from './config/security.js';
 import { createPrismaClient } from './db/client.js';
-import { runMigrations } from './db/migrate.js';
 import { AppError } from './shared/errors/AppError.js';
 import { SecretBox } from './shared/crypto/encryption.js';
 import { ScryptPasswordHasher } from './shared/crypto/passwordHasher.js';
@@ -16,6 +18,10 @@ import { PrismaSessionsRepository } from './modules/sessions/sessions.prismaRepo
 import { SessionsService } from './modules/sessions/sessions.service.js';
 import { InMemoryAuthRepository } from './modules/auth/auth.repository.js';
 import { PrismaAuthRepository } from './modules/auth/auth.prismaRepository.js';
+import {
+  InMemoryRegistrationRepository,
+  PrismaRegistrationRepository
+} from './modules/auth/registration.repository.js';
 import { AuthService } from './modules/auth/auth.service.js';
 import { InMemoryTwoFactorRepository } from './modules/two_factor/twoFactor.repository.js';
 import { PrismaTwoFactorRepository } from './modules/two_factor/twoFactor.prismaRepository.js';
@@ -38,10 +44,15 @@ import { InMemoryListsRepository } from './modules/lists/lists.repository.js';
 import { PrismaListsRepository } from './modules/lists/lists.prismaRepository.js';
 import { ListsService } from './modules/lists/lists.service.js';
 import { registerListRoutes } from './modules/lists/lists.routes.js';
+import { InMemoryCardsRepository } from './modules/cards/cards.repository.js';
+import { PrismaCardsRepository } from './modules/cards/cards.prismaRepository.js';
+import { CardsService } from './modules/cards/cards.service.js';
+import { registerCardRoutes } from './modules/cards/cards.routes.js';
 
 export async function buildApp() 
 {
   const app = Fastify({ logger: env.NODE_ENV !== 'test' });
+  app.setValidatorCompiler(validatorCompiler);
 
   /*Si un usuario envía una peticion HTTP con el cuerpo completamente vacio 
    en lugar de que Fastify rechace la peticion de inmediato con
@@ -59,9 +70,9 @@ export async function buildApp()
     {
       done(null, JSON.parse(rawBody));
     } 
-    catch (error) 
+    catch (_error)
     {
-      done(error as Error);
+      done(new AppError('Malformed JSON request body', 400, 'INVALID_JSON'));
     }
   });
 
@@ -70,7 +81,6 @@ export async function buildApp()
   const prisma = createPrismaClient();
   if (prisma) 
   {
-    await runMigrations(prisma);
     app.addHook('onClose', async () => {
       await prisma.$disconnect();
     });
@@ -80,12 +90,16 @@ export async function buildApp()
   const usersService = new UsersService(usersRepository);
   const sessionsRepository = prisma ? new PrismaSessionsRepository(prisma) : new InMemorySessionsRepository();
   const authRepository = prisma ? new PrismaAuthRepository(prisma) : new InMemoryAuthRepository();
+  const registrationRepository = prisma
+    ? new PrismaRegistrationRepository(prisma)
+    : new InMemoryRegistrationRepository(usersRepository, authRepository);
   const twoFactorRepository = prisma ? new PrismaTwoFactorRepository(prisma) : new InMemoryTwoFactorRepository();
   const organizationsRepository = prisma
     ? new PrismaOrganizationsRepository(prisma)
     : new InMemoryOrganizationsRepository();
   const boardsRepository = prisma ? new PrismaBoardsRepository(prisma) : new InMemoryBoardsRepository();
   const listsRepository = prisma ? new PrismaListsRepository(prisma) : new InMemoryListsRepository();
+  const cardsRepository = prisma ? new PrismaCardsRepository(prisma) : new InMemoryCardsRepository();
   const sessionsService = new SessionsService(sessionsRepository, usersService);
   const totpService = new TotpService(new SecretBox(securityConfig.totpEncryptionKeyBase64));
   const recoveryCodesService = new RecoveryCodesService(twoFactorRepository);
@@ -98,13 +112,15 @@ export async function buildApp()
   const authService = new AuthService(
     usersService,
     authRepository,
+    registrationRepository,
     new ScryptPasswordHasher(),
     sessionsService,
     twoFactorService
   );
-  const organizationsService = new OrganizationsService(organizationsRepository);
+  const organizationsService = new OrganizationsService(organizationsRepository, usersService);
   const boardsService = new BoardsService(boardsRepository, organizationsService);
   const listsService = new ListsService(listsRepository, boardsService);
+  const cardsService = new CardsService(cardsRepository, listsService);
 
   if (env.NODE_ENV === 'test') 
   {
@@ -116,7 +132,8 @@ export async function buildApp()
       sessionsService,
       organizationsService,
       boardsService,
-      listsService
+      listsService,
+      cardsService
     });
   }
 
@@ -125,7 +142,7 @@ export async function buildApp()
     {
       return reply.status(error.statusCode).send({ error: error.code, message: error.message });
     }
-    if (error instanceof ZodError) 
+    if (hasZodFastifySchemaValidationErrors(error)) 
     {
       return reply.status(400).send({ error: 'VALIDATION_ERROR', message: 'Invalid request body' });
     }
@@ -139,6 +156,7 @@ export async function buildApp()
   await registerOrganizationRoutes(app, organizationsService, sessionsService);
   await registerBoardRoutes(app, boardsService, sessionsService);
   await registerListRoutes(app, listsService, sessionsService);
+  await registerCardRoutes(app, cardsService, sessionsService);
   await registerTwoFactorRoutes(app, twoFactorService, sessionsService);
   await registerUserRoutes(app, sessionsService, usersService);
 

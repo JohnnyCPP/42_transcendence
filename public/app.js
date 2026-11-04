@@ -15,6 +15,10 @@ const recoveryCodesBox = byId('recoveryCodes');
 const workspaceStateBox = byId('workspaceState');
 const organizationSelect = byId('organizationSelect');
 const boardSelect = byId('boardSelect');
+const listSelect = byId('listSelect');
+const targetListSelect = byId('targetListSelect');
+const cardSelect = byId('cardSelect');
+const cardPreview = byId('cardPreview');
 
 let actionCount = 0;
 
@@ -23,7 +27,10 @@ const workspace = {
   boards: [],
   lists: [],
   selectedOrganizationId: null,
-  selectedBoardId: null
+  selectedBoardId: null,
+  cards: [],
+  selectedListId: null,
+  selectedCardId: null
 };
 
 const testUsername = `tester${Math.floor(100000 + Math.random() * 900000)}`;
@@ -185,6 +192,14 @@ function selectedBoard() {
   return workspace.boards.find((item) => item.id === workspace.selectedBoardId) ?? null;
 }
 
+function selectedList() {
+  return workspace.lists.find((item) => item.id === workspace.selectedListId) ?? null;
+}
+
+function selectedCard() {
+  return workspace.cards.find((item) => item.id === workspace.selectedCardId) ?? null;
+}
+
 function renderWorkspace() {
   organizationSelect.replaceChildren();
   if (workspace.organizations.length === 0) {
@@ -206,10 +221,17 @@ function renderWorkspace() {
     boardSelect.value = workspace.selectedBoardId ?? '';
   }
 
-  workspaceStateBox.textContent = JSON.stringify({
+  listSelect.replaceChildren(); targetListSelect.replaceChildren();
+  for (const list of workspace.lists) { listSelect.add(new Option(list.name,list.id)); targetListSelect.add(new Option(list.name,list.id)); }
+  listSelect.value=workspace.selectedListId??''; targetListSelect.value=selectedCard()?.listId??workspace.selectedListId??'';
+  cardSelect.replaceChildren();
+  for (const card of workspace.cards) cardSelect.add(new Option(card.title,card.id));
+  cardSelect.value=workspace.selectedCardId??'';
+  cardPreview.textContent=selectedCard()?JSON.stringify(selectedCard(),null,2):'Selecciona una tarjeta.';  workspaceStateBox.textContent = JSON.stringify({
     organization: selectedOrganization(),
     board: selectedBoard(),
-    lists: workspace.lists
+    lists: workspace.lists,
+    cards: workspace.cards
   }, null, 2);
 }
 
@@ -257,10 +279,19 @@ async function loadLists() {
 
   const data = await api('Cargar listas', `/boards/${board.id}/lists`);
   workspace.lists = data.lists;
+  if (!workspace.lists.some((item) => item.id === workspace.selectedListId)) workspace.selectedListId = workspace.lists[0]?.id ?? null;
   renderWorkspace();
   return data.lists;
 }
 
+async function loadCards() {
+  const list=selectedList();
+  if(!list){workspace.cards=[];workspace.selectedCardId=null;renderWorkspace();return [];}
+  const data=await api('Cargar tarjetas','/lists/'+list.id+'/cards?limit=50&offset=0');
+  workspace.cards=data.cards;
+  if(!workspace.cards.some((item)=>item.id===workspace.selectedCardId)) workspace.selectedCardId=workspace.cards[0]?.id??null;
+  renderWorkspace(); return data.cards;
+}
 document.querySelectorAll('.nav-button').forEach((button) => {
   button.addEventListener('click', () => {
     document.querySelectorAll('.nav-button').forEach((item) => item.classList.remove('active'));
@@ -429,6 +460,7 @@ byId('listForm').addEventListener('submit', async (event) => {
     });
     workspace.lists.push(data.list);
     workspace.lists.sort((left, right) => left.position - right.position);
+    workspace.selectedListId = data.list.id;
     renderWorkspace();
   } catch {}
 });
@@ -487,7 +519,13 @@ byId('createDefaultLists').addEventListener('click', async () => {
   } catch {}
 });
 
-byId('clearLog').addEventListener('click', () => {
+byId('cardForm').addEventListener('submit',async(e)=>{e.preventDefault();const l=selectedList();if(!l)return logClient('Crea o selecciona una lista antes de crear una tarjeta');const b=formValues(e.currentTarget);if(!b.description)b.description=null;if(!b.dueDate)b.dueDate=null;try{const d=await api('Crear tarjeta','/lists/'+l.id+'/cards',{method:'POST',body:b});workspace.cards=[d.card,...workspace.cards];workspace.selectedCardId=d.card.id;renderWorkspace();}catch{}});
+byId('cardEditForm').addEventListener('submit',async(e)=>{e.preventDefault();const c=selectedCard();if(!c)return logClient('Selecciona una tarjeta antes de editarla');try{const d=await api('Editar tarjeta','/cards/'+c.id,{method:'PATCH',body:{title:formValues(e.currentTarget).title}});workspace.cards=workspace.cards.map(x=>x.id===c.id?d.card:x);renderWorkspace();}catch{}});
+byId('moveCard').addEventListener('click',async()=>{const c=selectedCard(),t=targetListSelect.value;if(!c||!t)return logClient('Selecciona una tarjeta y una lista de destino');try{const d=await api('Mover tarjeta','/cards/'+c.id+'/move',{method:'POST',body:{targetListId:t}});workspace.selectedListId=t;await loadCards();workspace.selectedCardId=d.card.id;renderWorkspace();}catch{}});
+byId('archiveCard').addEventListener('click',async()=>{const c=selectedCard();if(!c)return logClient('Selecciona una tarjeta antes de archivarla');try{await api('Archivar tarjeta','/cards/'+c.id,{method:'DELETE'});workspace.cards=workspace.cards.filter(x=>x.id!==c.id);workspace.selectedCardId=workspace.cards[0]?.id??null;renderWorkspace();}catch{}});
+listSelect.addEventListener('change',async()=>{workspace.selectedListId=listSelect.value||null;workspace.selectedCardId=null;try{await loadCards();}catch{}});
+cardSelect.addEventListener('change',()=>{workspace.selectedCardId=cardSelect.value||null;renderWorkspace();});
+byId('reloadCards').addEventListener('click',async()=>{try{await loadCards();}catch{}});byId('clearLog').addEventListener('click', () => {
   logBox.replaceChildren();
   actionCount = 0;
   requestCount.textContent = '0';
