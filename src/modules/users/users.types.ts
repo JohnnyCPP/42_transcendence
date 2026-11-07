@@ -1,5 +1,10 @@
-export type UserRole = 'user' | 'admin';
-export type UserStatus = 'active' | 'disabled';
+import type { GlobalRole } from '../authorization/roles.js';
+
+export type UserRole = GlobalRole;
+export type UserStatus = 'active' | 'disabled' | 'deleted';
+
+export type UserFilters = { role?: UserRole; status?: UserStatus };
+export type UserChanges = { displayName?: string | null; email?: string | null; role?: UserRole; status?: UserStatus };
 
 export type User = {
   id: string;

@@ -14,6 +14,6 @@ dist/
 *.log
 .worktrees/
 starter/
-tests/
+test/
 frontend/certs/
 *.pem

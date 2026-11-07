@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
+import { BOARD_ROLES } from '../authorization/roles.js';
 import { requireAuth } from '../authorization/requireAuth.js';
 import type { SessionsService } from '../sessions/sessions.service.js';
 import type { BoardsService } from './boards.service.js';
@@ -20,7 +21,7 @@ const updateBoardSchema = z.object({
 const organizationParamsSchema = z.object({ organizationId: z.string().min(1) });
 const boardParamsSchema = z.object({ boardId: z.string().min(1) });
 const boardMemberParamsSchema = z.object({ boardId: z.string().min(1), userId: z.string().min(1) });
-const boardMemberSchema = z.object({ role: z.enum(['admin', 'member', 'observer']) });
+const boardMemberSchema = z.object({ role: z.enum(BOARD_ROLES) });
 
 export async function registerBoardRoutes(
   app: FastifyInstance,

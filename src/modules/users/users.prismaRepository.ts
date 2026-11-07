@@ -1,9 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 import { randomToken } from '../../shared/crypto/randomToken.js';
 import { conflict } from '../../shared/errors/httpErrors.js';
-import type { CreateUserInput, User } from './users.types.js';
+import type { CreateUserInput, User, UserFilters, UserChanges } from './users.types.js';
 import type { UsersRepository } from './users.repository.js';
 import type { Page, PaginationInput } from '../../shared/pagination.js';
+import { GLOBAL_ROLE } from '../authorization/roles.js';
 
 export class PrismaUsersRepository implements UsersRepository 
 {
@@ -45,17 +46,44 @@ export class PrismaUsersRepository implements UsersRepository
     return row ? mapUser(row) : null;
   }
 
-  async list(pagination: PaginationInput): Promise<Page<User>>
+  async list(pagination: PaginationInput, filters: UserFilters): Promise<Page<User>>
   {
+    const where = { role: filters.role, status: filters.status ?? { not: 'deleted' as const } };
     const [rows, total] = await Promise.all([
       this.prisma.user.findMany({
+        where,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: pagination.limit,
         skip: pagination.offset
       }),
-      this.prisma.user.count()
+      this.prisma.user.count({ where })
     ]);
     return { items: rows.map(mapUser), total, ...pagination };
+  }
+
+  async updateManaged(id: string, changes: UserChanges): Promise<User | null>
+  {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        // The advisory lock serializes concurrent admin demotions/deletions; Prisma has no model query for this lock.
+        await tx.$queryRaw`SELECT 1 AS locked FROM (SELECT pg_advisory_xact_lock(741182)) acquired`;
+        const current = await tx.user.findUnique({ where: { id } });
+        if (!current || current.status === 'deleted') return null;
+        if (current.role === GLOBAL_ROLE.ADMIN && current.status === 'active' &&
+          (changes.role && changes.role !== GLOBAL_ROLE.ADMIN || changes.status && changes.status !== 'active')) {
+          const count = await tx.user.count({ where: { role: GLOBAL_ROLE.ADMIN, status: 'active' } });
+          if (count <= 1) throw conflict('Cannot remove the last active admin', 'LAST_ADMIN');
+        }
+        const updated = await tx.user.update({ where: { id }, data: {
+          ...changes,
+          email: changes.email === undefined ? undefined : changes.email?.trim().toLowerCase() ?? null
+        } });
+        return mapUser(updated);
+      });
+    } catch (error) {
+      if (isUniqueViolation(error)) throw conflict('Email already exists');
+      throw error;
+    }
   }
 }
 

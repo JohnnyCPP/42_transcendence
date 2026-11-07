@@ -7,13 +7,37 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum GlobalRole {
+  user
+  moderator
+  admin
+}
+
+enum OrganizationRole {
+  member
+  admin
+  owner
+}
+
+enum BoardRole {
+  observer
+  member
+  admin
+}
+
+enum UserStatus {
+  active
+  disabled
+  deleted
+}
+
 model User {
   id                   String               @id
   username             String               @unique
   email                String?              @unique
   displayName          String?              @map("display_name")
-  role                 String               @default("user")
-  status               String               @default("active")
+  role                 GlobalRole           @default(user)
+  status               UserStatus           @default(active)
   createdAt            DateTime             @default(now()) @map("created_at")
   updatedAt            DateTime             @updatedAt @map("updated_at")
   passwordCredential   PasswordCredential?
@@ -121,7 +145,7 @@ model Organization {
 model OrganizationMember {
   organizationId String       @map("organization_id")
   userId         String       @map("user_id")
-  role           String
+  role           OrganizationRole
   joinedAt       DateTime     @default(now()) @map("joined_at")
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -153,7 +177,7 @@ model Board {
 model BoardMember {
   boardId  String   @map("board_id")
   userId   String   @map("user_id")
-  role     String   @default("member")
+  role     BoardRole @default(member)
   joinedAt DateTime @default(now()) @map("joined_at")
 
   board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)

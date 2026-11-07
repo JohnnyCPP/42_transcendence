@@ -1,5 +1,6 @@
 import { randomToken } from '../../shared/crypto/randomToken.js';
 import { conflict } from '../../shared/errors/httpErrors.js';
+import { ORG_ROLE } from '../authorization/roles.js';
 import type {
   CreateOrganizationInput,
   Organization,
@@ -132,7 +133,7 @@ export function normalizeSlug(value: string): string
 
 export function canManageOrganization(role: OrganizationRole): boolean 
 {
-  return role === 'owner' || role === 'admin';
+  return role === ORG_ROLE.OWNER || role === ORG_ROLE.ADMIN;
 }
 
 function memberKey(organizationId: string, userId: string): string 

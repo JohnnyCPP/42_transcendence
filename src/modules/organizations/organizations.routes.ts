@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
+import { ORG_ROLE } from '../authorization/roles.js';
 import { requireAuth } from '../authorization/requireAuth.js';
 import type { SessionsService } from '../sessions/sessions.service.js';
 import type { OrganizationsService } from './organizations.service.js';
@@ -24,7 +25,7 @@ const organizationMemberParamsSchema = z.object({
   organizationId: z.string().min(1),
   userId: z.string().min(1)
 });
-const organizationMemberSchema = z.object({ role: z.enum(['admin', 'member']) });
+const organizationMemberSchema = z.object({ role: z.enum([ORG_ROLE.ADMIN, ORG_ROLE.MEMBER]) });
 
 export async function registerOrganizationRoutes(
   app: FastifyInstance,

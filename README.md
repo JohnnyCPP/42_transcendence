@@ -309,6 +309,36 @@ The initial migration contains the current schema:
 
 ## Features List
 
+### Roles and user administration
+
+| Scope | Roles | Meaning |
+| --- | --- | --- |
+| Global | `user`, `moderator`, `admin` | Moderators and admins can read users; admins can manage them. |
+| Organization | `member`, `admin`, `owner` | Membership roles used by organization operations. |
+| Board | `observer`, `member`, `admin` | Observers have read-only access; members and admins have broader board permissions. |
+
+Roles are defined in `src/modules/authorization/roles.ts` and constrained by Prisma enums. The role migration preserves existing values and fails on unknown values; inspect and correct any such records before applying it. Role assignments outside the user administration endpoints remain governed by their existing organization and board rules.
+
+| Endpoint | Required global role | Purpose |
+| --- | --- | --- |
+| `GET /users` | moderator or admin | List users with `limit`, `offset`, optional `role` and `status` filters; deleted users are excluded by default. |
+| `GET /users/:id` | moderator or admin | Read a user's public account fields. |
+| `PATCH /users/:id` | admin | Update display name, email, role, or active/disabled status. |
+| `DELETE /users/:id` | admin | Soft-delete another user, preserving related records. |
+| `GET /admin/users` | admin | Existing legacy listing endpoint. |
+
+Administrators cannot change their own role, disable their own account, or delete themselves. A database transaction serializes changes that could remove the last active administrator. Disabled and deleted accounts cannot authenticate. User responses do not contain password hashes, TOTP secrets or recovery codes.
+
+To verify user administration against PostgreSQL, start a **fresh disposable** Compose project named `taskflow-rbac-check` on an available HTTPS port. The integration test creates and changes real users, including administrators; never point it at a shared or production database. With its frontend on port 8443, run in PowerShell:
+
+```powershell
+$env:RBAC_TEST_URL = 'https://localhost:8443'
+$env:RBAC_TEST_POSTGRES_CONTAINER = 'taskflow-rbac-check-postgres-1'
+npm run test:users:integration
+```
+
+The test expects an empty disposable database and a locally accessible Docker CLI. Administrative accounts need to be provisioned securely by the team; the demo seed is a separate backlog story.
+
 **TODO:** Complete list of implemented features.
 
 **TODO:** Which team member(s) worked on each feature.
