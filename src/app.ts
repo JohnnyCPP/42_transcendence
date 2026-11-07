@@ -150,7 +150,16 @@ export async function buildApp()
     return reply.status(500).send({ error: 'INTERNAL_ERROR', message: 'Internal server error' });
   });
 
-  app.get('/health', async () => ({ ok: true }));
+  app.get('/health', async (_request, reply) => {
+    try {
+      if (!prisma) throw new Error('Database is not configured');
+      await prisma.$queryRaw`SELECT 1`;
+      return { ok: true };
+    } catch {
+      app.log.warn('Health check failed: database unavailable');
+      return reply.status(503).send({ ok: false });
+    }
+  });
   await registerUiRoutes(app);
   await registerAuthRoutes(app, authService, sessionsService);
   await registerOrganizationRoutes(app, organizationsService, sessionsService);

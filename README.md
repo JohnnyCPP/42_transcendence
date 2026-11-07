@@ -117,6 +117,8 @@ Only the `nextjs` container publishes a port (`443`). `fastify` and `postgres` a
 
    Startup order is enforced by healthchecks: `postgres` becomes healthy, then `fastify` applies the Prisma migrations (`prisma migrate deploy`) and becomes healthy, then `nextjs` starts.
 
+   PostgreSQL uses `pg_isready`. Fastify's `/health` runs `SELECT 1` via Prisma and returns HTTP 503 when the database is unavailable. Next.js checks its own HTTPS homepage using `curl --insecure` because the local certificate is self-signed. Compose reports these checks with `docker compose ps`; an unhealthy status does not itself restart a container. The dependency checks control initial startup, not recovery after a later outage.
+
 4. Open the application:
 
    ```text
@@ -146,11 +148,23 @@ Compose reads `${VAR}` values from the root `.env` file.
 
 Fixed values are set by the images or by `docker-compose.yml`: `NODE_ENV=production`, `HOST=0.0.0.0`, `PORT=3000`, `COOKIE_SECURE=true`, `INTERNAL_API_URL=http://fastify:3000` (build-time and runtime, used by the Next.js rewrites), `HTTPS_CERT_PATH` and `HTTPS_KEY_PATH`.
 
+#### Configuration by container
+
+The root `.env.example` is the single template. Copy it to `.env`, replace the example PostgreSQL password with a local password containing URL-safe characters, and generate a TOTP encryption key. The sample credentials are for local development only. Compose interpolates the root `.env`; it does not pass every value from that file into every container.
+
+**PostgreSQL (runtime):** `POSTGRES_DB` and `POSTGRES_USER` default to `transcendence` and `postgres`; `POSTGRES_PASSWORD` is required. Compose also uses these values to construct the backend connection URL.
+
+**Fastify (runtime):** `NODE_ENV` is `production` in Docker (`development`, `test`, or `production` elsewhere); `HOST` and `PORT` are `0.0.0.0` and `3000` in Docker. `DATABASE_URL` is a PostgreSQL URL required outside test: Compose constructs it for the container, while the template's value is for running the backend on the host. `TOTP_ENCRYPTION_KEY_BASE64` must decode to 32 random bytes and is required outside test; tests use a fixed non-secret key if omitted. `COOKIE_SECURE` is `true` in Compose and accepts `true` or `false`; `SESSION_COOKIE_NAME` defaults to `sid`, `SESSION_TTL_DAYS` to `14` positive whole days, and `TOTP_ISSUER` to `Transcendence`.
+
+**Next.js (build and runtime):** `INTERNAL_API_URL` is the server-side backend URL, set to `http://fastify:3000` by Compose both at build time and runtime. Rewrites are generated at build time, so changing only its runtime value does not update them: rebuild the image when changing it. At runtime `HOST` and `PORT` default to `0.0.0.0` and `3000`; `HTTPS_CERT_PATH` and `HTTPS_KEY_PATH` point to the generated certificate and private key. `server.mjs` requires those paths and `INTERNAL_API_URL` and exits if they are missing. The image sets `NODE_ENV=production` and `NEXT_TELEMETRY_DISABLED=1`; Compose also passes `COOKIE_SECURE=true`, although the current frontend code does not use it.
+
+No application `NEXT_PUBLIC_*` variables are currently used or deliberately exposed to the browser. If introduced, their values are public and Next.js embeds them during the frontend build: pass them as Docker build arguments and rebuild the image. Setting them only when the container starts will not update the client bundle. Never put secrets in them.
+
 ### HTTPS and the self-signed certificate
 
 - `frontend/server.mjs` is a small Node.js HTTPS server that wraps Next.js, because `next start` cannot serve HTTPS.
 - `frontend/scripts/generate-cert.sh` creates the certificate with OpenSSL while the image is built (valid for `localhost` and `127.0.0.1`, 365 days). It is never committed.
-- `frontend/next.config.ts` proxies every `/api/*` request to Fastify without changing the path, so the browser only talks to `https://localhost`.
+- `frontend/next.config.ts` proxies `/api/*` requests to Fastify, removing the `/api` prefix, so the browser only talks to `https://localhost`.
 
 #### How to trust the certificate locally
 
