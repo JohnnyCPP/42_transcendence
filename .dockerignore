@@ -9,7 +9,8 @@
 /dist
 
 .env
-.env.example
+
+Dockerfile*
 
 /frontend
 /public

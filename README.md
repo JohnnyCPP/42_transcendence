@@ -1,13 +1,3 @@
-<!--
-/**
- * Documentación principal del proyecto.
- *
- * La sección Instructions explica como levantar todo con Docker, las
- * variables de entorno necesarias y como confiar en el certificado
- * autofirmado de https://localhost.
- */
--->
-
 *This project has been created as part of the 42 curriculum by pablgarc, jonnavar, gsoteldo, jorexpos, jdiaz-he.*
 
 # TaskFlow
@@ -287,11 +277,34 @@ Organization
 ```
 
 Lists and cards use integer positions with gaps (`1000`, `2000`, `3000`, and so on). PostgreSQL advisory locks protect position allocation and list reordering from concurrent requests. Cards are archived through `archivedAt` rather than physically deleted.
-Prisma Migrate is the only migration system used by the project. The schema is defined in `prisma/schema.prisma`, and migration history is stored in `prisma/migrations`.
+The schema is defined in `prisma/schema.prisma`.
+
+### Database Migrations
+
+Prisma Migrate is the only migration system used by the project, migration history is stored in `prisma/migrations`.
 
 The initial migration contains the current schema:
 
 1. `prisma/migrations/20260920120000_init/migration.sql`: users, credentials, sessions, 2FA, organizations, boards, lists, cards, board members, assignees, comments, and labels.
+
+### Add a Migration
+
+First, edit “prisma/schema.prisma” to add or modify a model in the schema file.
+
+Then, run the following command:
+
+```bash
+prisma migrate dev --name <migration_name>
+```
+
+- The command detects drifts, checking if the database schema is out of sync with the migration history.
+- It compares the new “schema.prisma” with the previous migration state and generates a new SQL migration file in “prisma/migrations/TIMESTAMP_name/migration.sql”.
+- It runs the SQL file against the development database in the postgres container.
+- It runs “prisma generate” automatically, regenerating the TypeScript client and updating its types.
+
+Review the generated “migration.sql” file, check that Prisma didn’t do anything unexpected.
+
+Finally, commit both the updated “schema.prisma” and the new migration directory to Git.
 
 ## Features List
 
