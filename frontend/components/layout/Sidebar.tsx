@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import LegalLinks from '@/components/layout/LegalLinks';
 import { useOrg } from '@/components/org';
-import { NavItem, SidebarProps } from './sidebar';
+import { NavItem } from './sidebar/NavItem';
+import type { SidebarProps } from './sidebar/sidebar.types';
 
 /**
  * Logo TaskFlow + subtítulo con el workspace (org) activo.
