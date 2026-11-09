@@ -14,19 +14,22 @@ const priorityLabels: Record<TaskPriority, string> = {
 };
 
 interface BoardHeaderProps {
+  /** Id del board (para el enlace de compartir). */
+  boardId: string;
+  /** Nombre del board desde `GET /boards/:id`; null mientras carga. */
+  boardTitle: string | null;
   filters: BoardFilters;
   onTogglePriority: (priority: TaskPriority) => void;
   onToggleCompletedOnly: () => void;
   onClearFilters: () => void;
 }
 
-function HeaderTitle() {
+function HeaderTitle({ boardTitle }: { boardTitle: string | null }) {
   const [isStarred, setIsStarred] = useState(false);
-
   return (
     <div className="flex items-center gap-3">
       <h2 className="text-[32px] font-bold text-on-surface tracking-tight leading-none">
-        Website Redesign
+        {boardTitle ?? 'Cargando…'}
       </h2>
       <button
         onClick={() => setIsStarred(!isStarred)}
@@ -68,11 +71,13 @@ function HeaderButton({
 }
 
 function HeaderButtonsList({
+  boardId,
   filters,
   onTogglePriority,
   onToggleCompletedOnly,
   onClearFilters,
 }: {
+  boardId: string;
   filters: BoardFilters;
   onTogglePriority: (priority: TaskPriority) => void;
   onToggleCompletedOnly: () => void;
@@ -84,7 +89,14 @@ function HeaderButtonsList({
 
   const activeFilterCount =
     filters.priorities.length + (filters.showCompletedOnly ? 1 : 0);
-  const boardLink = 'https://taskflow.local/boards/website-redesign';
+
+  /** Enlace real del board actual (mismo origen + `/boards/:id`). */
+  const boardLink = useMemo(() => {
+    const path = `/boards/${boardId}`;
+    if (typeof window === 'undefined') return path;
+    return `${window.location.origin}${path}`;
+  }, [boardId]);
+
   const shareDescription = useMemo(
     () =>
       `Comparte este board con el resto del equipo mediante un enlace de referencia.`,
@@ -221,7 +233,12 @@ function HeaderButtonsList({
   );
 }
 
+/**
+ * Cabecera del tablero: título real del API + filtros / compartir.
+ */
 export default function BoardHeader({
+  boardId,
+  boardTitle,
   filters,
   onTogglePriority,
   onToggleCompletedOnly,
@@ -229,9 +246,10 @@ export default function BoardHeader({
 }: BoardHeaderProps) {
   return (
     <div className="px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0 bg-surface-container-lowest border-b border-outline-variant">
-      <HeaderTitle />
+      <HeaderTitle boardTitle={boardTitle} />
 
       <HeaderButtonsList
+        boardId={boardId}
         filters={filters}
         onTogglePriority={onTogglePriority}
         onToggleCompletedOnly={onToggleCompletedOnly}

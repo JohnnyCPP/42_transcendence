@@ -11,6 +11,8 @@ import { useKanbanHandlers } from './useKanbanHandlers';
 
 // Props del tablero Kanban.
 interface KanbanBoardProps {
+  /** Id del board en el API; se reenvía a los handlers de create list. */
+  boardId: string;
   initialColumns: BoardColumn[];
   searchQuery: string;
   filters: BoardFilters;
@@ -21,8 +23,15 @@ interface KanbanBoardProps {
  *
  * Une el estado del tablero, los handlers de interacción y las vistas de cada
  * columna. También abre el modal de tarea cuando hay una tarjeta seleccionada.
+ *
+ * `boardId` llega desde `BoardPageClient` para persistir listas nuevas.
  */
-export default function KanbanBoard({ initialColumns, searchQuery, filters }: KanbanBoardProps) {
+export default function KanbanBoard({
+  boardId,
+  initialColumns,
+  searchQuery,
+  filters,
+}: KanbanBoardProps) {
   const [isAddColumnDialogOpen, setIsAddColumnDialogOpen] = useState(false);
   const [newColumnTitle, setNewColumnTitle] = useState('');
   const [newColumnError, setNewColumnError] = useState<string | null>(null);
@@ -38,7 +47,7 @@ export default function KanbanBoard({ initialColumns, searchQuery, filters }: Ka
     filteredColumns,
   } = useKanbanState(initialColumns, searchQuery, filters);
 
-  // Acciones de interacción sobre el tablero.
+  // Acciones de interacción del tablero (create list/card ya van al API).
   const {
     handleAddTask,
     handleTaskClick,
@@ -49,6 +58,7 @@ export default function KanbanBoard({ initialColumns, searchQuery, filters }: Ka
     handleRenameColumn,
     handleDeleteColumn,
   } = useKanbanHandlers({
+    boardId,
     columns,
     selectedColumnId,
     onColumnsChange: setColumns,

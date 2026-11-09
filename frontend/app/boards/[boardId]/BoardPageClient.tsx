@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import BoardHeader from '@/components/board/boardHeader';
 import KanbanBoard from '@/components/board/kanbanBoard/KanbanBoard';
-import { initialColumns } from '@/data/mockBoardData';
-import { InfoDialog } from '@/components/ui';
-import { BoardFilters, TaskPriority } from '@/types/board';
+import { getBoard, getBoardColumns } from '@/components/board/boardApi';
+import { EmptyState, InfoDialog } from '@/components/ui';
+import { BoardColumn, BoardFilters, TaskPriority } from '@/types/board';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { AppShell } from '@/components/layout/AppShell';
 import { RequireActiveOrg } from '@/components/org';
@@ -18,13 +18,55 @@ const initialBoardFilters: BoardFilters = {
 /**
  * Vista de un tablero Kanban por `boardId`.
  *
- * - Exige org/workspace activo (`RequireActiveOrg`); listas/cards en mock.
- * - El `boardId` de la URL coincide con el id del API de boards.
+ * - Exige org/workspace activo (`RequireActiveOrg`).
+ * - Carga en paralelo `getBoard` (título) + `getBoardColumns` (lists/cards).
+ * - Loading/error con `EmptyState` (mismo patrón que dashboard y `/boards`).
  */
 export default function BoardPageClient({ boardId }: { boardId: string }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isQuickTaskDialogOpen, setIsQuickTaskDialogOpen] = useState(false);
   const [boardFilters, setBoardFilters] = useState<BoardFilters>(initialBoardFilters);
+
+  const [boardColumns, setBoardColumns] = useState<BoardColumn[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [boardTitle, setBoardTitle] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+
+	async function loadBoard() {
+
+		setIsLoading(true);
+		setError(null);
+
+		try {
+			const [board, columns] = await Promise.all([getBoard(boardId), getBoardColumns(boardId)]);
+			if (!cancelled) {
+				setBoardTitle(board.name);
+				setBoardColumns(columns);
+			}
+		} catch (err) {
+			if (!cancelled) {
+				setError(err instanceof Error ? err.message : 'Error al cargar el tablero');
+				setBoardTitle(null);
+				setBoardColumns([]);
+			}
+		} finally {
+			if (!cancelled) {
+				setIsLoading(false);
+			}
+		}
+
+	}
+	void loadBoard();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [boardId]);
 
   const handleOpenNewTaskModal = () => {
     setIsQuickTaskDialogOpen(true);
@@ -60,17 +102,34 @@ export default function BoardPageClient({ boardId }: { boardId: string }) {
         >
           <div data-board-id={boardId} className="contents">
             <BoardHeader
+              boardId={boardId}
+              boardTitle={boardTitle}
               filters={boardFilters}
               onTogglePriority={handleTogglePriority}
               onToggleCompletedOnly={handleToggleCompletedOnly}
               onClearFilters={handleClearFilters}
             />
 
-            <KanbanBoard
-              initialColumns={initialColumns}
-              searchQuery={searchQuery}
-              filters={boardFilters}
-            />
+            {isLoading ? (
+              <EmptyState
+                icon="progress_activity"
+                pulse
+                description="Cargando tablero…"
+              />
+            ) : error ? (
+              <EmptyState
+                icon="error"
+                title="No se pudo cargar el tablero"
+                description={error}
+              />
+            ) : (
+              <KanbanBoard
+				boardId={boardId}
+                initialColumns={boardColumns}
+                searchQuery={searchQuery}
+                filters={boardFilters}
+              />
+            )}
           </div>
         </AppShell>
 
