@@ -2,6 +2,8 @@
 
 import React from 'react';
 import Dialog from './Dialog';
+import Button from './Button';
+import TextInput from './TextInput';
 
 interface TextInputDialogProps {
   isOpen: boolean;
@@ -18,6 +20,11 @@ interface TextInputDialogProps {
   onClose: () => void;
 }
 
+/**
+ * Diálogo con un campo de texto + cancelar / guardar.
+ *
+ * Usa `TextInput` y `Button`. Ejemplo: añadir / renombrar columna del kanban.
+ */
 export default function TextInputDialog({
   isOpen,
   title,
@@ -40,39 +47,25 @@ export default function TextInputDialog({
       onClose={onClose}
       footer={(
         <>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl px-4 py-2 font-medium text-on-surface-variant transition-colors hover:bg-surface-container-high"
-          >
+          <Button variant="ghost" onClick={onClose}>
             {cancelLabel}
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="rounded-xl bg-primary px-4 py-2 font-semibold text-white transition-colors hover:bg-primary-container"
-          >
+          </Button>
+          <Button variant="primary" onClick={onConfirm}>
             {confirmLabel}
-          </button>
+          </Button>
         </>
       )}
     >
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-on-surface">{label}</label>
-        <input
-          autoFocus
-          type="text"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={placeholder}
-          className={`w-full rounded-xl border px-4 py-3 text-on-surface transition-all focus:outline-none focus:ring-2 ${
-            error
-              ? 'border-error focus:ring-error/30'
-              : 'border-outline-variant focus:ring-primary/20'
-          }`}
-        />
-        {error && <p className="text-sm font-medium text-error">{error}</p>}
-      </div>
+      <TextInput
+        id="text-input-dialog-field"
+        name="text-input-dialog-field"
+        label={label}
+        value={value}
+        placeholder={placeholder}
+        error={error}
+        autoFocus
+        onChange={onChange}
+      />
     </Dialog>
   );
 }

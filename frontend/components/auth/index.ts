@@ -1,7 +1,8 @@
 // Componentes
-export { default as LoginPage } from './LoginPage';
-export { default as EmailLoginForm } from './EmailLoginForm';
+export { default as LoginPage } from './login/LoginPage';
+export { default as EmailLoginForm } from './login/EmailLoginForm';
 export { default as ProtectedRoute } from './ProtectedRoute';
+export { AuthProvider } from './AuthProvider';
 
 // Hooks
 export { useAuth } from './useAuth';

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { LoginCredentials } from './auth.types';
+import { LoginCredentials } from '../auth.types';
 import Link from 'next/link';
+import { Button, Icon, uiStyles, cx } from '@/components/ui';
 
 interface EmailLoginFormProps {
   onSubmit: (credentials: LoginCredentials) => Promise<void>;
@@ -10,8 +11,19 @@ interface EmailLoginFormProps {
   error?: string | null;
 }
 
+function ValidateLoginForm(username: string, password: string): string | null {
+  if (!username.trim()) {
+    return 'El nombre de usuario es obligatorio';
+  }
+
+  if (!password) {
+    return 'La contraseña es obligatoria';
+  }
+  return null;
+}
+
 /**
- * Formulario controlado de acceso por email y contraseña.
+ * Formulario controlado de acceso por usuario y contraseña.
  *
  * La pantalla padre decide qué pasa cuando el usuario envía el formulario;
  * este componente solo gestiona inputs, validación básica y feedback visual.
@@ -21,7 +33,7 @@ export default function EmailLoginForm({
   isLoading = false,
   error,
 }: EmailLoginFormProps) {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -31,56 +43,47 @@ export default function EmailLoginForm({
       e.preventDefault();
       setLocalError(null);
 
-      // Validación mínima antes de delegar al handler externo.
-      if (!email.trim()) {
-        setLocalError('El correo electrónico es obligatorio');
-        return;
-      }
-
-      if (!password) {
-        setLocalError('La contraseña es obligatoria');
-        return;
-      }
-
-      if (!email.includes('@')) {
-        setLocalError('Introduce un correo electrónico válido');
+      const validationError = ValidateLoginForm(username, password);
+      if (validationError) {
+        setLocalError(validationError);
         return;
       }
 
       try {
-        await onSubmit({ email: email.trim(), password });
+        await onSubmit({ username: username.trim(), password });
       } catch (err) {
         setLocalError(err instanceof Error ? err.message : 'No se pudo iniciar sesión');
       }
     },
-    [email, password, onSubmit]
+    [username, password, onSubmit]
   );
 
-  // Si llega un error desde el padre, tiene prioridad sobre el local.
   const displayError = error || localError;
+  const inputClassName = cx(
+    uiStyles.input,
+    'placeholder-on-surface-variant transition-all disabled:cursor-not-allowed disabled:opacity-50'
+  );
 
   return (
     <form onSubmit={handleSubmit} className="w-full space-y-4">
-      {/* Campo de correo: se usa para identificar al usuario en el login. */}
       <div className="space-y-2">
-        <label htmlFor="email" className="text-sm font-medium text-on-surface">
-          Correo electrónico
+        <label htmlFor="username" className={uiStyles.formLabel}>
+          Nombre de usuario
         </label>
         <input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="tu@empresa.com"
+          id="username"
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="usuario"
           disabled={isLoading}
-          className="w-full rounded-xl border border-outline-variant bg-surface-bright px-4 py-3 text-on-surface placeholder-on-surface-variant transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
+          className={inputClassName}
         />
       </div>
 
-      {/* Campo de contraseña: permite alternar visibilidad para facilitar el uso. */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label htmlFor="password" className="text-sm font-medium text-on-surface">
+          <label htmlFor="password" className={uiStyles.formLabel}>
             Contraseña
           </label>
           <Link
@@ -98,7 +101,7 @@ export default function EmailLoginForm({
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             disabled={isLoading}
-            className="w-full rounded-xl border border-outline-variant bg-surface-bright px-4 py-3 pr-12 text-on-surface placeholder-on-surface-variant transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
+            className={cx(inputClassName, 'pr-12')}
           />
           <button
             type="button"
@@ -108,38 +111,33 @@ export default function EmailLoginForm({
             className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant transition-colors hover:text-on-surface disabled:opacity-50"
             disabled={isLoading}
           >
-            <span className="material-symbols-outlined text-[20px]">
-              {showPassword ? 'visibility_off' : 'visibility'}
-            </span>
+            <Icon name={showPassword ? 'visibility_off' : 'visibility'} size="lg" />
           </button>
         </div>
       </div>
 
-      {/* Mensaje de error compartido entre validación local y respuesta externa. */}
       {displayError && (
         <div className="p-3 bg-error/10 border border-error/20 rounded-lg text-error text-sm">
           <div className="flex items-start gap-2">
-            <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5">
-              error
-            </span>
+            <Icon name="error" size="md" className="shrink-0 mt-0.5" />
             <span>{displayError}</span>
           </div>
         </div>
       )}
 
-      {/* Acción principal del formulario. */}
-      <button
+      <Button
         type="submit"
+        variant="primary"
+        size="lg"
+        fullWidth
         disabled={isLoading}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-semibold text-white transition-colors hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-50"
+        className="gap-2 disabled:opacity-50"
       >
         {isLoading && (
-          <span className="material-symbols-outlined text-[20px] animate-spin">
-            hourglass_empty
-          </span>
+          <Icon name="hourglass_empty" size="lg" className="animate-spin" />
         )}
         <span>{isLoading ? 'Iniciando sesión...' : 'Entrar'}</span>
-      </button>
+      </Button>
     </form>
   );
 }

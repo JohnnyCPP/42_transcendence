@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Icon, uiStyles } from '@/components/ui';
 
 interface ColumnHeaderProps {
   title: string;
@@ -37,7 +38,7 @@ export default function ColumnHeader({
           className="rounded-md p-1 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
           aria-label="Acciones de la columna"
         >
-          <span className="material-symbols-outlined text-[18px]">more_horiz</span>
+          <Icon name="more_horiz" size="md" />
         </button>
 
         {isMenuOpen && (
@@ -48,9 +49,9 @@ export default function ColumnHeader({
                 setIsMenuOpen(false);
                 onRename();
               }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-on-surface transition-colors hover:bg-surface-container"
+              className={uiStyles.dropdownItem}
             >
-              <span className="material-symbols-outlined text-[18px]">edit</span>
+              <Icon name="edit" size="md" />
               Editar nombre
             </button>
 
@@ -60,9 +61,9 @@ export default function ColumnHeader({
                 setIsMenuOpen(false);
                 onDelete();
               }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-error transition-colors hover:bg-error/10"
+              className={uiStyles.dropdownItemDanger}
             >
-              <span className="material-symbols-outlined text-[18px]">delete</span>
+              <Icon name="delete" size="md" />
               Eliminar columna
             </button>
           </div>

@@ -1,14 +1,4 @@
-interface ActivityItem {
-  icon: string;
-  iconClassName: string;
-  actor: string;
-  action: string;
-  highlight: string;
-  context: string;
-  time: string;
-  previewText?: string;
-  showConnector?: boolean;
-}
+import { ActivityItem } from './dashboard.types';
 
 const activities: ActivityItem[] = [
   {
@@ -76,7 +66,7 @@ function ActivityRow({ activity }: { activity: ActivityItem }) {
   );
 }
 
-export default function ActivityFeed() {
+export function ActivityFeed() {
   return (
     <section className="bg-surface-container-lowest rounded-xl border border-surface-container-highest shadow-xs flex flex-col h-80">
       <div className="p-4 border-b border-surface-container-highest flex justify-between items-center bg-surface-container-lowest/80 backdrop-blur-xs rounded-t-xl sticky top-0">

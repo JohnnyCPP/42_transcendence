@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { AuthProvider } from '@/components/auth';
+import { OrgProvider } from '@/components/org';
+import { BoardsProvider } from '@/components/boards';
 
 /**
  * Metadata global del frontend.
@@ -13,8 +16,8 @@ export const metadata: Metadata = {
 /**
  * Layout raíz del frontend.
  *
- * Aquí se cargan las fuentes globales y la base visual común para todas
- * las rutas de la aplicación.
+ * Providers (orden importa):
+ * Auth → Org (workspace) → Boards (tableros del workspace activo).
  */
 export default function RootLayout({
   children,
@@ -44,7 +47,13 @@ export default function RootLayout({
       </head>
       {/* El body ocupa toda la altura y usa flex para el layout general. */}
       <body className="h-full bg-[#F4F5F7] text-on-surface font-sans antialiased overflow-hidden flex">
-        {children}
+        <AuthProvider>
+          <OrgProvider>
+            <BoardsProvider>
+				{children}
+			</BoardsProvider>
+          </OrgProvider>
+        </AuthProvider>
       </body>
     </html>
   );

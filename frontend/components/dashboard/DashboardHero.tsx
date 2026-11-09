@@ -1,9 +1,6 @@
-interface DashboardHeroProps {
-  title: string;
-  subtitle: string;
-}
+import { DashboardHeroProps } from './dashboard.types';
 
-export default function DashboardHero({ title, subtitle }: DashboardHeroProps) {
+export function DashboardHero({ title, subtitle }: DashboardHeroProps) {
   return (
     <header className="flex justify-between items-end mb-6">
       <div>

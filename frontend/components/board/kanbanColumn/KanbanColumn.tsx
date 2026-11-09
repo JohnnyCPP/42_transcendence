@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { BoardColumn, TaskItem, TaskPriority } from '@/types/board';
 import { ConfirmDialog, TextInputDialog } from '@/components/ui';
-import TaskCard from '../TaskCard';
+import TaskCard from '@/components/board/taskCard';
 import ColumnHeader from './ColumnHeader';
 import AddTaskForm from './AddTaskForm';
 import AddTaskButton from './AddTaskButton';
