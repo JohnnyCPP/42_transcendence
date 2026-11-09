@@ -1,4 +1,5 @@
-import { forbidden, notFound } from '../../shared/errors/httpErrors.js';
+import { badRequest, forbidden, notFound } from '../../shared/errors/httpErrors.js';
+import { ORG_ROLE } from '../authorization/roles.js';
 import {
   canManageOrganization,
   type OrganizationsRepository
@@ -52,13 +53,15 @@ export class OrganizationsService
     role: Exclude<OrganizationRole, 'owner'>;
   }): Promise<OrganizationMember>
   {
+    if (!([ORG_ROLE.MEMBER, ORG_ROLE.ADMIN] as string[]).includes(input.role))
+      throw badRequest('Invalid organization role', 'INVALID_ROLE');
     const actor = await this.getOrganizationForUser(input.organizationId, input.actorUserId);
     if (!canManageOrganization(actor.role))
       throw forbidden('Organization admin role required', 'ORGANIZATION_ADMIN_REQUIRED');
     const current = await this.organizationsRepository.findMember(input.organizationId, input.userId);
-    if (current?.role === 'owner')
+    if (current?.role === ORG_ROLE.OWNER)
       throw forbidden('The organization owner role cannot be changed', 'ORGANIZATION_OWNER_IMMUTABLE');
-    if (actor.role !== 'owner' && (input.role === 'admin' || current?.role === 'admin'))
+    if (actor.role !== ORG_ROLE.OWNER && (input.role === ORG_ROLE.ADMIN || current?.role === ORG_ROLE.ADMIN))
       throw forbidden('Only an organization owner can manage admins', 'ORGANIZATION_OWNER_REQUIRED');
     if (!(await this.usersService.findById(input.userId)))
       throw notFound('User not found', 'USER_NOT_FOUND');

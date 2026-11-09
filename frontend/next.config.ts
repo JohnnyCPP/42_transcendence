@@ -1,8 +1,8 @@
 /**
  * Configuración de Next.js.
  *
- * Reenvía cualquier petición a /api/* al contenedor fastify sin cambiar
- * la ruta, así el navegador solo habla con nextjs por HTTPS.
+ * Reenvía /api/* al contenedor fastify eliminando el prefijo /api,
+ * así el navegador solo habla con nextjs por HTTPS.
  * La dirección interna del backend viene de INTERNAL_API_URL.
  */
 
@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: `${internalApiUrl}/api/:path*`,
+        destination: `${internalApiUrl}/:path*`,
       },
     ];
   },

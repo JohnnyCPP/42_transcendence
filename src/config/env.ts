@@ -14,8 +14,19 @@ const envSchema = z.object({
   SESSION_COOKIE_NAME: z.string().default('sid'),
   SESSION_TTL_DAYS: z.coerce.number().int().positive().default(14),
   TOTP_ISSUER: z.string().default('Transcendence'),
-  TOTP_ENCRYPTION_KEY_BASE64: z.string().min(1),
+  TOTP_ENCRYPTION_KEY_BASE64: z.string().min(1).optional(),
   DATABASE_URL: z.string().url().optional()
-});
+}).superRefine((config, ctx) => {
+  if (config.NODE_ENV !== 'test' && !config.DATABASE_URL) {
+    ctx.addIssue({ code: 'custom', path: ['DATABASE_URL'], message: 'DATABASE_URL is required outside the test environment' });
+  }
+  if (config.NODE_ENV !== 'test' && !config.TOTP_ENCRYPTION_KEY_BASE64) {
+    ctx.addIssue({ code: 'custom', path: ['TOTP_ENCRYPTION_KEY_BASE64'], message: 'TOTP_ENCRYPTION_KEY_BASE64 is required outside the test environment' });
+  }
+}).transform((config) => ({
+  ...config,
+  // Deterministic, non-secret key used only by isolated tests.
+  TOTP_ENCRYPTION_KEY_BASE64: config.TOTP_ENCRYPTION_KEY_BASE64 ?? 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
+}));
 
 export const env = envSchema.parse(process.env);
