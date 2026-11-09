@@ -10,10 +10,10 @@ No forma parte del entregable funcional; sirve para onboarding, handoff y defens
 `frontend/` es la **interfaz web** de TaskFlow (proyecto tipo tablero Kanban / 42 Transcendence).
 
 - El usuario abre el navegador → ve pantallas (login, dashboard, tablero…).
-- Parte de esas pantallas ya habla con el **backend** (servidor en otro puerto).
-- El kanban (listas/cards) todavía usa **mocks** hasta conectar esos endpoints.
+- Auth, workspaces (orgs), boards y el **kanban (lists/cards)** hablan con el **backend**.
+- Quedan mocks puntuales (assignees del modal, widgets de actividad/velocidad del dashboard).
 
-En una frase: **Next.js pinta la UI; el backend guarda usuarios, sesión, workspaces (orgs) y boards.**
+En una frase: **Next.js pinta la UI; el backend guarda usuarios, sesión, workspaces, boards, listas y cards.**
 
 ---
 
@@ -33,7 +33,7 @@ En una frase: **Next.js pinta la UI; el backend guarda usuarios, sesión, worksp
 | **Cookie HttpOnly** | Cookie de sesión que el JS **no** puede leer; el navegador la envía solo en cada petición. Más seguro que guardar un token en `localStorage`. |
 | **`localStorage`** | Almacén del navegador que persiste datos entre recargas (aquí: id del workspace activo). Visible al JS (no sirve para secretos). |
 | **JWT** | JSON Web Token: cadena firmada que a veces se guarda en el cliente para auth. **Aquí no lo usamos en el front**; la sesión va por cookie. |
-| **Mock** | Datos inventados en el front para demos (p. ej. columnas del kanban) mientras no hay API. |
+| **Mock** | Datos inventados en el front para demos UI (p. ej. `mockUsers`, Activity/Velocity) cuando el API aún no cubre ese caso. |
 | **Endpoint** | URL concreta del backend que hace una acción (`POST /auth/login`, `GET /organizations`). |
 | **Rewrite / proxy** | El front llama a `/api/...` y Next **reenvía** esa petición al backend. Evita problemas de CORS en local. |
 | **CORS** | Regla del navegador que bloquea peticiones entre orígenes distintos (p. ej. `:3000` → `:4000`) si el servidor no lo permite. El proxy de Next evita pelear con eso en dev. |
@@ -111,7 +111,7 @@ es lo mismo que importar desde `frontend/components/auth`.
 Usuario
   └── Workspace (= organization en API/código)
         └── Boards / tableros
-              └── Listas → Cards (kanban; aún mock)
+              └── Lists → Cards (kanban; API real)
 ```
 
 ### Convención de nombres (importante)
@@ -134,7 +134,7 @@ frontend/
 ├── app/                 # Rutas (URLs) y layout raíz
 ├── components/          # UI por dominio (auth, org, boards, board, layout…)
 │   └── ui/              # Primitivos + ui.styles.ts (Button, EmptyState…)
-├── data/                # Mocks de apoyo (kanban, demos)
+├── data/                # Mocks residuales (p. ej. mockUsers para assignees)
 ├── lib/                 # Utilidades compartidas (apiClient)
 ├── types/               # Tipos compartidos (ej. board / filtros kanban)
 ├── next.config.ts       # Proxy /api → backend
@@ -153,7 +153,7 @@ Convención: hooks y utils van **junto a la feature** (`kanbanBoard/`, `taskModa
 | `/dashboard` | `app/dashboard/page.tsx` | Resumen + boards de la org activa (API). **Protegida** + `RequireActiveOrg`. |
 | `/workspace` | `app/workspace/page.tsx` | Switcher/crear workspace (`useOrg`). **Protegida**. |
 | `/boards` | `app/boards/page.tsx` | Listado de tableros de la org activa (API). **Protegida** + `RequireActiveOrg`. |
-| `/boards/[boardId]` | `app/boards/[boardId]/` | Kanban de un board (listas/cards mock). **Protegida** + `RequireActiveOrg`. |
+| `/boards/[boardId]` | `app/boards/[boardId]/` | Kanban de un board (lists/cards vía API). **Protegida** + `RequireActiveOrg`. |
 | `/projects/new` | `app/projects/new/page.tsx` | Crear board vía `POST .../boards`. **Protegida** + `RequireActiveOrg`. |
 | `/login` | `app/login/page.tsx` | Login real (backend). Pública. |
 | `/signup` | `app/signup/page.tsx` | Registro real (backend). Pública. |
@@ -195,12 +195,16 @@ Convención: hooks y utils van **junto a la feature** (`kanbanBoard/`, `taskModa
 - `board.types.ts` / `boards.types.ts` — tipos alineados al backend.
 
 ### `board/` — Kanban (singular)
-- `kanbanBoard/` — orquestador + estado + handlers + utils.
+- `boardApi.ts` — cliente HTTP del tablero (`getBoard`, lists/cards CRUD, move, archive).
+- `boardApi.types.ts` — `ApiList` / `ApiCard` (forma JSON del backend).
+- `mapBoardApi.ts` — adaptadores API → UI (`TaskItem` / `BoardColumn`).
+- `kanbanBoard/` — orquestador + `useKanbanState` + `useKanbanHandlers` + utils.
 - `kanbanColumn/`, `taskModal/`, `boardHeader/`, `taskCard/`.
 
 ### `dashboard/`
 - Barrel `index.ts` + `dashboard.types.ts`.
-- `DashboardHero`, `BoardCard`, `ActivityFeed`, `VelocityWidget`.
+- `DashboardHero`, `BoardCard`.
+- `ActivityFeed`, `VelocityWidget` — **UI mock** (no hay API de actividad/métricas; se mantienen para demo/corrección).
 
 ### `ui/` — primitivos y estilos compartidos
 - `ui.styles.ts` — constantes Tailwind (`uiStyles`) + helper `cx` (ver §17).
@@ -233,8 +237,17 @@ Convención: hooks y utils van **junto a la feature** (`kanbanBoard/`, `taskModa
 | Listar boards | `GET` | `/organizations/:orgId/boards` | `/api/organizations/:orgId/boards` |
 | Crear board | `POST` | `/organizations/:orgId/boards` | `/api/organizations/:orgId/boards` |
 | Obtener board | `GET` | `/boards/:boardId` | `/api/boards/:boardId` |
+| Listas del board | `GET` | `/boards/:boardId/lists` | `/api/boards/:boardId/lists` |
+| Crear lista | `POST` | `/boards/:boardId/lists` | `/api/boards/:boardId/lists` |
+| Renombrar lista | `PATCH` | `/lists/:listId` | `/api/lists/:listId` |
+| Cards de una lista | `GET` | `/lists/:listId/cards` | `/api/lists/:listId/cards` |
+| Crear card | `POST` | `/lists/:listId/cards` | `/api/lists/:listId/cards` |
+| Editar card | `PATCH` | `/cards/:cardId` | `/api/cards/:cardId` |
+| Mover card | `POST` | `/cards/:cardId/move` | `/api/cards/:cardId/move` |
+| Archivar card | `DELETE` | `/cards/:cardId` | `/api/cards/:cardId` |
 
-Body auth: `username` + `password` (+ `email` opcional en register). **Sin JWT en localStorage.**
+Body auth: `username` + `password` (+ `email` opcional en register). **Sin JWT en localStorage.**  
+Kanban: capa `components/board/boardApi.ts` + mappers; handlers en `useKanbanHandlers`.
 
 ---
 
@@ -262,6 +275,12 @@ Usuario abre /dashboard
   → RequireActiveOrg (workspace activo)
   → useBoards (BoardsProvider) lee activeOrganization.id
   → GET /organizations/:id/boards
+
+Usuario abre /boards/:boardId
+  → mismos guards + AppShell
+  → Promise.all(getBoard, getBoardColumns)
+  → BoardHeader (nombre) + KanbanBoard (lists/cards)
+  → mutaciones vía useKanbanHandlers → boardApi
 ```
 
 ### Archivos clave
@@ -284,14 +303,14 @@ Ejemplo kanban: orquestador + hooks de estado/handlers + utils puras.
 Auth login/signup: contenedor + vista + formulario.
 
 ### C) Mock → real por etapas
-Auth, orgs/workspace y **listado/creación de boards** ya van al API.  
-Listas/cards del kanban siguen mock.
+Auth, orgs/workspace, boards y **lists/cards del kanban** ya van al API.  
+Mocks residuales: assignees (`mockUsers`), Activity/Velocity del dashboard.
 
 ### D) Layout compuesto
 `AppShell` + `header/` + `sidebar/`.
 
 ### E) Cliente HTTP único
-`lib/apiClient.ts` para auth, orgs y boards.
+`lib/apiClient.ts` (`apiFetch`) para auth, orgs, boards y kanban (`boardApi.ts`).
 
 ### F) UI “workspace” / código “organization”
 Misma entidad; nombres distintos por capa (ver §5).
@@ -304,10 +323,26 @@ No hay librerías extra de clases: solo el helper `cx`.
 
 ## 12. Kanban (resumen)
 
-- Ruta: `/boards/[boardId]` (`BoardPageClient` + `AppShell`).
-- Datos de columnas/tareas: `data/mockBoardData.ts` (mismo mock por id de momento).
-- Orquestador: `components/board/kanbanBoard/KanbanBoard.tsx`.
-- Las tareas **no se persisten** en backend hasta API de lists/cards.
+- Ruta: `/boards/[boardId]` (`BoardPageClient` + `AppShell` + `RequireActiveOrg`).
+- Carga: `Promise.all([getBoard(boardId), getBoardColumns(boardId)])`.
+- Capa HTTP: `components/board/boardApi.ts`.
+- Mappers: `mapBoardApi.ts` (`ApiList`/`ApiCard` → `BoardColumn`/`TaskItem`).
+- Orquestador: `KanbanBoard.tsx` + `useKanbanState` + `useKanbanHandlers`.
+- Header: título real del board; enlace compartir = `/boards/:boardId`.
+
+### Persistido en API (handlers)
+| UI | API |
+|----|-----|
+| Añadir columna | `POST /boards/:id/lists` |
+| Renombrar columna | `PATCH /lists/:id` |
+| Añadir / duplicar tarea | `POST /lists/:id/cards` |
+| Guardar tarea | `PATCH /cards/:id` (+ `POST .../move` si cambia lista) |
+| Borrar tarea | `DELETE /cards/:id` (archive) |
+
+### Aún local / limitado
+- **Borrar columna**: no hay `DELETE /lists` en el BE (pendiente de equipo).
+- **Assignees / priority**: UI; el BE no los persiste (`priority` default en el mapper).
+- **`mockUsers`**: solo para el selector del modal.
 
 ---
 
@@ -316,20 +351,23 @@ No hay librerías extra de clases: solo el helper `cx`.
 ### Ya conectado al backend
 - Login, registro, logout, `/me`
 - Organizations: listar, crear, org activa (persistida en `localStorage`)
-- Boards: listar por org, crear desde `/projects/new`
+- Boards: listar por org, crear, `GET /boards/:id` (header)
+- Lists / cards: carga + create/update/move/archive (+ duplicate vía create)
 
 ### Funcional en UI (mock o sin API)
-- Kanban (listas/cards) en `/boards/[boardId]`
-- Widgets de actividad / velocidad del dashboard
+- Widgets Activity / Velocity del dashboard (sin endpoints de métricas)
+- Assignees del modal (`mockUsers`)
 - Forgot-password (solo pantalla)
 - Privacy, Terms, 404
 
-### Pendiente (cuando el contrato lo permita)
-- Lists / cards reales del kanban
-- Miembros / invites de org si el subject lo exige
+### Pendiente (cuando el contrato / equipo lo permita)
+- `DELETE /lists` (o ocultar borrar columna)
+- Login 2FA + settings password/2FA
+- Miembros org/board
+- Validación FE login/signup alineada al BE
 - `API_BASE = '/api/v1'` cuando el backend versionado
 - Tests de auth / utils kanban
-- Limpiar mocks muertos (`mockDashboardBoards`, `localProjects`) si ya no se usan
+- Reorder de listas (`POST .../lists/reorder`) si la UI tiene drag
 
 ---
 
@@ -347,7 +385,7 @@ No hay librerías extra de clases: solo el helper `cx`.
 
 ## 15. Frase corta para defensa oral
 
-> Frontend por dominio, con AppShell, auth real por cookie HttpOnly, OrgProvider (workspace en UI) con org activa persistida en localStorage, y boards listados/creados vía API filtrados por esa org. Estilos repetidos viven en `uiStyles` + primitivos (`Button`, `EmptyState`…). El kanban de listas/cards sigue mock hasta conectar esos endpoints.
+> Frontend por dominio, con AppShell, auth real por cookie HttpOnly, OrgProvider (workspace en UI) con org activa persistida en localStorage, boards filtrados por org, y kanban con lists/cards persistidos vía `boardApi` + handlers. Estilos repetidos viven en `uiStyles` + primitivos (`Button`, `EmptyState`…). Mocks residuales: assignees y widgets Activity/Velocity.
 
 ---
 
@@ -364,9 +402,11 @@ No hay librerías extra de clases: solo el helper `cx`.
 | Workspace (org) | `OrgProvider.tsx`, `useOrg.ts`, `RequireActiveOrg.tsx`, `app/workspace/page.tsx` |
 | Boards (listado API) | `BoardsProvider.tsx`, `useBoards.ts`, `app/boards/page.tsx`, `app/dashboard/page.tsx` |
 | Crear board | `BoardsProvider.createBoard`, `app/projects/new/page.tsx` |
-| Kanban | `app/boards/[boardId]/`, `components/board/` |
+| Kanban (página) | `app/boards/[boardId]/BoardPageClient.tsx` |
+| Kanban (API + mappers) | `components/board/boardApi.ts`, `boardApi.types.ts`, `mapBoardApi.ts` |
+| Kanban (UI/handlers) | `kanbanBoard/`, `boardHeader/`, `kanbanColumn/`, `taskModal/` |
 | Legal / 404 | `app/privacy/`, `app/terms/`, `app/not-found.tsx` |
-| Mocks kanban | `data/mockBoardData.ts` |
+| Mock assignees | `data/mockBoardData.ts` (`mockUsers`) |
 | Tokens / kanban CSS | `app/globals.css` |
 | Estilos UI reutilizados | `components/ui/ui.styles.ts` + §17 |
 | Primitivos UI | `components/ui/` (`Button`, `Icon`, `EmptyState`, `AuthCard`, dialogs…) |
