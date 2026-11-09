@@ -60,6 +60,12 @@ services:
         condition: service_healthy
     ports:
       - "443:3000"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--insecure", "--silent", "--output", "/dev/null", "--max-time", "4", "https://127.0.0.1:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
 volumes:
   postgres_data:

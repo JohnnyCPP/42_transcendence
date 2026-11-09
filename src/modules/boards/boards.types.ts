@@ -1,3 +1,6 @@
+import type { BoardRole } from '../authorization/roles.js';
+export type { BoardRole } from '../authorization/roles.js';
+
 export type Board = {
   id: string;
   organizationId: string;
@@ -8,8 +11,6 @@ export type Board = {
   updatedAt: Date;
   archivedAt: Date | null;
 };
-
-export type BoardRole = 'admin' | 'member' | 'observer';
 
 export type BoardMember = {
   boardId: string;

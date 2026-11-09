@@ -1,4 +1,5 @@
-export type OrganizationRole = 'owner' | 'admin' | 'member';
+import type { OrganizationRole } from '../authorization/roles.js';
+export type { OrganizationRole } from '../authorization/roles.js';
 
 export type Organization = {
   id: string;
