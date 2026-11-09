@@ -2,19 +2,8 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import {
-  ActivityFeed,
-  BoardCard,
-  DashboardHero,
-  VelocityWidget,
-} from '@/components/dashboard';
-import {
-  EmptyState,
-  Icon,
-  InfoDialog,
-  buttonClassName,
-  uiStyles,
-} from '@/components/ui';
+import { ActivityFeed, BoardCard, DashboardHero, VelocityWidget } from '@/components/dashboard';
+import { EmptyState, Icon, InfoDialog, buttonClassName, uiStyles } from '@/components/ui';
 import { mapBoardToCard, useBoards } from '@/components/boards';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { AppShell } from '@/components/layout/AppShell';
