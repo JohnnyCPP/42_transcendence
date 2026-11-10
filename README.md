@@ -10,7 +10,7 @@
 - Team Information
 - Project Management
 - Technical Stack
-- Database Schema
+- Database
 - Features List
 - Modules
 - Individual Contributions
@@ -244,7 +244,9 @@ AI was not used for any task or any part of the project.
 | Local infrastructure | Docker Compose | Reproducible PostgreSQL service for development |
 | Manual UI | HTML, CSS, and browser JavaScript | Development-only API testing without a separate client build |
 
-## Database Schema
+## Database
+
+### Database Schema
 
 **TODO:** Visual representation or description of the database structure.
 
@@ -305,6 +307,54 @@ prisma migrate dev --name <migration_name>
 Review the generated “migration.sql” file, check that Prisma didn’t do anything unexpected.
 
 Finally, commit both the updated “schema.prisma” and the new migration directory to Git.
+
+### Migration lock
+
+The "migration_lock.toml" exists to lock the database provider for the migration history.
+Its primary purpose is to prevent accidentally applying a set of migrations that were generated for one database type to a completely different database type.
+
+```bash
+find ./ -name "migration_lock.toml"
+```
+
+Prisma Migrate generates raw SQL files that are specific to the database provider being used.
+The SQL syntax differs for different database providers.
+
+If the provider is changed in the schema.prisma but the old migration files are kept, Prisma will fail attempting to run SQL files whose syntax does not match the database provider.
+
+### Raw queries
+
+All database access in this project goes through the Prisma Client API (`prisma.model.operation()`) with full type safety.
+The exceptions are documented here.
+
+```bash
+# list all raw queries
+grep -rn '\$queryRaw\|\$executeRaw\|\$queryRawUnsafe\|\$executeRawUnsafe' ./src
+```
+
+**File:** `src/modules/cards/cards.prismaRepository.ts`
+**Functions:** `create()`, `move()`
+
+**Why:** The `cards` table has a uniqueness constraint on `(list_id, position)`.
+When two users create or move cards in the same list concurrently, both transactions would compute the same next position and one would fail with `P2002`.
+To prevent this, we acquire a PostgreSQL transaction-scoped advisory lock keyed by the target list ID before computing the next position.
+This serializes position computation per list, while allowing unrelated lists to proceed in parallel.
+
+**Why not a Prisma query API:** Prisma has no API for advisory locks. 
+They are a PostgreSQL-specific concurrency primitive. 
+The alternative would be an application-level mutex (which wouldn't protect across multiple backend instances) or dropping the unique constraint (which would weaken data integrity).
+
+**Safety:** The query uses Prisma's tagged-template `$queryRaw`, which parameterizes `${...}` values as SQL bind parameters (`$1`, `$2`, ...).
+No string interpolation occurs. 
+The lock is scoped to the enclosing transaction and released automatically on commit or rollback.
+
+**Additional safety:** A retry wrapper (`withPositionRetry`) retries up to three times on `P2002` (unique constraint) and `P2034` (deadlock / serialization failure) errors, providing defense in depth against transient contention.
+
+**File:** `src/modules/lists/lists.prismaRepository.ts`
+**Functions:** `create()`, `reorder()`
+
+**Why:** The create() and reorder() methods in lists.prismaRepository.ts use raw queries for the exact same purpose as the create() and move() methods in cards.prismaRepository.ts.
+They prevent race conditions when calculating the next available integer for an ordered list, while working around PostgreSQL's @@unique constraint.
 
 ## Features List
 
