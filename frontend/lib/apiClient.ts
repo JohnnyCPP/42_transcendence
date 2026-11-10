@@ -4,7 +4,7 @@
  * Cuando el backend active el versionado, cambia solo `API_BASE`
  * (p. ej. a `/api/v1`) y ajusta el rewrite de `next.config.ts`.
  */
-export const API_BASE = '/api';
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? '/api';
 
 /**
  * Construye la URL final anteponiendo `API_BASE` si hace falta.
@@ -24,6 +24,18 @@ function resolveUrl(path: string): string {
   const normalized = path.startsWith('/') ? path : `/${path}`;
   return `${API_BASE}${normalized}`;
 }
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly error: string,
+    public readonly status: number
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 
 /**
  * Wrapper de `fetch` para las llamadas a la API.
@@ -46,13 +58,20 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 
   if (!response.ok) {
     let message = `La petición falló con estado ${response.status}`;
+    let error = 'REQUEST_FAILED';
+
     try {
-      const payload = (await response.json()) as { message?: string };
+      const payload = (await response.json()) as {
+        error?: string;
+        message?: string;
+      };
       if (payload?.message) message = payload.message;
+      if (payload?.error) error = payload.error;
     } catch {
-      // Si el cuerpo no es JSON válido, mantenemos el mensaje genérico.
+      // Cuerpo no JSON: dejamos message/error por defecto.
     }
-    throw new Error(message);
+
+    throw new ApiError(message, error, response.status);
   }
 
   // 204 = sin cuerpo; devolvemos undefined tipado.
