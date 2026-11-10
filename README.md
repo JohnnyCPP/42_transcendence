@@ -240,6 +240,7 @@ AI was not used for any task or any part of the project.
 | Validation | Zod 4 and `fastify-type-provider-zod` | Runtime validation with inferred request types |
 | Database | PostgreSQL 16 | Relational integrity, transactions, and concurrency controls |
 | ORM | Prisma 6 | Typed database access and schema relationships |
+| Test doubles | In-memory repositories | Fast tests without a database; never used outside `NODE_ENV=test` |
 | Authentication | Cookies, `scrypt`, TOTP | Stateful sessions and optional second-factor protection |
 | Local infrastructure | Docker Compose | Reproducible PostgreSQL service for development |
 | Manual UI | HTML, CSS, and browser JavaScript | Development-only API testing without a separate client build |
@@ -355,6 +356,24 @@ The lock is scoped to the enclosing transaction and released automatically on co
 
 **Why:** The create() and reorder() methods in lists.prismaRepository.ts use raw queries for the exact same purpose as the create() and move() methods in cards.prismaRepository.ts.
 They prevent race conditions when calculating the next available integer for an ordered list, while working around PostgreSQL's @@unique constraint.
+
+### In-memory repositories
+
+The project uses the **repository pattern**: every data-access concern is expressed as an interface (e.g., `UsersRepository`, `BoardsRepository`), with two implementations.
+
+| Implementation | Location | Purpose |
+| --- | --- | --- |
+| `Prisma*Repository` | `src/modules/*/<module>.prismaRepository.ts` | Production implementation, backed by Prisma Client |
+| `InMemory*Repository` | `src/modules/*/<module>.repository.ts` | Test-only implementation, backed by `Map` and `Set` |
+
+In-memory repositories exist solely to support unit tests without a database. They are never used in development, production, or the Docker deployment.
+
+This invariant is enforced by two independent guards, so a misconfigured deployment fails loudly instead of silently degrading:
+
+1. Configuration guard: Uses Zod's "superRefine" to require "DATABASE_URL" whenever "NODE_ENV" is "development" or "production". The application refuses to start if the variable is missing outside "NODE_ENV=test".
+2. Composition guard: Selects the repository implementation based on "NODE_ENV". In any environment other than "test", it throws at startup if "createPrismaClient()" returned "null".
+
+A misconfigured production container therefore exits immediately rather than serving requests against an empty in-memory store.
 
 ## Features List
 
