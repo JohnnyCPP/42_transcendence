@@ -7,7 +7,7 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
-import { AuthState, AuthUser } from './auth.types';
+import { AuthState, AuthUser, LoginResponses } from './auth.types';
 import { apiFetch } from '@/lib/apiClient';
 
 /**
@@ -56,10 +56,11 @@ function mapBackendUser(user: BackendUser): AuthUser {
  * que la UI usa para login, registro y cierre de sesión.
  */
 type AuthContextValue = AuthState & {
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<LoginResponses>;
   logout: () => Promise<void>;
   signup: (username: string, password: string, email?: string) => Promise<void>;
   refreshToken: () => Promise<void>;
+  complete2fa: (challengeToken: string, code: string, method: 'totp' | 'recovery_code') => Promise<LoginResponses>;
   clearError: () => void;
 };
 
@@ -134,8 +135,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * En éxito, el backend crea la cookie HttpOnly y devolvemos
    * el usuario mapeado al estado de la UI.
    */
-  const login = useCallback(async (username: string, password: string) => {
-    setAuthState((prev) => ({ ...prev, isLoading: true, error: null }));
+  const login = useCallback(
+    async (username: string, password: string): Promise<LoginResponses> => {
+      setAuthState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
       const data = await apiFetch<LoginApiResponse>('/auth/login', {
@@ -144,17 +146,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (data.status === 'requires_2fa') {
-        throw new Error(
-          'Esta cuenta requiere 2FA. Completa el segundo factor para continuar.'
-        );
+		setAuthState((prev) => ({ ...prev, isLoading: false, error: null, isAuthenticated: false }));
+		return {
+			status: 'requires_2fa',
+			challengeToken: data.challengeToken,
+			expiresAt: data.expiresAt,
+		};
       }
 
-      setAuthState({
-        user: mapBackendUser(data.user),
-        isLoading: false,
-        error: null,
-        isAuthenticated: true,
-      });
+	  const user = mapBackendUser(data.user);
+	  setAuthState({ user, isLoading: false, error: null, isAuthenticated: true });
+	  return { status: 'authenticated', user, sessionExpiresAt: data.sessionExpiresAt };
+
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'No se pudo iniciar sesión';
@@ -166,6 +169,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw err;
     }
   }, []);
+
+
+  const complete2fa = useCallback(async (challengeToken: string, code: string, method: 'totp' | 'recovery_code'): Promise<LoginResponses> => {
+	setAuthState((prev) => ({ ...prev, isLoading: true, error: null }));
+	try {
+		const data = await apiFetch<LoginApiResponse>('/auth/login/2fa',
+			{
+				method: 'POST',
+				body: JSON.stringify({
+					challengeToken,
+					code: code.trim(),
+					method,
+				}),
+			}
+		);
+		if (data.status === 'authenticated') {
+			const user = mapBackendUser(data.user);
+			setAuthState({ user, isLoading: false, error: null, isAuthenticated: true });
+			return { status: 'authenticated', user, sessionExpiresAt: data.sessionExpiresAt };
+		} else {
+			throw new Error('Error al completar el 2FA');
+		}
+		
+	} catch (err) {
+		const errorMessage =
+			err instanceof Error ? err.message : 'No se pudo completar el 2FA';
+		setAuthState((prev) => ({ ...prev, isLoading: false, error: errorMessage }));
+		throw err;
+	}
+	}, []);
+
 
   /**
    * Cierre de sesión.
@@ -276,6 +310,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     signup,
     refreshToken,
+    complete2fa,
     clearError,
   };
 
