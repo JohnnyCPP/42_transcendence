@@ -7,21 +7,26 @@ import { LoginHeader, LoginFormCard, LoginPageViewProps } from './';
  * Capa de presentación del login:
  * monta la estructura visual y recibe todo por props.
  */
-export function LoginPageView({ isLoading, error, onSubmit }: LoginPageViewProps) {
+export function LoginPageView({
+  isLoading,
+  error,
+  step,
+  onSubmit,
+  onTwoFactorSubmit,
+  onBackFromTwoFactor,
+}: LoginPageViewProps) {
   return (
-    <main
-      className={cx(
-        uiStyles.authShell,
-        'relative'
-      )}
-    >
+    <main className={cx(uiStyles.authShell, 'relative')}>
       <div className="w-full max-w-xl space-y-6 pb-16">
         <LoginHeader />
 
         <LoginFormCard
           isLoading={isLoading}
           error={error}
+          step={step}
           onSubmit={onSubmit}
+          onTwoFactorSubmit={onTwoFactorSubmit}
+          onBackFromTwoFactor={onBackFromTwoFactor}
         />
       </div>
 
