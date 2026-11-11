@@ -29,7 +29,7 @@ const envSchema = z.object({
                "The in-memory repositories are only permitted in NODE_ENV=test."
     });
   }
-  if (config.NODE_ENV !== "test" && !config.TOTP_ENCRYPTION_KEY_BASE64) {
+  if (value.NODE_ENV !== "test" && !value.TOTP_ENCRYPTION_KEY_BASE64) {
 
     ctx.addIssue({
 
