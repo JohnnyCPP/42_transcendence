@@ -15,7 +15,7 @@ import type { TwoFactorMethod } from './TwoFactorForm';
  */
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isLoading, error, clearError } = useAuth();
+  const { login, isLoading, error, clearError, complete2fa } = useAuth();
   const [step, setStep] = useState<LoginStep>('credentials');
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
 
@@ -58,10 +58,14 @@ export default function LoginPage() {
 
       try {
         clearError();
+		const result = await complete2fa(challengeToken, code, method);
+		if (result.status === 'authenticated') {
+			router.push('/dashboard');
+		}
         // --- tu integración de complete2fa va aquí ---
         void code;
         void method;
-        throw new Error('TODO: llama a complete2fa(challengeToken, code, method)');
+        
         // router.push('/dashboard');
       } catch {
         // El error visible lo gestiona useAuth (cuando cables complete2fa).

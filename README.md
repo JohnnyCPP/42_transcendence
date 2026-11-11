@@ -27,11 +27,12 @@
 
 ## Tree
 
-Updated: 2026-10-22
 
 ```text
 .
 ├── docker-compose.yml
+├── Dockerfile.backend
+├── Dockerfile.frontend
 ├── document
 │   ├── md
 │   ├── pdf
@@ -60,6 +61,15 @@ Updated: 2026-10-22
 │       ├── crypto
 │       ├── errors
 │       └── http
+├── frontend/                 # app Next.js
+│   ├── app/
+│   ├── components/
+│   ├── lib/
+│   ├── types/
+│   ├── next.config.ts
+│   ├── package.json
+│   ├── README.md
+│   └── FRONTEND_DOCS.md
 └── tsconfig.json
 ```
 
