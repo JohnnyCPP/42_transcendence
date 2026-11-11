@@ -8,6 +8,66 @@ export class PrismaListsRepository implements ListsRepository
 {
   constructor(private readonly prisma: PrismaClient) {}
 
+  /**
+   * "select pg_advisory_xact_lock(
+   *         hashtext(
+   *                  ${`list-position:${input.boardId}`}
+   *                 )
+   *                              )"
+   * Get an exclusive, transaction-level lock using the integer hash 
+   * of 'list-position:<boardId>' as the key. If another transaction 
+   * holds this lock, wait for it. Once this instance has the lock, continues. 
+   * It will be released automatically when the transaction ends.
+   *
+   *
+   * "select 1 as locked from (...) acquired"
+   *
+   * This is just a wrapper to make the query return something.
+   * pg_advisory_xact_lock returns void.
+   *
+   * PostgreSQL doesn't allow a bare function call in a SELECT without 
+   * a FROM clause in some contexts, so the implementation wraps it in 
+   * a subquery named "acquired" and selects a dummy column "1 as locked".
+   *
+   * The result is irrelevant, the side effect is what matters.
+   *
+   *
+   * "pg_advisory_xact_lock(...)"
+   *
+   * This is a PostgreSQL function that acquires an advisory lock.
+   * An advisory lock is a tool you use in your code to coordinate 
+   * between concurrent transactions.
+   *
+   * "xact" means the lock is transaction-scoped. It is automatically 
+   * released the moment your transaction commits or rolls back. 
+   * You don't need to manually unlock it.
+   *
+   * The function blocks (waits indefinitely) if another transaction 
+   * already holds the same lock.
+   *
+   *
+   * "hashtext( ${list-position:${input.boardId}} )"
+   *
+   * The advisory lock function takes an integer as a key. 
+   * The string 'list-position:<boardId>' needs to become an integer. 
+   * hashtext() is a PostgreSQL function that converts a string 
+   * into a 32-bit integer hash.
+   *
+   * The prefix "list-position" is included to avoid collisions with 
+   * other advisory locks in the codebase. If you only hashed the boardId, 
+   * and somewhere else you also hashed a boardId for a different purpose, 
+   * they might accidentally collide. The prefix creates a namespace.
+   *
+   * The "${...}" is Prisma's tagged template syntax. 
+   * Prisma does not concatenate this string into the SQL. 
+   * Instead, it converts it into a parameterized query (like $1). 
+   * This prevents SQL injection.
+   *
+   *
+   * If the lock still fails to prevent a race due to a deadlock (P2034) 
+   * or unique constraint (P2002), the retry wrapper "withPositionRetry" 
+   * catches the error and retries the transaction up to three times.
+   */
   async create(input: CreateListInput): Promise<BoardList> 
   {
     return withPositionRetry(async () => this.prisma.$transaction(async (tx) => {
@@ -45,7 +105,7 @@ export class PrismaListsRepository implements ListsRepository
 
   async reorder(input: ReorderListsInput): Promise<BoardList[]> 
   {
-    return this.prisma.$transaction(async (tx) => {
+    return withPositionRetry(async () => this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`
         select 1 as locked
         from (select pg_advisory_xact_lock(hashtext(${`list-position:${input.boardId}`}))) acquired
@@ -57,7 +117,7 @@ export class PrismaListsRepository implements ListsRepository
       for (const [index, id] of input.listIds.entries()) await tx.boardList.update({ where: { id }, data: { position: (index + 1) * 1000 } });
       const reordered = await tx.boardList.findMany({ where: { boardId: input.boardId, archivedAt: null }, orderBy: { position: 'asc' } });
       return reordered.map(mapList);
-    });
+    }));
   }
 }
 

@@ -1,13 +1,3 @@
-<!--
-/**
- * Documentación principal del proyecto.
- *
- * La sección Instructions explica como levantar todo con Docker, las
- * variables de entorno necesarias y como confiar en el certificado
- * autofirmado de https://localhost.
- */
--->
-
 *This project has been created as part of the 42 curriculum by pablgarc, jonnavar, gsoteldo, jorexpos, jdiaz-he.*
 
 # TaskFlow
@@ -20,7 +10,7 @@
 - Team Information
 - Project Management
 - Technical Stack
-- Database Schema
+- Database
 - Features List
 - Modules
 - Individual Contributions
@@ -274,48 +264,163 @@ AI was not used for any task or any part of the project.
 | Validation | Zod 4 and `fastify-type-provider-zod` | Runtime validation with inferred request types |
 | Database | PostgreSQL 16 | Relational integrity, transactions, and concurrency controls |
 | ORM | Prisma 6 | Typed database access and schema relationships |
+| Test doubles | In-memory repositories | Fast tests without a database; never used outside `NODE_ENV=test` |
 | Authentication | Cookies, `scrypt`, TOTP | Stateful sessions and optional second-factor protection |
 | Local infrastructure | Docker Compose | Reproducible PostgreSQL service for development |
 | Manual UI | HTML, CSS, and browser JavaScript | Development-only API testing without a separate client build |
 
-## Database Schema
+## Database
 
-**TODO:** Visual representation or description of the database structure.
+### Database Schema
 
-**TODO:** Tables/collections and their relationships.
+The schema is defined in [`prisma/schema.prisma`](./prisma/schema.prisma). A generated Entity-Relationship Diagram (ERD) is available at [`document/ERD.svg`](./document/ERD.svg) and is regenerated automatically every time "prisma generate" runs.
 
-**TODO:** Key fields and data types.
+![TaskFlow Entity-Relationship Diagram](./document/ERD.svg)
 
-The main relationships are:
+### Domain model
+
+The application is built around a five-level hierarchy:
 
 ```text
-User
-|-- PasswordCredential
-|-- Session
-|-- LoginChallenge
-|-- TwoFactorTotp
-|-- RecoveryCode
-|-- OrganizationMember -> Organization
-|-- BoardMember ---------> Board
-`-- created cards and comments
-
-Organization
-`-- Board
-    |-- BoardMember
-    |-- BoardList
-    |   `-- Card
-    |       |-- CardAssignee -> User
-    |       |-- Comment ------> User
-    |       `-- CardLabel ----> Label
-    `-- Label
+User → Organization → Board → List → Card
 ```
 
-Lists and cards use integer positions with gaps (`1000`, `2000`, `3000`, and so on). PostgreSQL advisory locks protect position allocation and list reordering from concurrent requests. Cards are archived through `archivedAt` rather than physically deleted.
-Prisma Migrate is the only migration system used by the project. The schema is defined in `prisma/schema.prisma`, and migration history is stored in `prisma/migrations`.
+- User: A user can belong to multiple organizations and be assigned to cards across boards.
+- Organization: The top-level container for shared work. Each organization has its own membership list and its own set of boards. A user's role inside an organization determines what they can do within it.
+- Board: A workspace inside an organization. It contains ordered lists and its own set of labels. Boards are the primary unit users open to view and manipulate work.
+- List: An ordered column inside a board. Lists hold cards and enforce a unique constraint (board_id, position) so that ordering is stable.
+- Card: The atomic unit of work. A card belongs to a list and carries a title, description, optional due date, assignees, labels, and comments.
+
+Secondary entities hang off the hierarchy:
+- Comment: Attached to a card, authored by a user.
+- Label: Scoped to a board, assignable to many cards through the "card_labels" join table.
+- CardAssignee: The many-to-many link between users and cards.
+- OrganizationMember / BoardMember: Explicit membership tables that carry a role and a join timestamp.
+
+Authentication entities (PasswordCredential, Session, LoginChallenge, TwoFactorTotp, RecoveryCode) are isolated from the domain hierarchy and are only referenced by the User model.
+
+### Roles
+
+Roles are scoped at three levels, which allows a user to have different permissions in different contexts:
+
+| Level | Model | Example roles | Controls |
+| --- | --- | --- | --- |
+| Application | "User.role" | "user", "moderator", "admin" | Application roles define how much authority users have over the platform as a whole, independent of any organization |
+| Organization | "OrganizationMember.role" | "owner", "admin", "member" | Organization roles define how much authority users have over one organization: Its members, its boards, its settings, and its lifecycle |
+| Board | "BoardMember.role" | "admin", "member" | Board roles define how much authority users have over one board and its contents: The lists, cards, comments, labels, and board-level membership |
+
+### Deletion strategies
+
+The schema uses two deletion strategies, chosen based on the entity's role in the domain:
+
+- Soft deletes: "Board.archivedAt", "BoardList.archivedAt", "Card.archivedAt", "Organization.archivedAt", "Comment.deletedAt". These entities retain their row in the database, allowing recovery, audit trails, and referential integrity with historical data. Application queries filter on "archivedAt IS NULL" or "deletedAt IS NULL" by default.
+- Hard deletes (cascade): When an Organization is physically deleted, its Boards are deleted ("onDelete: Cascade"), and so on down the hierarchy. Membership rows ("OrganizationMember", "BoardMember"), join rows ("CardAssignee", "CardLabel"), and dependent entities ("Comment", "BoardList", "Card") also cascade. This ensures that removing a parent does not leave orphaned rows.
+
+### Composite primary keys
+
+Four junction tables use composite primary keys instead of a surrogate "id" column. This enforces uniqueness at the database level and prevents duplicate relationships:
+
+| Table | Composite key | Purpose |
+| --- | --- | --- |
+| "organization_members" | "(organization_id, user_id)" | A user can join an organization only once |
+| "board_members" | "(board_id, user_id)" | A user can join a board only once |
+| "card_assignees" | "(card_id, user_id)" | A user can be assigned to a card only once |
+| "card_labels" | "(card_id, label_id)" | A label can be applied to a card only once |
+
+Because the primary key is the natural composite, no additional unique index is required, and the database enforces the invariant without application-level checks.
+
+### Database Migrations
+
+Prisma Migrate is the only migration system used by the project, migration history is stored in `prisma/migrations`.
 
 The initial migration contains the current schema:
 
 1. `prisma/migrations/20260920120000_init/migration.sql`: users, credentials, sessions, 2FA, organizations, boards, lists, cards, board members, assignees, comments, and labels.
+
+### Add a Migration
+
+First, edit “prisma/schema.prisma” to add or modify a model in the schema file.
+
+Then, run the following command:
+
+```bash
+prisma migrate dev --name <migration_name>
+```
+
+- The command detects drifts, checking if the database schema is out of sync with the migration history.
+- It compares the new “schema.prisma” with the previous migration state and generates a new SQL migration file in “prisma/migrations/TIMESTAMP_name/migration.sql”.
+- It runs the SQL file against the development database in the postgres container.
+- It runs “prisma generate” automatically, regenerating the TypeScript client and updating its types.
+
+Review the generated “migration.sql” file, check that Prisma didn’t do anything unexpected.
+
+Finally, commit both the updated “schema.prisma” and the new migration directory to Git.
+
+### Migration lock
+
+The "migration_lock.toml" exists to lock the database provider for the migration history.
+Its primary purpose is to prevent accidentally applying a set of migrations that were generated for one database type to a completely different database type.
+
+```bash
+find ./ -name "migration_lock.toml"
+```
+
+Prisma Migrate generates raw SQL files that are specific to the database provider being used.
+The SQL syntax differs for different database providers.
+
+If the provider is changed in the schema.prisma but the old migration files are kept, Prisma will fail attempting to run SQL files whose syntax does not match the database provider.
+
+### Raw queries
+
+All database access in this project goes through the Prisma Client API (`prisma.model.operation()`) with full type safety.
+The exceptions are documented here.
+
+```bash
+# list all raw queries
+grep -rn '\$queryRaw\|\$executeRaw\|\$queryRawUnsafe\|\$executeRawUnsafe' ./src
+```
+
+**File:** `src/modules/cards/cards.prismaRepository.ts`
+**Functions:** `create()`, `move()`
+
+**Why:** The `cards` table has a uniqueness constraint on `(list_id, position)`.
+When two users create or move cards in the same list concurrently, both transactions would compute the same next position and one would fail with `P2002`.
+To prevent this, we acquire a PostgreSQL transaction-scoped advisory lock keyed by the target list ID before computing the next position.
+This serializes position computation per list, while allowing unrelated lists to proceed in parallel.
+
+**Why not a Prisma query API:** Prisma has no API for advisory locks. 
+They are a PostgreSQL-specific concurrency primitive. 
+The alternative would be an application-level mutex (which wouldn't protect across multiple backend instances) or dropping the unique constraint (which would weaken data integrity).
+
+**Safety:** The query uses Prisma's tagged-template `$queryRaw`, which parameterizes `${...}` values as SQL bind parameters (`$1`, `$2`, ...).
+No string interpolation occurs. 
+The lock is scoped to the enclosing transaction and released automatically on commit or rollback.
+
+**Additional safety:** A retry wrapper (`withPositionRetry`) retries up to three times on `P2002` (unique constraint) and `P2034` (deadlock / serialization failure) errors, providing defense in depth against transient contention.
+
+**File:** `src/modules/lists/lists.prismaRepository.ts`
+**Functions:** `create()`, `reorder()`
+
+**Why:** The create() and reorder() methods in lists.prismaRepository.ts use raw queries for the exact same purpose as the create() and move() methods in cards.prismaRepository.ts.
+They prevent race conditions when calculating the next available integer for an ordered list, while working around PostgreSQL's @@unique constraint.
+
+### In-memory repositories
+
+The project uses the **repository pattern**: every data-access concern is expressed as an interface (e.g., `UsersRepository`, `BoardsRepository`), with two implementations.
+
+| Implementation | Location | Purpose |
+| --- | --- | --- |
+| `Prisma*Repository` | `src/modules/*/<module>.prismaRepository.ts` | Production implementation, backed by Prisma Client |
+| `InMemory*Repository` | `src/modules/*/<module>.repository.ts` | Test-only implementation, backed by `Map` and `Set` |
+
+In-memory repositories exist solely to support unit tests without a database. They are never used in development, production, or the Docker deployment.
+
+This invariant is enforced by two independent guards, so a misconfigured deployment fails loudly instead of silently degrading:
+
+1. Configuration guard: Uses Zod's "superRefine" to require "DATABASE_URL" whenever "NODE_ENV" is "development" or "production". The application refuses to start if the variable is missing outside "NODE_ENV=test".
+2. Composition guard: Selects the repository implementation based on "NODE_ENV". In any environment other than "test", it throws at startup if "createPrismaClient()" returned "null".
+
+A misconfigured production container therefore exits immediately rather than serving requests against an empty in-memory store.
 
 ## Features List
 

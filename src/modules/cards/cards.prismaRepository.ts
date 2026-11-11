@@ -7,6 +7,66 @@ import type { Page, PaginationInput } from '../../shared/pagination.js';
 export class PrismaCardsRepository implements CardsRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
+  /**
+   * "select pg_advisory_xact_lock(
+   *         hashtext(
+   *                  ${`card-position:${input.listId}`}
+   *                 )
+   *                              )"
+   * Get an exclusive, transaction-level lock using the integer hash 
+   * of 'card-position:<listId>' as the key. If another transaction 
+   * holds this lock, wait for it. Once this instance has the lock, continues. 
+   * It will be released automatically when the transaction ends.
+   *
+   *
+   * "select 1 as locked from (...) acquired"
+   *
+   * This is just a wrapper to make the query return something.
+   * pg_advisory_xact_lock returns void.
+   *
+   * PostgreSQL doesn't allow a bare function call in a SELECT without 
+   * a FROM clause in some contexts, so the implementation wraps it in 
+   * a subquery named "acquired" and selects a dummy column "1 as locked".
+   *
+   * The result is irrelevant, the side effect is what matters.
+   *
+   *
+   * "pg_advisory_xact_lock(...)"
+   *
+   * This is a PostgreSQL function that acquires an advisory lock.
+   * An advisory lock is a tool you use in your code to coordinate 
+   * between concurrent transactions.
+   *
+   * "xact" means the lock is transaction-scoped. It is automatically 
+   * released the moment your transaction commits or rolls back. 
+   * You don't need to manually unlock it.
+   *
+   * The function blocks (waits indefinitely) if another transaction 
+   * already holds the same lock.
+   *
+   *
+   * "hashtext( ${card-position:${input.listId}} )"
+   *
+   * The advisory lock function takes an integer as a key. 
+   * The string 'card-position:<listId>' needs to become an integer. 
+   * hashtext() is a PostgreSQL function that converts a string 
+   * into a 32-bit integer hash.
+   *
+   * The prefix "card-position" is included to avoid collisions with 
+   * other advisory locks in the codebase. If you only hashed the boardId, 
+   * and somewhere else you also hashed a boardId for a different purpose, 
+   * they might accidentally collide. The prefix creates a namespace.
+   *
+   * The "${...}" is Prisma's tagged template syntax. 
+   * Prisma does not concatenate this string into the SQL. 
+   * Instead, it converts it into a parameterized query (like $1). 
+   * This prevents SQL injection.
+   *
+   *
+   * If the lock still fails to prevent a race due to a deadlock (P2034) 
+   * or unique constraint (P2002), the retry wrapper "withPositionRetry" 
+   * catches the error and retries the transaction up to three times.
+   */
   async create(input: CreateCardInput): Promise<Card> {
     return withPositionRetry(async () => this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`

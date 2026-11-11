@@ -24,8 +24,11 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.17.1",
     "@types/node": "^24.10.1",
     "prisma": "^6.16.0",
+    "prisma-erd-generator": "^3.2.1",
+    "puppeteer": "^25.17.0",
     "typescript": "^5.9.3"
   }
 }

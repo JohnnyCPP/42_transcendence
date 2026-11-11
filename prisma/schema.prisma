@@ -1,3 +1,11 @@
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../document/ERD.svg"
+  theme    = "neutral"
+  includeRelationFromFields = true
+  disabled = false
+}
+
 generator client {
   provider = "prisma-client-js"
 }
