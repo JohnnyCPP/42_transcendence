@@ -35,8 +35,9 @@ En una frase: **Next.js pinta la UI; el backend guarda usuarios, sesión, worksp
 | **JWT** | JSON Web Token: cadena firmada que a veces se guarda en el cliente para auth. **Aquí no lo usamos en el front**; la sesión va por cookie. |
 | **Mock** | Datos inventados en el front para demos UI (p. ej. `mockUsers`, Activity/Velocity) cuando el API aún no cubre ese caso. |
 | **Endpoint** | URL concreta del backend que hace una acción (`POST /auth/login`, `GET /organizations`). |
-| **Rewrite / proxy** | El front llama a `/api/...` y Next **reenvía** esa petición al backend. Evita problemas de CORS en local. |
-| **CORS** | Regla del navegador que bloquea peticiones entre orígenes distintos (p. ej. `:3000` → `:4000`) si el servidor no lo permite. El proxy de Next evita pelear con eso en dev. |
+| **Rewrite / proxy** | El front llama a `/api/...` y Next **reenvía** esa petición a Fastify (quita el prefijo `/api`). El navegador solo habla con Next. |
+| **CORS** | Regla del navegador que bloquea peticiones entre orígenes distintos. Aquí no hace falta pelear con CORS: el proxy hace que API y UI sean el mismo origen. |
+| **2FA challenge** | Segundo paso del login cuando el BE responde `requires_2fa`; la UI pide TOTP o recovery code (`POST /auth/login/2fa`). |
 | **Barrel (`index.ts`)** | Archivo que **reexporta** varios módulos para importar desde una sola ruta: `from '@/components/ui'`. |
 | **Alias `@/`** | Atajo de import: `@/components/...` = carpeta `frontend/components/...` (configurado en `tsconfig.json`). |
 | **CTA** | *Call to action*: botón o enlace principal (“Crear proyecto”, “Entrar”). |
@@ -65,29 +66,37 @@ No hace falta saber más para orientarte en el repo.
 
 ## 3. Cómo arrancar (local)
 
-Desde la carpeta `frontend/`:
+El camino soportado es **Docker Compose** desde la **raíz del repo** (Postgres + Fastify + Next). Detalle completo en el [`README.md`](../README.md) de la raíz y un resumen en [`README.md`](./README.md) de esta carpeta.
 
 ```bash
-npm install
-npm run dev
+# desde la raíz del repo
+cp .env.example .env   # si aún no tienes .env
+# rellena POSTGRES_PASSWORD y TOTP_ENCRYPTION_KEY_BASE64
+docker compose up --build
 ```
 
-Por defecto la UI suele estar en `http://localhost:3000`.
+Abre **`https://localhost/`** (puerto `443`). El certificado es autofirmado; cómo confiarlo está en el README root.
 
-**Importante:** para login/registro y boards reales necesitas el **backend** levantado (por defecto `http://localhost:4000`).  
-Si el backend no está, las llamadas a `/api/...` fallarán.
+Flujo de red:
 
-Variable opcional (si el backend no está en el puerto 4000):
+```text
+Navegador --HTTPS:443--> nextjs --HTTP--> fastify:3000 --> postgres
+```
 
-- `BACKEND_URL` — la usa `next.config.ts` en el rewrite.
+- Solo el contenedor `nextjs` publica puerto en el host.
+- `next.config.ts` reescribe `/api/:path*` → `${INTERNAL_API_URL}/:path*` (en Compose: `http://fastify:3000`).
+- Ejemplo: `POST https://localhost/api/auth/login` → Fastify `POST /auth/login`.
+- La cookie de sesión queda en el origen de Next. No hace falta CORS.
 
-Scripts útiles (`package.json`):
+**Nota:** `npm run dev` dentro de `frontend/` arranca Next a solas (hot reload) y **no** levanta API ni DB. Sin Compose no resuelve el hostname `fastify`. Para la app completa usa siempre `docker compose up --build`.
+
+Scripts del `frontend/package.json` (útiles sobre todo fuera de Compose):
 
 | Comando | Qué hace |
 |---------|----------|
-| `npm run dev` | Desarrollo con recarga |
+| `npm run dev` | Next en modo desarrollo (no levanta el backend) |
 | `npm run build` | Build de producción |
-| `npm run start` | Sirve el build |
+| `npm run start` | Sirve el build (HTTP; en Docker usamos `server.mjs` con HTTPS) |
 | `npm run lint` | ESLint |
 
 ---
@@ -135,9 +144,10 @@ frontend/
 ├── components/          # UI por dominio (auth, org, boards, board, layout…)
 │   └── ui/              # Primitivos + ui.styles.ts (Button, EmptyState…)
 ├── data/                # Mocks residuales (p. ej. mockUsers para assignees)
-├── lib/                 # Utilidades compartidas (apiClient)
+├── lib/                 # Cliente HTTP (`apiClient.ts`: apiFetch, ApiError)
 ├── types/               # Tipos compartidos (ej. board / filtros kanban)
-├── next.config.ts       # Proxy /api → backend
+├── next.config.ts       # Rewrite /api → Fastify (INTERNAL_API_URL)
+├── README.md            # Resumen corto + enlace a este doc y al README root
 └── FRONTEND_DOCS.md     # Este documento
 ```
 
@@ -221,15 +231,17 @@ Convención: hooks y utils van **junto a la feature** (`kanbanBoard/`, `taskModa
 ## 9. Cómo habla el front con el backend
 
 1. Las llamadas pasan por `lib/apiClient.ts` → `apiFetch` (cookies + JSON + errores unificados).
-2. El código llama rutas relativas; `apiFetch` antepone `API_BASE` (`/api` hoy).
-3. Para versionar: cambia `API_BASE` a `/api/v1` y el rewrite de `next.config.ts`.
-4. Next reescribe `/api/:path*` → `BACKEND_URL/:path*`.
-5. Login/register dejan cookie HttpOnly; el resto de peticiones la llevan solas.
+2. El código llama rutas relativas; `apiFetch` antepone `API_BASE` (`NEXT_PUBLIC_API_BASE` o `/api` por defecto).
+3. Errores de Fastify `{ error, message }` llegan como `ApiError` (`error` + `message` + `status`).
+4. Para versionar: cambia `API_BASE` / env y el rewrite de `next.config.ts`.
+5. Next reescribe `/api/:path*` → `${INTERNAL_API_URL}/:path*` (Compose: `http://fastify:3000`).
+6. Login / register / login 2FA dejan cookie HttpOnly; el resto de peticiones la llevan solas.
 
 | Acción | Método | Path en código | URL final en navegador |
 |--------|--------|----------------|------------------------|
 | Sesión actual | `GET` | `/me` | `/api/me` |
 | Login | `POST` | `/auth/login` | `/api/auth/login` |
+| Completar 2FA | `POST` | `/auth/login/2fa` | `/api/auth/login/2fa` |
 | Registro | `POST` | `/auth/register` | `/api/auth/register` |
 | Logout | `POST` | `/auth/logout` | `/api/auth/logout` |
 | Listar orgs | `GET` | `/organizations` | `/api/organizations` |
@@ -262,8 +274,10 @@ Kanban: capa `components/board/boardApi.ts` + mappers; handlers en `useKanbanHan
 6. Elegir/crear workspace escribe el id en storage; logout (auth ya resuelta y sin sesión) lo borra.
 7. `BoardsProvider` carga/crea tableros de la org activa (`useBoards`).
 8. `ProtectedRoute` + `RequireActiveOrg` en páginas de producto.
-9. Login / signup actualizan auth y redirigen (p. ej. al dashboard).
+9. Login: si el BE responde `requires_2fa`, la UI pasa al segundo paso (`TwoFactorForm`) y completa con `complete2fa` → `POST /auth/login/2fa`. Signup y login autenticado redirigen (p. ej. al dashboard).
 10. Header → `logout()` → `/login`.
+
+**Nota:** activar 2FA en una cuenta (setup/confirm) aún no tiene pantalla en Next; el challenge del login sí.
 
 ### Por qué esperar a `isAuthLoading`
 Si al montar se tratara `isAuthenticated === false` como “logout real”, se borraría el id del workspace en **cada F5** antes de recuperar la cookie. Por eso el effect de org no limpia storage mientras auth sigue cargando.
@@ -310,7 +324,7 @@ Mocks residuales: assignees (`mockUsers`), Activity/Velocity del dashboard.
 `AppShell` + `header/` + `sidebar/`.
 
 ### E) Cliente HTTP único
-`lib/apiClient.ts` (`apiFetch`) para auth, orgs, boards y kanban (`boardApi.ts`).
+`lib/apiClient.ts` (`apiFetch` + `ApiError`) para auth, orgs, boards y kanban (`boardApi.ts`).
 
 ### F) UI “workspace” / código “organization”
 Misma entidad; nombres distintos por capa (ver §5).
@@ -350,6 +364,7 @@ No hay librerías extra de clases: solo el helper `cx`.
 
 ### Ya conectado al backend
 - Login, registro, logout, `/me`
+- Login 2FA challenge (`requires_2fa` → `POST /auth/login/2fa` + `TwoFactorForm`)
 - Organizations: listar, crear, org activa (persistida en `localStorage`)
 - Boards: listar por org, crear, `GET /boards/:id` (header)
 - Lists / cards: carga + create/update/move/archive (+ duplicate vía create)
@@ -362,7 +377,7 @@ No hay librerías extra de clases: solo el helper `cx`.
 
 ### Pendiente (cuando el contrato / equipo lo permita)
 - `DELETE /lists` (o ocultar borrar columna)
-- Login 2FA + settings password/2FA
+- Settings: activar/desactivar 2FA + password change (BE ya tiene rutas)
 - Miembros org/board
 - Validación FE login/signup alineada al BE
 - `API_BASE = '/api/v1'` cuando el backend versionado
@@ -374,18 +389,18 @@ No hay librerías extra de clases: solo el helper `cx`.
 ## 14. Cómo orientarte si entras nuevo
 
 1. Lee este doc (§5 nombres + §10 auth/workspace + §17 estilos UI).
-2. Arranca front + back; prueba login → `/workspace` → dashboard → board → logout → F5 mantiene workspace.
+2. Arranca con `docker compose up --build` (README root); prueba login → `/workspace` → dashboard → board → logout → F5 mantiene workspace.
 3. `app/layout.tsx` → providers; páginas de producto → `ProtectedRoute` + `RequireActiveOrg` + `AppShell`.
-4. Auth: `components/auth/`. Workspace: `components/org/` + `app/workspace/`.
+4. Auth: `components/auth/` (login incluye `TwoFactorForm`). Workspace: `components/org/` + `app/workspace/`.
 5. Boards listado: `components/boards/`. Kanban: `components/board/` + `app/boards/[boardId]/`.
-6. HTTP: `lib/apiClient.ts`.
+6. HTTP: `lib/apiClient.ts` (`apiFetch`, `ApiError`).
 7. UI reutilizable: `components/ui/` (`Button`, `EmptyState`, `uiStyles`…).
 
 ---
 
 ## 15. Frase corta para defensa oral
 
-> Frontend por dominio, con AppShell, auth real por cookie HttpOnly, OrgProvider (workspace en UI) con org activa persistida en localStorage, boards filtrados por org, y kanban con lists/cards persistidos vía `boardApi` + handlers. Estilos repetidos viven en `uiStyles` + primitivos (`Button`, `EmptyState`…). Mocks residuales: assignees y widgets Activity/Velocity.
+> Frontend por dominio, con AppShell, auth real por cookie HttpOnly (login + challenge 2FA), OrgProvider (workspace en UI) con org activa persistida en localStorage, boards filtrados por org, y kanban con lists/cards persistidos vía `boardApi` + handlers. Stack local vía Docker Compose; Next proxifica `/api` a Fastify. Estilos en `uiStyles` + primitivos. Mocks residuales: assignees y widgets Activity/Velocity.
 
 ---
 
@@ -396,9 +411,9 @@ No hay librerías extra de clases: solo el helper `cx`.
 | Layout raíz / providers | `app/layout.tsx` |
 | Shell autenticado | `components/layout/AppShell.tsx` |
 | Header / Sidebar | `components/layout/Header.tsx`, `header/`, `Sidebar.tsx`, `sidebar/` |
-| Cliente API | `lib/apiClient.ts` |
-| Proxy | `next.config.ts` |
-| Auth | `AuthProvider.tsx`, `useAuth.ts`, `ProtectedRoute.tsx`, `login/`, `signup/` |
+| Cliente API | `lib/apiClient.ts` (`apiFetch`, `ApiError`) |
+| Proxy `/api` → Fastify (`INTERNAL_API_URL`) | `next.config.ts` |
+| Auth | `AuthProvider.tsx`, `useAuth.ts`, `ProtectedRoute.tsx`, `login/` (incl. `TwoFactorForm`), `signup/` |
 | Workspace (org) | `OrgProvider.tsx`, `useOrg.ts`, `RequireActiveOrg.tsx`, `app/workspace/page.tsx` |
 | Boards (listado API) | `BoardsProvider.tsx`, `useBoards.ts`, `app/boards/page.tsx`, `app/dashboard/page.tsx` |
 | Crear board | `BoardsProvider.createBoard`, `app/projects/new/page.tsx` |
