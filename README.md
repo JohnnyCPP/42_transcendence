@@ -249,38 +249,61 @@ AI was not used for any task or any part of the project.
 
 ### Database Schema
 
-**TODO:** Visual representation or description of the database structure.
+The schema is defined in [`prisma/schema.prisma`](./prisma/schema.prisma). A generated Entity-Relationship Diagram (ERD) is available at [`document/ERD.svg`](./document/ERD.svg) and is regenerated automatically every time "prisma generate" runs.
 
-**TODO:** Tables/collections and their relationships.
+![TaskFlow Entity-Relationship Diagram](./document/ERD.svg)
 
-**TODO:** Key fields and data types.
+### Domain model
 
-The main relationships are:
+The application is built around a five-level hierarchy:
 
 ```text
-User
-|-- PasswordCredential
-|-- Session
-|-- LoginChallenge
-|-- TwoFactorTotp
-|-- RecoveryCode
-|-- OrganizationMember -> Organization
-|-- BoardMember ---------> Board
-`-- created cards and comments
-
-Organization
-`-- Board
-    |-- BoardMember
-    |-- BoardList
-    |   `-- Card
-    |       |-- CardAssignee -> User
-    |       |-- Comment ------> User
-    |       `-- CardLabel ----> Label
-    `-- Label
+User → Organization → Board → List → Card
 ```
 
-Lists and cards use integer positions with gaps (`1000`, `2000`, `3000`, and so on). PostgreSQL advisory locks protect position allocation and list reordering from concurrent requests. Cards are archived through `archivedAt` rather than physically deleted.
-The schema is defined in `prisma/schema.prisma`.
+- User: A user can belong to multiple organizations and be assigned to cards across boards.
+- Organization: The top-level container for shared work. Each organization has its own membership list and its own set of boards. A user's role inside an organization determines what they can do within it.
+- Board: A workspace inside an organization. It contains ordered lists and its own set of labels. Boards are the primary unit users open to view and manipulate work.
+- List: An ordered column inside a board. Lists hold cards and enforce a unique constraint (board_id, position) so that ordering is stable.
+- Card: The atomic unit of work. A card belongs to a list and carries a title, description, optional due date, assignees, labels, and comments.
+
+Secondary entities hang off the hierarchy:
+- Comment: Attached to a card, authored by a user.
+- Label: Scoped to a board, assignable to many cards through the "card_labels" join table.
+- CardAssignee: The many-to-many link between users and cards.
+- OrganizationMember / BoardMember: Explicit membership tables that carry a role and a join timestamp.
+
+Authentication entities (PasswordCredential, Session, LoginChallenge, TwoFactorTotp, RecoveryCode) are isolated from the domain hierarchy and are only referenced by the User model.
+
+### Roles
+
+Roles are scoped at three levels, which allows a user to have different permissions in different contexts:
+
+| Level | Model | Example roles | Controls |
+| --- | --- | --- | --- |
+| Application | "User.role" | "user", "moderator", "admin" | Application roles define how much authority users have over the platform as a whole, independent of any organization |
+| Organization | "OrganizationMember.role" | "owner", "admin", "member" | Organization roles define how much authority users have over one organization: Its members, its boards, its settings, and its lifecycle |
+| Board | "BoardMember.role" | "admin", "member" | Board roles define how much authority users have over one board and its contents: The lists, cards, comments, labels, and board-level membership |
+
+### Deletion strategies
+
+The schema uses two deletion strategies, chosen based on the entity's role in the domain:
+
+- Soft deletes: "Board.archivedAt", "BoardList.archivedAt", "Card.archivedAt", "Organization.archivedAt", "Comment.deletedAt". These entities retain their row in the database, allowing recovery, audit trails, and referential integrity with historical data. Application queries filter on "archivedAt IS NULL" or "deletedAt IS NULL" by default.
+- Hard deletes (cascade): When an Organization is physically deleted, its Boards are deleted ("onDelete: Cascade"), and so on down the hierarchy. Membership rows ("OrganizationMember", "BoardMember"), join rows ("CardAssignee", "CardLabel"), and dependent entities ("Comment", "BoardList", "Card") also cascade. This ensures that removing a parent does not leave orphaned rows.
+
+### Composite primary keys
+
+Four junction tables use composite primary keys instead of a surrogate "id" column. This enforces uniqueness at the database level and prevents duplicate relationships:
+
+| Table | Composite key | Purpose |
+| --- | --- | --- |
+| "organization_members" | "(organization_id, user_id)" | A user can join an organization only once |
+| "board_members" | "(board_id, user_id)" | A user can join a board only once |
+| "card_assignees" | "(card_id, user_id)" | A user can be assigned to a card only once |
+| "card_labels" | "(card_id, label_id)" | A label can be applied to a card only once |
+
+Because the primary key is the natural composite, no additional unique index is required, and the database enforces the invariant without application-level checks.
 
 ### Database Migrations
 
