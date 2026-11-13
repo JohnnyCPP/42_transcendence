@@ -14,5 +14,6 @@ export { default as TextInput } from './TextInput';
 export { default as Button, buttonClassName } from './Button';
 export { default as Icon } from './Icon';
 export { default as EmptyState } from './EmptyState';
+export { default as FormErrorBanner } from './FormErrorBanner';
 export { default as AuthCard } from './AuthCard';
 export { uiStyles, cx } from './ui.styles';

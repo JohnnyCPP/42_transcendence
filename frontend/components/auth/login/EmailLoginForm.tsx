@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { LoginCredentials } from '../auth.types';
 import Link from 'next/link';
-import { Button, Icon, uiStyles, cx } from '@/components/ui';
+import { Button, FormErrorBanner, Icon, uiStyles, cx } from '@/components/ui';
 
 interface EmailLoginFormProps {
   onSubmit: (credentials: LoginCredentials) => Promise<void>;
@@ -116,14 +116,7 @@ export default function EmailLoginForm({
         </div>
       </div>
 
-      {displayError && (
-        <div className="p-3 bg-error/10 border border-error/20 rounded-lg text-error text-sm">
-          <div className="flex items-start gap-2">
-            <Icon name="error" size="md" className="shrink-0 mt-0.5" />
-            <span>{displayError}</span>
-          </div>
-        </div>
-      )}
+      <FormErrorBanner error={displayError} />
 
       <Button
         type="submit"
