@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { BoardCard } from '@/components/dashboard';
-import { mapBoardToCard, useBoards } from '@/components/boards';
+import { BoardCardMenu, mapBoardToCard, useBoards } from '@/components/boards';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { AppShell } from '@/components/layout/AppShell';
 import { RequireActiveOrg, useOrg } from '@/components/org';
@@ -69,8 +69,13 @@ export default function BoardsPage() {
               />
             ) : filteredBoards.length > 0 ? (
               <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filteredBoards.map((board) => (
-                  <BoardCard key={board.href ?? board.title} {...board} />
+                {filteredBoards.map(({ id, ...board }) => (
+                  <div key={id} className="relative">
+                    <div className="absolute right-2 top-2 z-10">
+                      <BoardCardMenu boardId={id} boardName={board.title} />
+                    </div>
+                    <BoardCard {...board} />
+                  </div>
                 ))}
               </section>
             ) : (

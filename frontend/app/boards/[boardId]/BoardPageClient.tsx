@@ -104,6 +104,7 @@ export default function BoardPageClient({ boardId }: { boardId: string }) {
             <BoardHeader
               boardId={boardId}
               boardTitle={boardTitle}
+              onBoardTitleChange={setBoardTitle}
               filters={boardFilters}
               onTogglePriority={handleTogglePriority}
               onToggleCompletedOnly={handleToggleCompletedOnly}

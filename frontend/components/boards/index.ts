@@ -4,9 +4,15 @@
  * - `Board` → tipo del API
  * - `BoardsProvider` / `useBoards` → estado compartido + createBoard
  * - `mapBoardToCard` → adaptador hacia `BoardCard`
+ * - `useBoardActions` / `BoardCardMenu` → renombrar/eliminar (cards + header)
  */
 export type { Board } from './board.types';
 export type { BoardsState } from './boards.types';
 export { BoardsProvider } from './BoardsProvider';
 export { useBoards } from './useBoards';
 export { mapBoardToCard } from './mapBoardToCard';
+export { BoardCardMenu } from './BoardCardMenu';
+export {
+  useBoardActions,
+  type UseBoardActionsOptions,
+} from './useBoardActions';

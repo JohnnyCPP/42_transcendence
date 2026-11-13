@@ -5,6 +5,8 @@
  * - `GET  /organizations/:organizationId/boards`
  * - `POST /organizations/:organizationId/boards`
  * - `GET  /boards/:boardId`
+ * - `PATCH /boards/:boardId` (name, description) — stub en BoardsProvider
+ * - `DELETE /boards/:boardId` — pendiente en BE; stub UI no-op
  *
  * Las fechas llegan como string ISO (JSON); no como `Date`.
  */
