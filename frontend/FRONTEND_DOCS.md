@@ -162,6 +162,8 @@ Convención: hooks y utils van **junto a la feature** (`kanbanBoard/`, `taskModa
 | `/` | `app/page.tsx` | Redirige a `/dashboard`. |
 | `/dashboard` | `app/dashboard/page.tsx` | Resumen + boards de la org activa (API). **Protegida** + `RequireActiveOrg`. |
 | `/workspace` | `app/workspace/page.tsx` | Switcher/crear workspace (`useOrg`). **Protegida**. |
+| `/workspace/settings` | `app/workspace/settings/page.tsx` | Editar name/slug del workspace activo; eliminar (UI, DELETE pendiente en BE). **Protegida** + `RequireActiveOrg`. |
+| `/settings` | `app/settings/page.tsx` | Seguridad de cuenta: reauth, password, 2FA (stubs tipados en `lib/securityApi`). **Protegida**. |
 | `/boards` | `app/boards/page.tsx` | Listado de tableros de la org activa (API). **Protegida** + `RequireActiveOrg`. |
 | `/boards/[boardId]` | `app/boards/[boardId]/` | Kanban de un board (lists/cards vía API). **Protegida** + `RequireActiveOrg`. |
 | `/projects/new` | `app/projects/new/page.tsx` | Crear board vía `POST .../boards`. **Protegida** + `RequireActiveOrg`. |
@@ -193,14 +195,22 @@ Convención: hooks y utils van **junto a la feature** (`kanbanBoard/`, `taskModa
 - `LegalLinks.tsx` / `LegalDocumentLayout.tsx` — Privacy y Terms.
 
 ### `org/` — organization (= workspace en UI)
-- `OrgProvider.tsx` + `useOrg.ts` — carga `GET /organizations`, crea si vacío, reparte org activa.
+- `OrgProvider.tsx` + `useOrg.ts` — carga `GET /organizations`, crea si vacío, reparte org activa; stubs `updateOrganization` / `deleteOrganization`.
 - Persistencia: `localStorage` clave `taskflow.activeOrganizationId` (ver §10).
 - `RequireActiveOrg.tsx` — guardia de workspace activo (paralela a `ProtectedRoute`).
 - `OrganizationCard.tsx` / `CreateOrganizationForm.tsx` — UI del switcher.
+- `WorkspaceSettingsPage.tsx` + `useWorkspaceSettings.ts` — ajustes del workspace activo.
 - `org.types.ts` + `index.ts` — tipos y barrel (documenta la convención de nombres).
 
+### `settings/` — seguridad de cuenta
+- `SettingsPage.tsx` — reauth + password + 2FA bajo `/settings` (enlace desde `ProfileMenu`).
+- `ReauthSection` / `PasswordSection` + hooks `useReauthForm` / `usePasswordForm`.
+- `twoFactor/` — setup/confirm/regenerate/disable (UI + `useTwoFactorForm`; estado enabled solo local).
+- Llamadas tipadas (stubs): `lib/securityApi.ts` — cablear con `apiFetch` cuando toque.
+
 ### `boards/` — listado / fetch de tableros (plural)
-- `BoardsProvider.tsx` + `useBoards.ts` — estado compartido; `GET` + `createBoard` (`POST`) según org activa.
+- `BoardsProvider.tsx` + `useBoards.ts` — estado compartido; `GET` + `createBoard` (`POST`); stubs `updateBoard` / `deleteBoard`.
+- `useBoardActions.ts` + `BoardCardMenu.tsx` — renombrar/eliminar (cards y cabecera kanban).
 - `mapBoardToCard.ts` — adapta `Board` del API → props de `BoardCard`.
 - `board.types.ts` / `boards.types.ts` — tipos alineados al backend.
 
@@ -209,7 +219,8 @@ Convención: hooks y utils van **junto a la feature** (`kanbanBoard/`, `taskModa
 - `boardApi.types.ts` — `ApiList` / `ApiCard` (forma JSON del backend).
 - `mapBoardApi.ts` — adaptadores API → UI (`TaskItem` / `BoardColumn`).
 - `kanbanBoard/` — orquestador + `useKanbanState` + `useKanbanHandlers` + utils.
-- `kanbanColumn/`, `taskModal/`, `boardHeader/`, `taskCard/`.
+- `kanbanColumn/`, `taskModal/`, `taskCard/`.
+- `boardHeader/` — título, filtros (`BoardFilterDialog`), share (`BoardShareDialog`), menú ⋯ (`BoardCardMenu`).
 
 ### `dashboard/`
 - Barrel `index.ts` + `dashboard.types.ts`.
@@ -221,6 +232,7 @@ Convención: hooks y utils van **junto a la feature** (`kanbanBoard/`, `taskModa
 - `Button` (+ `buttonClassName` para Links) — variantes primary / secondary / ghost / danger.
 - `Icon` — Material Symbols Outlined con tamaños sm–xl.
 - `EmptyState` — panel dashed (loading / error / vacío).
+- `FormErrorBanner` — banner de error de formulario reutilizable.
 - `AuthCard` — shell + card de páginas auth / marketing.
 - `TextInput` — input controlado con label/error.
 - `Dialog`, `InfoDialog`, `ConfirmDialog`, `TextInputDialog` — modales (footers con `Button`).
@@ -242,6 +254,11 @@ Convención: hooks y utils van **junto a la feature** (`kanbanBoard/`, `taskModa
 | Sesión actual | `GET` | `/me` | `/api/me` |
 | Login | `POST` | `/auth/login` | `/api/auth/login` |
 | Completar 2FA | `POST` | `/auth/login/2fa` | `/api/auth/login/2fa` |
+| Reautenticar (stub FE) | `POST` | `/auth/reauthenticate` | `/api/auth/reauthenticate` |
+| Cambiar password (stub FE) | `POST` | `/auth/password/change` | `/api/auth/password/change` |
+| 2FA setup/confirm/disable (stubs FE) | `POST`/`DELETE` | `/2fa/*` | `/api/2fa/*` |
+| Actualizar org (stub FE) | `PATCH` | `/organizations/:id` | `/api/organizations/:id` |
+| Actualizar board (stub FE) | `PATCH` | `/boards/:boardId` | `/api/boards/:boardId` |
 | Registro | `POST` | `/auth/register` | `/api/auth/register` |
 | Logout | `POST` | `/auth/logout` | `/api/auth/logout` |
 | Listar orgs | `GET` | `/organizations` | `/api/organizations` |
@@ -277,7 +294,7 @@ Kanban: capa `components/board/boardApi.ts` + mappers; handlers en `useKanbanHan
 9. Login: si el BE responde `requires_2fa`, la UI pasa al segundo paso (`TwoFactorForm`) y completa con `complete2fa` → `POST /auth/login/2fa`. Signup y login autenticado redirigen (p. ej. al dashboard).
 10. Header → `logout()` → `/login`.
 
-**Nota:** activar 2FA en una cuenta (setup/confirm) aún no tiene pantalla en Next; el challenge del login sí.
+**Nota:** el challenge 2FA del login está en `TwoFactorForm`. Setup/confirm/disable viven en `/settings` (`components/settings/twoFactor/`); las llamadas siguen en stubs (`lib/securityApi.ts`) hasta cablear `apiFetch`.
 
 ### Por qué esperar a `isAuthLoading`
 Si al montar se tratara `isAuthenticated === false` como “logout real”, se borraría el id del workspace en **cada F5** antes de recuperar la cookie. Por eso el effect de org no limpia storage mientras auth sigue cargando.
@@ -369,15 +386,20 @@ No hay librerías extra de clases: solo el helper `cx`.
 - Boards: listar por org, crear, `GET /boards/:id` (header)
 - Lists / cards: carga + create/update/move/archive (+ duplicate vía create)
 
-### Funcional en UI (mock o sin API)
+### Funcional en UI (mock, stub o sin API)
 - Widgets Activity / Velocity del dashboard (sin endpoints de métricas)
 - Assignees del modal (`mockUsers`)
 - Forgot-password (solo pantalla)
 - Privacy, Terms, 404
+- `/settings`: reauth, password, 2FA (UI lista; `securityApi` stub → cablear `apiFetch`)
+- `/workspace/settings`: editar org (stub `PATCH`); eliminar org (UI no-op, sin `DELETE` en BE)
+- Renombrar board (stub `PATCH`); eliminar board (UI no-op, sin `DELETE` en BE)
 
 ### Pendiente (cuando el contrato / equipo lo permita)
+- Cablear stubs FE: `lib/securityApi.ts`, `OrgProvider.updateOrganization`, `BoardsProvider.updateBoard`
+- `DELETE` organization / board en BE + conectar UI
+- Flag `twoFactorEnabled` en `GET /me` (hoy el estado 2FA en settings es solo local)
 - `DELETE /lists` (o ocultar borrar columna)
-- Settings: activar/desactivar 2FA + password change (BE ya tiene rutas)
 - Miembros org/board
 - Validación FE login/signup alineada al BE
 - `API_BASE = '/api/v1'` cuando el backend versionado
@@ -391,10 +413,11 @@ No hay librerías extra de clases: solo el helper `cx`.
 1. Lee este doc (§5 nombres + §10 auth/workspace + §17 estilos UI).
 2. Arranca con `docker compose up --build` (README root); prueba login → `/workspace` → dashboard → board → logout → F5 mantiene workspace.
 3. `app/layout.tsx` → providers; páginas de producto → `ProtectedRoute` + `RequireActiveOrg` + `AppShell`.
-4. Auth: `components/auth/` (login incluye `TwoFactorForm`). Workspace: `components/org/` + `app/workspace/`.
-5. Boards listado: `components/boards/`. Kanban: `components/board/` + `app/boards/[boardId]/`.
-6. HTTP: `lib/apiClient.ts` (`apiFetch`, `ApiError`).
-7. UI reutilizable: `components/ui/` (`Button`, `EmptyState`, `uiStyles`…).
+4. Auth: `components/auth/` (login incluye `TwoFactorForm`). Settings: `components/settings/` + `/settings`.
+5. Workspace: `components/org/` + `app/workspace/` (+ `/workspace/settings`).
+6. Boards listado: `components/boards/` (`BoardCardMenu` / `useBoardActions`). Kanban: `components/board/` + `app/boards/[boardId]/`.
+7. HTTP: `lib/apiClient.ts` (`apiFetch`, `ApiError`). Stubs de seguridad: `lib/securityApi.ts`.
+8. UI reutilizable: `components/ui/` (`Button`, `EmptyState`, `FormErrorBanner`, `uiStyles`…).
 
 ---
 
@@ -414,8 +437,9 @@ No hay librerías extra de clases: solo el helper `cx`.
 | Cliente API | `lib/apiClient.ts` (`apiFetch`, `ApiError`) |
 | Proxy `/api` → Fastify (`INTERNAL_API_URL`) | `next.config.ts` |
 | Auth | `AuthProvider.tsx`, `useAuth.ts`, `ProtectedRoute.tsx`, `login/` (incl. `TwoFactorForm`), `signup/` |
-| Workspace (org) | `OrgProvider.tsx`, `useOrg.ts`, `RequireActiveOrg.tsx`, `app/workspace/page.tsx` |
-| Boards (listado API) | `BoardsProvider.tsx`, `useBoards.ts`, `app/boards/page.tsx`, `app/dashboard/page.tsx` |
+| Settings cuenta | `components/settings/`, `app/settings/`, `lib/securityApi.ts` |
+| Workspace (org) | `OrgProvider.tsx`, `useOrg.ts`, `RequireActiveOrg.tsx`, `app/workspace/`, `WorkspaceSettingsPage` |
+| Boards (listado API) | `BoardsProvider.tsx`, `useBoards.ts`, `useBoardActions`, `BoardCardMenu`, `app/boards/page.tsx`, `app/dashboard/page.tsx` |
 | Crear board | `BoardsProvider.createBoard`, `app/projects/new/page.tsx` |
 | Kanban (página) | `app/boards/[boardId]/BoardPageClient.tsx` |
 | Kanban (API + mappers) | `components/board/boardApi.ts`, `boardApi.types.ts`, `mapBoardApi.ts` |
@@ -424,7 +448,7 @@ No hay librerías extra de clases: solo el helper `cx`.
 | Mock assignees | `data/mockBoardData.ts` (`mockUsers`) |
 | Tokens / kanban CSS | `app/globals.css` |
 | Estilos UI reutilizados | `components/ui/ui.styles.ts` + §17 |
-| Primitivos UI | `components/ui/` (`Button`, `Icon`, `EmptyState`, `AuthCard`, dialogs…) |
+| Primitivos UI | `components/ui/` (`Button`, `Icon`, `EmptyState`, `FormErrorBanner`, `AuthCard`, dialogs…) |
 
 ---
 
@@ -493,6 +517,9 @@ Plantilla de páginas públicas: fondo centrado (`authShell`) + tarjeta blanca (
 - `TextInputDialog` — pedir un texto (ej. nombre de columna).
 
 Todos los footers usan `Button`.
+
+#### `FormErrorBanner`
+Banner de error de formulario (borde + icono). Acepta `error` nulo (no renderiza) y `className` opcional. Login, signup, settings y workspace lo reutilizan.
 
 ### Qué va dónde (atajo)
 
