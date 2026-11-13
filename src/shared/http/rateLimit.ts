@@ -84,10 +84,11 @@ export class InMemoryRateLimiter
   }
 }
 
-// Never retain raw usernames, session ids or challenge tokens in limiter memory.
+// Never retain raw usernames, 
+// session ids or challenge tokens in limiter memory.
 export function rateLimitKey(scope: string, ...parts: Array<string | null | undefined>): string
 {
-  return createHash('sha256')
-    .update([scope, ...parts.map((part) => part ?? 'unknown')].join('\0'))
-    .digest('base64url');
+  return createHash("sha256")
+    .update([scope, ...parts.map((part) => part ?? "unknown")].join('\0'))
+    .digest("hex");
 }
