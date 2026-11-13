@@ -1,255 +1,40 @@
-'use client';
-
-import { useMemo, useState } from 'react';
 import { BoardFilters, TaskPriority } from '@/types/board';
-import { Button, Dialog, Icon, uiStyles } from '@/components/ui';
-
-const priorityOptions: TaskPriority[] = ['Low', 'Medium', 'Urgent', 'Enhancement', 'Complete'];
-const priorityLabels: Record<TaskPriority, string> = {
-  Low: 'Baja',
-  Medium: 'Media',
-  Urgent: 'Urgente',
-  Enhancement: 'Mejora',
-  Complete: 'Completada',
-};
+import { HeaderButtonsList } from './HeaderButtonsList';
+import { HeaderTitle } from './HeaderTitle';
 
 interface BoardHeaderProps {
-  /** Id del board (para el enlace de compartir). */
+  /** Id del board (para el enlace de compartir y mutaciones). */
   boardId: string;
   /** Nombre del board desde `GET /boards/:id`; null mientras carga. */
   boardTitle: string | null;
+  /** Actualiza el título en la página padre tras un rename exitoso. */
+  onBoardTitleChange?: (title: string) => void;
   filters: BoardFilters;
   onTogglePriority: (priority: TaskPriority) => void;
   onToggleCompletedOnly: () => void;
   onClearFilters: () => void;
-}
-
-function HeaderTitle({ boardTitle }: { boardTitle: string | null }) {
-  const [isStarred, setIsStarred] = useState(false);
-  return (
-    <div className="flex items-center gap-3">
-      <h2 className="text-[32px] font-bold text-on-surface tracking-tight leading-none">
-        {boardTitle ?? 'Cargando…'}
-      </h2>
-      <button
-        onClick={() => setIsStarred(!isStarred)}
-        className={`transition-colors cursor-pointer ${
-          isStarred ? 'text-amber-500' : 'text-outline-variant hover:text-primary'
-        }`}
-        title="Marcar board como favorito"
-      >
-        <Icon name="star" filled={isStarred} />
-      </button>
-    </div>
-  );
-}
-
-function HeaderButton({
-  icon,
-  label,
-  onClick,
-  active = false,
-}: {
-  icon: string;
-  label: string;
-  onClick: () => void;
-  active?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded font-semibold text-[12px] transition-colors cursor-pointer ${
-        active
-          ? 'bg-primary/10 text-primary'
-          : 'bg-surface-container hover:bg-surface-container-high text-on-surface'
-      }`}
-    >
-      <Icon name={icon} size="md" />
-      {label}
-    </button>
-  );
-}
-
-function HeaderButtonsList({
-  boardId,
-  filters,
-  onTogglePriority,
-  onToggleCompletedOnly,
-  onClearFilters,
-}: {
-  boardId: string;
-  filters: BoardFilters;
-  onTogglePriority: (priority: TaskPriority) => void;
-  onToggleCompletedOnly: () => void;
-  onClearFilters: () => void;
-}) {
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [isShareOpen, setIsShareOpen] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
-
-  const activeFilterCount =
-    filters.priorities.length + (filters.showCompletedOnly ? 1 : 0);
-
-  /** Enlace real del board actual (mismo origen + `/boards/:id`). */
-  const boardLink = useMemo(() => {
-    const path = `/boards/${boardId}`;
-    if (typeof window === 'undefined') return path;
-    return `${window.location.origin}${path}`;
-  }, [boardId]);
-
-  const shareDescription = useMemo(
-    () =>
-      `Comparte este board con el resto del equipo mediante un enlace de referencia.`,
-    []
-  );
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(boardLink);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 1800);
-    } catch {
-      setIsCopied(false);
-    }
-  };
-
-  return (
-    <>
-      <div className="flex items-center gap-3 flex-wrap">
-        <HeaderButton
-          icon="filter_list"
-          label={
-            activeFilterCount > 0
-              ? `Filtros (${activeFilterCount})`
-              : 'Filtros'
-          }
-          onClick={() => setIsFilterOpen(true)}
-          active={activeFilterCount > 0}
-        />
-
-        <HeaderButton
-          icon="person_add"
-          label="Compartir"
-          onClick={() => setIsShareOpen(true)}
-        />
-      </div>
-
-      <Dialog
-        isOpen={isFilterOpen}
-        title="Filtrar tareas del board"
-        description="Combina prioridades y estado para centrarte solo en las tareas que necesitas ver."
-        onClose={() => setIsFilterOpen(false)}
-        footer={(
-          <>
-            <Button variant="ghost" onClick={onClearFilters}>
-              Limpiar
-            </Button>
-            <Button variant="primary" onClick={() => setIsFilterOpen(false)}>
-              Cerrar
-            </Button>
-          </>
-        )}
-      >
-        <div className="space-y-5">
-          <div>
-            <p className="mb-2 text-sm font-semibold text-on-surface">
-              Prioridades
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {priorityOptions.map((priority) => {
-                const isActive = filters.priorities.includes(priority);
-
-                return (
-                  <button
-                    key={priority}
-                    type="button"
-                    onClick={() => onTogglePriority(priority)}
-                    className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-primary text-white'
-                        : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
-                    }`}
-                  >
-                    {priorityLabels[priority]}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <label className="flex items-center gap-3 rounded-xl border border-outline-variant bg-surface-container-low px-4 py-3 text-sm text-on-surface">
-            <input
-              type="checkbox"
-              checked={filters.showCompletedOnly}
-              onChange={onToggleCompletedOnly}
-              className="h-4 w-4 accent-primary"
-            />
-            Mostrar solo tareas completadas
-          </label>
-        </div>
-      </Dialog>
-
-      <Dialog
-        isOpen={isShareOpen}
-        title="Compartir board"
-        description={shareDescription}
-        onClose={() => {
-          setIsShareOpen(false);
-          setIsCopied(false);
-        }}
-        footer={(
-          <Button variant="primary" onClick={() => setIsShareOpen(false)}>
-            Cerrar
-          </Button>
-        )}
-      >
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className={uiStyles.formLabel}>Enlace del board</label>
-            <div className="flex items-center gap-2">
-              <input
-                readOnly
-                value={boardLink}
-                className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-4 py-3 text-sm text-on-surface"
-              />
-              <button
-                type="button"
-                onClick={handleCopy}
-                className="rounded-xl border border-primary px-4 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
-              >
-                Copiar
-              </button>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-outline-variant bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">
-            {isCopied
-              ? 'Enlace copiado al portapapeles.'
-              : 'Usa este enlace como referencia mientras no exista un flujo completo de invitaciones.'}
-          </div>
-        </div>
-      </Dialog>
-    </>
-  );
 }
 
 /**
- * Cabecera del tablero: título real del API + filtros / compartir.
+ * Cabecera del tablero: título + filtros / compartir / menú de acciones.
  */
 export default function BoardHeader({
   boardId,
   boardTitle,
+  onBoardTitleChange,
   filters,
   onTogglePriority,
   onToggleCompletedOnly,
   onClearFilters,
 }: BoardHeaderProps) {
   return (
-    <div className="px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0 bg-surface-container-lowest border-b border-outline-variant">
+    <div className="flex shrink-0 flex-col items-start justify-between gap-4 border-b border-outline-variant bg-surface-container-lowest px-6 py-4 sm:flex-row sm:items-center">
       <HeaderTitle boardTitle={boardTitle} />
 
       <HeaderButtonsList
         boardId={boardId}
+        boardTitle={boardTitle}
+        onBoardTitleChange={onBoardTitleChange}
         filters={filters}
         onTogglePriority={onTogglePriority}
         onToggleCompletedOnly={onToggleCompletedOnly}
