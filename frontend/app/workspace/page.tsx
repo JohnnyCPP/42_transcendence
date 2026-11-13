@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { AppShell } from '@/components/layout/AppShell';
@@ -10,17 +11,29 @@ import {
   useOrg,
 } from '@/components/org';
 import type { OrganizationWithRole } from '@/components/org/org.types';
-import { EmptyState, uiStyles } from '@/components/ui';
+import { EmptyState, buttonClassName, uiStyles } from '@/components/ui';
 
-function WorkspaceHeader() {
+function WorkspaceHeader({ hasActive }: { hasActive: boolean }) {
   return (
-    <section className="space-y-2">
-      <p className={uiStyles.pageKicker}>Workspace</p>
-      <h1 className={uiStyles.pageTitle}>Tus workspaces</h1>
-      <p className={`max-w-2xl ${uiStyles.pageLead}`}>
-        Elige el workspace activo. Los tableros y listas dependerán del
-        espacio de trabajo seleccionado.
-      </p>
+    <section className="space-y-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-2">
+          <p className={uiStyles.pageKicker}>Workspace</p>
+          <h1 className={uiStyles.pageTitle}>Tus workspaces</h1>
+          <p className={`max-w-2xl ${uiStyles.pageLead}`}>
+            Elige el workspace activo. Los tableros y listas dependerán del
+            espacio de trabajo seleccionado.
+          </p>
+        </div>
+        {hasActive && (
+          <Link
+            href="/workspace/settings"
+            className={buttonClassName({ variant: 'secondary', size: 'sm' })}
+          >
+            Ajustes del workspace
+          </Link>
+        )}
+      </div>
     </section>
   );
 }
@@ -73,7 +86,7 @@ export default function WorkspacePage() {
     <ProtectedRoute>
       <AppShell searchQuery={searchQuery} onSearchChange={setSearchQuery}>
         <div className={uiStyles.pageContent}>
-          <WorkspaceHeader />
+          <WorkspaceHeader hasActive={Boolean(activeOrganization)} />
 
           {isLoading && organizations.length === 0 ? (
             <WorkspaceLoading />

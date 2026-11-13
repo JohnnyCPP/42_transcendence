@@ -35,9 +35,21 @@ function clearStoredActiveOrgId(): void {
 	writeStoredActiveOrgId(null);
 }
 
+export type UpdateOrganizationInput = {name?: string; slug?: string;};
+
 type OrgContextValue = OrgState & {
 	refreshOrganizations: () => Promise<void>;
 	createOrganization: (name: string, slug?: string) => Promise<void>;
+	/**
+	 * `PATCH /organizations/:organizationId`
+	 * Stub: cablea con `apiFetch` cuando quieras.
+	 */
+	updateOrganization: (organizationId: string, input: UpdateOrganizationInput) => Promise<OrganizationWithRole>;
+	/**
+	 * Eliminar org — endpoint aún no existe en el BE.
+	 * Stub no-op para UI; el compañero publicará `DELETE` después.
+	 */
+	deleteOrganization: (organizationId: string) => Promise<void>;
 	setActiveOrganization: (org: OrganizationWithRole) => void;
 	clearError: () => void;
 };
@@ -158,6 +170,55 @@ export const OrgProvider = ({ children }: { children: ReactNode }) => {
 		writeStoredActiveOrgId(org.id);
 	}, []);
 
+	/**
+	 * `PATCH /organizations/:organizationId`
+	 * Body: `{ name?, slug? }` → `{ organization }`
+	 *
+	 * TODO: sustituir el throw por apiFetch y fusionar el resultado en state.
+	 */
+	const updateOrganization = useCallback(
+		async ( organizationId: string, input: UpdateOrganizationInput): Promise<OrganizationWithRole> => {
+			void organizationId;
+			void input;
+			// TODO: wire apiFetch
+			// const data = await apiFetch<{ organization: OrganizationWithRole }>(
+			//   `/organizations/${organizationId}`,
+			//   { method: 'PATCH', body: JSON.stringify(input) }
+			// );
+			// setOrgState((prev) => {
+			//   const organizations = prev.organizations.map((org) =>
+			//     org.id === data.organization.id
+			//       ? { ...org, ...data.organization }
+			//       : org
+			//   );
+			//   const activeOrganization =
+			//     prev.activeOrganization?.id === data.organization.id
+			//       ? { ...prev.activeOrganization, ...data.organization }
+			//       : prev.activeOrganization;
+			//   return { ...prev, organizations, activeOrganization, error: null };
+			// });
+			// return organizations find / data.organization with role preserved
+			throw new Error(
+				'TODO: cablea updateOrganization con apiFetch (PATCH /organizations/:id)'
+			);
+		},
+		[]
+	);
+
+	/**
+	 * Eliminar workspace — sin endpoint aún.
+	 * No llama a la red; la UI muestra feedback “pendiente de API”.
+	 *
+	 * TODO: cuando exista, p. ej. `DELETE /organizations/:organizationId`
+	 * y refrescar / limpiar activeOrganization.
+	 */
+	const deleteOrganization = useCallback(
+		async (organizationId: string) => {
+		void organizationId;
+		// No-op a propósito (UI funcional, sin conectar).
+		return;
+	}, []);
+
 	const clearError = useCallback(() => {
 		setOrgState(prev => ({ ...prev, error: null }));
 	}, []);
@@ -167,6 +228,8 @@ export const OrgProvider = ({ children }: { children: ReactNode }) => {
 		...orgState,
 		refreshOrganizations,
 		createOrganization,
+		updateOrganization,
+		deleteOrganization,
 		setActiveOrganization,
 		clearError,
 	  };
