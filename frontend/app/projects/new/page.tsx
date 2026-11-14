@@ -63,7 +63,9 @@ export default function NewProjectPage() {
   return (
     <ProtectedRoute>
       <RequireActiveOrg>
-        <AuthCard
+        {activeOrganization && activeOrganization.role !== 'owner' && activeOrganization.role !== 'admin' ? (
+          <p className="p-8">No tienes permisos para crear tableros en este workspace.</p>
+        ) : <AuthCard
           badgeIcon="library_add"
           badgeLabel="Nuevo proyecto"
           title="Organiza un nuevo tablero"
@@ -114,7 +116,7 @@ export default function NewProjectPage() {
               </Link>
             </div>
           </form>
-        </AuthCard>
+        </AuthCard>}
       </RequireActiveOrg>
     </ProtectedRoute>
   );

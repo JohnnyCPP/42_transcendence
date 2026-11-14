@@ -96,6 +96,11 @@ export async function registerOrganizationRoutes(
     })
   }));
 
+  typedApp.get('/organizations/:organizationId/members', {
+    preHandler: [requireAuth(sessionsService), requireOrgRole(organizationsService, ORG_ROLE.MEMBER)],
+    schema: { params: organizationParamsSchema }
+  }, async (request) => ({ members: await organizationsService.listMembers(request.params.organizationId, request.currentUser!.id) }));
+
   typedApp.delete('/organizations/:organizationId/members/:userId', {
     preHandler: [requireAuth(sessionsService), requireOrgRole(organizationsService, ORG_ROLE.ADMIN)],
     schema: { params: organizationMemberParamsSchema }

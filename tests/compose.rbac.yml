@@ -1,0 +1,45 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: rbac_integration
+      POSTGRES_USER: rbac_test
+      POSTGRES_PASSWORD: rbac_test_only
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rbac_test -d rbac_integration"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  backend:
+    image: taskflow-rbac-integration-backend
+    build:
+      context: ..
+      dockerfile: Dockerfile.backend
+    environment:
+      DATABASE_URL: postgresql://rbac_test:rbac_test_only@postgres:5432/rbac_integration
+      TOTP_ENCRYPTION_KEY_BASE64: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      COOKIE_SECURE: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  rbac-tests:
+    image: taskflow-rbac-integration-backend
+    entrypoint: ["node", "--test", "/app/rbac-tests/rbac.integration.test.mjs"]
+    environment:
+      DATABASE_URL: postgresql://rbac_test:rbac_test_only@postgres:5432/rbac_integration
+      RBAC_INTEGRATION: isolated
+    volumes:
+      - .:/app/rbac-tests:ro
+    depends_on:
+      backend:
+        condition: service_healthy

@@ -113,12 +113,12 @@ export default function DashboardPage() {
                       }
                       titleClassName="mt-3 text-base font-semibold text-on-surface"
                     >
-                      <Link
+                      {(activeOrganization?.role === 'owner' || activeOrganization?.role === 'admin') && <Link
                         href="/projects/new"
                         className={`mt-4 ${buttonClassName({ variant: 'primary', size: 'sm' })}`}
                       >
                         Crear proyecto
-                      </Link>
+                      </Link>}
                     </EmptyState>
                   )}
                 </section>

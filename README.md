@@ -504,7 +504,15 @@ Board members being added must already belong to the organization. The current A
 
 Scoped route guards are implemented in `src/modules/authorization/requireScopeRole.ts`; organization, board, list, card and comment services also check the applicable permissions. User-administration routes use `requireRole` and the user service. Global user mutations use an advisory transaction lock to protect the last active administrator. These backend checks remain authoritative even when a future frontend hides actions.
 
-Administrative accounts need to be provisioned securely by the team; the demo seed is a separate backlog story. The integration tests currently remain local and are not included in the repository.
+Real administrative accounts need to be provisioned securely by the team. Run `npm run test:rbac:integration` to exercise the 11.7 global, organization and board role matrices against the real API and PostgreSQL. It requires Node.js, Docker and Docker Compose. The command builds the backend, creates a uniquely named isolated Compose project, applies migrations, runs `tests/rbac.integration.test.mjs`, and removes its containers and network afterward. The database uses ephemeral storage and no host ports; it does not connect to the application's existing database. The fixed credentials in `tests/compose.rbac.yml` are only for that isolated test project.
+
+For a faster check, `npm run test:rbac` runs `tests/rbac.test.mjs` using in-memory test repositories. Both suites include allowed and forbidden cases; the PostgreSQL suite also checks persistent membership removal and concurrent protection of the last active administrator.
+
+For an isolated example of the three roles, see [the RBAC demo](document/md/rbac-demo.md). Its explicit development-only `npm run seed:demo` command requires a disposable database whose name ends in `_demo` and the confirmation variable `DEMO_SEED_CONFIRM=yes`. The example accounts are `demo_admin` (`admin@example.com`), `demo_moderator` (`moderator@example.com`), and `demo_user` (`user@example.com`); their example-only password is `ChangeMe123456!`. Sign in with the username. Never use these credentials on shared or production data.
+
+The frontend hides actions unavailable to the current role. `GET /organizations/:organizationId/members` provides an organization's member names and roles to its members, and `GET /boards/:boardId/access` provides the current user's effective board role and capabilities. These presentation hints do not replace API authorization.
+
+Additional developer-only integration checks may run against a disposable PostgreSQL instance; those local helper scripts are not versioned.
 
 **TODO:** Complete list of implemented features.
 

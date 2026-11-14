@@ -48,6 +48,15 @@ export class BoardsService
     return this.boardsRepository.update({ ...input, boardId: board.id });
   }
 
+  async getBoardAccess(boardId: string, actorUserId: string) {
+    const board = await this.getBoardForUser(boardId, actorUserId);
+    const organization = await this.organizationsService.getOrganizationForUser(board.organizationId, actorUserId);
+    const membership = await this.boardsRepository.findMember(boardId, actorUserId);
+    const boardRole = await this.resolveBoardRole(board, actorUserId);
+    return { organizationRole: organization.role, boardRole, canWrite: boardRole !== BOARD_ROLE.OBSERVER,
+      canArchive: organization.role === ORG_ROLE.OWNER || membership?.role === BOARD_ROLE.ADMIN };
+  }
+
   async setBoardMemberRole(input: {
     boardId: string;
     actorUserId: string;

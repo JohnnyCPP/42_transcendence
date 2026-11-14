@@ -87,7 +87,7 @@ export default function BoardsPage() {
                     : 'Crea el primer tablero de este workspace.'
                 }
               >
-                {!searchQuery.trim() && (
+                {!searchQuery.trim() && (activeOrganization?.role === 'owner' || activeOrganization?.role === 'admin') && (
                   <Link
                     href="/projects/new"
                     className={`mt-4 ${buttonClassName({ variant: 'primary', size: 'sm' })}`}

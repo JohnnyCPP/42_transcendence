@@ -10,6 +10,10 @@ export class PrismaOrganizationsRepository implements OrganizationsRepository
 {
   constructor(private readonly prisma: PrismaClient) {}
 
+  async listMembers(organizationId: string): Promise<OrganizationMember[]> {
+    return this.prisma.organizationMember.findMany({ where: { organizationId }, orderBy: [{ joinedAt: 'asc' }, { userId: 'asc' }] });
+  }
+
   async archive(organizationId: string): Promise<void> {
     await this.prisma.organization.update({ where: { id: organizationId }, data: { archivedAt: new Date() } });
   }

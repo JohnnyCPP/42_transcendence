@@ -9,6 +9,9 @@ import { BoardColumn, BoardFilters, TaskPriority } from '@/types/board';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { AppShell } from '@/components/layout/AppShell';
 import { RequireActiveOrg } from '@/components/org';
+import { useRouter } from 'next/navigation';
+import { apiFetch } from '@/lib/apiClient';
+import { useRoles, type BoardAccess } from '@/lib/useRoles';
 
 const initialBoardFilters: BoardFilters = {
   priorities: [],
@@ -23,6 +26,9 @@ const initialBoardFilters: BoardFilters = {
  * - Loading/error con `EmptyState` (mismo patrón que dashboard y `/boards`).
  */
 export default function BoardPageClient({ boardId }: { boardId: string }) {
+  const router = useRouter();
+  const [access, setAccess] = useState<BoardAccess | null>(null);
+  const { canWriteBoard, canArchiveBoard } = useRoles(access);
   const [searchQuery, setSearchQuery] = useState('');
   const [isQuickTaskDialogOpen, setIsQuickTaskDialogOpen] = useState(false);
   const [boardFilters, setBoardFilters] = useState<BoardFilters>(initialBoardFilters);
@@ -41,12 +47,14 @@ export default function BoardPageClient({ boardId }: { boardId: string }) {
 
 		setIsLoading(true);
 		setError(null);
+		setAccess(null);
 
 		try {
-			const [board, columns] = await Promise.all([getBoard(boardId), getBoardColumns(boardId)]);
+			const [board, columns, permissions] = await Promise.all([getBoard(boardId), getBoardColumns(boardId), apiFetch<{ access: BoardAccess }>(`/boards/${boardId}/access`)]);
 			if (!cancelled) {
 				setBoardTitle(board.name);
 				setBoardColumns(columns);
+				setAccess(permissions.access);
 			}
 		} catch (err) {
 			if (!cancelled) {
@@ -98,7 +106,7 @@ export default function BoardPageClient({ boardId }: { boardId: string }) {
         <AppShell
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          onOpenNewTaskModal={handleOpenNewTaskModal}
+          onOpenNewTaskModal={canWriteBoard ? handleOpenNewTaskModal : undefined}
         >
           <div data-board-id={boardId} className="contents">
             <BoardHeader
@@ -109,6 +117,11 @@ export default function BoardPageClient({ boardId }: { boardId: string }) {
               onToggleCompletedOnly={handleToggleCompletedOnly}
               onClearFilters={handleClearFilters}
             />
+            {canArchiveBoard && <button className="self-end mx-6 text-error" onClick={async () => {
+              if (!window.confirm('¿Archivar este tablero?')) return;
+              try { await apiFetch(`/boards/${boardId}`, { method: 'DELETE' }); router.push('/boards'); }
+              catch (e) { setError(e instanceof Error ? e.message : 'No se pudo archivar el tablero'); }
+            }}>Eliminar tablero</button>}
 
             {isLoading ? (
               <EmptyState
@@ -124,6 +137,7 @@ export default function BoardPageClient({ boardId }: { boardId: string }) {
               />
             ) : (
               <KanbanBoard
+				canWrite={canWriteBoard}
 				boardId={boardId}
                 initialColumns={boardColumns}
                 searchQuery={searchQuery}

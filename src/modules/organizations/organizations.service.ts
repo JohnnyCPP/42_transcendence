@@ -74,6 +74,15 @@ export class OrganizationsService
     await this.organizationsRepository.archive(organizationId);
   }
 
+  async listMembers(organizationId: string, actorUserId: string) {
+    await this.getOrganizationForUser(organizationId, actorUserId);
+    const members = await this.organizationsRepository.listMembers(organizationId);
+    return Promise.all(members.map(async (member) => {
+      const user = await this.usersService.findById(member.userId);
+      return { ...member, user: user ? { id: user.id, username: user.username, displayName: user.displayName } : null };
+    }));
+  }
+
   async removeOrganizationMember(organizationId: string, actorUserId: string, userId: string): Promise<void> {
     const actor = await this.getOrganizationForUser(organizationId, actorUserId);
     if (!canManageOrganization(actor.role)) throw forbidden('Organization admin role required', 'INSUFFICIENT_ORG_ROLE');

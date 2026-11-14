@@ -10,6 +10,7 @@ import AddTaskButton from './AddTaskButton';
 import { useColumnState } from './useColumnState';
 
 interface KanbanColumnProps {
+  canWrite?: boolean;
   column: BoardColumn;
   onAddTask: (columnId: string, title: string, priority: TaskPriority) => void;
   onTaskClick: (task: TaskItem, columnId: string) => void;
@@ -24,6 +25,7 @@ interface KanbanColumnProps {
  * Orquestrador que combina header, tareas y formulario de agregar
  */
 export default function KanbanColumn({
+  canWrite = true,
   column,
   onAddTask,
   onTaskClick,
@@ -103,6 +105,7 @@ export default function KanbanColumn({
     <>
       <div className={`kanban-column ${isDoneColumn ? 'opacity-80' : ''}`}>
         <ColumnHeader
+          canWrite={canWrite}
           title={column.title}
           taskCount={column.tasks.length}
           onRename={handleOpenRenameDialog}
@@ -114,14 +117,14 @@ export default function KanbanColumn({
             <TaskCard
               key={task.id}
               task={task}
-              onClick={() => onTaskClick(task, column.id)}
-              onDuplicate={() => onDuplicateTask(task.id, column.id)}
-              onDelete={() => onDeleteTask(task.id, column.id)}
+              onClick={canWrite ? () => onTaskClick(task, column.id) : undefined}
+              onDuplicate={canWrite ? () => onDuplicateTask(task.id, column.id) : undefined}
+              onDelete={canWrite ? () => onDeleteTask(task.id, column.id) : undefined}
             />
           ))}
         </div>
 
-        <div className="p-2">
+        {canWrite && <div className="p-2">
           {isAdding ? (
             <AddTaskForm
               title={newTitle}
@@ -135,7 +138,7 @@ export default function KanbanColumn({
           ) : (
             <AddTaskButton onClick={handleStartAdding} />
           )}
-        </div>
+        </div>}
       </div>
 
       <TextInputDialog

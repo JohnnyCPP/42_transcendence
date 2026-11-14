@@ -65,6 +65,11 @@ export async function registerBoardRoutes(
     return { board };
   });
 
+  typedApp.get('/boards/:boardId/access', {
+    preHandler: [requireAuth(sessionsService), requireBoardRole(boardsService, 'read')],
+    schema: { params: boardParamsSchema }
+  }, async (request) => ({ access: await boardsService.getBoardAccess(request.params.boardId, request.currentUser!.id) }));
+
   typedApp.patch('/boards/:boardId', {
     preHandler: [requireAuth(sessionsService), requireBoardRole(boardsService, 'admin')],
     schema: { params: boardParamsSchema, body: updateBoardSchema }

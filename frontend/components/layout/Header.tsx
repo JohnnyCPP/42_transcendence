@@ -30,12 +30,12 @@ export default function Header({
       <div className="flex items-center gap-4 ml-auto">
         <NotificationButton />
 
-        <HeaderActionButton
+        {onOpenNewTaskModal && <HeaderActionButton
           icon="add"
           label="Nueva tarea"
-          onClick={onOpenNewTaskModal ?? (() => {})}
+          onClick={onOpenNewTaskModal}
           className="hidden md:flex border border-primary text-primary px-3 py-1.5 rounded font-semibold text-[12px] hover:bg-primary/5"
-        />
+        />}
 
         <ProfileMenu />
       </div>

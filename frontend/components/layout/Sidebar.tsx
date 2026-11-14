@@ -6,6 +6,7 @@ import LegalLinks from '@/components/layout/LegalLinks';
 import { useOrg } from '@/components/org';
 import { NavItem } from './sidebar/NavItem';
 import type { SidebarProps } from './sidebar/sidebar.types';
+import { useRoles } from '@/lib/useRoles';
 
 /**
  * Logo TaskFlow + subtítulo con el workspace (org) activo.
@@ -35,6 +36,7 @@ function SidebarLogo({ organizationName }: { organizationName?: string | null })
 export default function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
   const { activeOrganization } = useOrg();
+  const { canReadUsers, canCreateBoard } = useRoles();
 
   const isDashboardActive = pathname === '/dashboard';
   const isWorkspaceActive =
@@ -87,16 +89,17 @@ export default function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
             active={isBoardsActive}
             fill={isBoardsActive}
           />
+          {canReadUsers && <NavItem href="/users" onClick={onCloseMobile} icon="group" label="Gestionar usuarios" active={pathname === '/users'} fill={pathname === '/users'} />}
         </nav>
 
         <div className="px-3 mt-auto space-y-4">
-          <Link
+          {canCreateBoard && <Link
             href="/projects/new"
             onClick={onCloseMobile}
             className="flex w-full items-center justify-center bg-primary text-white text-[13px] font-semibold py-3.5 rounded-xl hover:bg-primary-container transition-colors shadow-xs cursor-pointer active:scale-95"
           >
             Crear proyecto
-          </Link>
+          </Link>}
           <LegalLinks />
         </div>
       </aside>

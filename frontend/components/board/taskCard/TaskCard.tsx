@@ -61,7 +61,7 @@ function TaskCardHeader({
         {priorityLabels[priority]}
       </span>
 
-      <div className="relative">
+      {onEdit && <div className="relative">
         <button
           onClick={(event) => {
             event.stopPropagation();
@@ -115,7 +115,7 @@ function TaskCardHeader({
             </button>
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }
