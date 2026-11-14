@@ -307,7 +307,7 @@ Roles are scoped at three levels, which allows a user to have different permissi
 | --- | --- | --- | --- |
 | Application | "User.role" | "user", "moderator", "admin" | Application roles define how much authority users have over the platform as a whole, independent of any organization |
 | Organization | "OrganizationMember.role" | "owner", "admin", "member" | Organization roles define how much authority users have over one organization: Its members, its boards, its settings, and its lifecycle |
-| Board | "BoardMember.role" | "admin", "member" | Board roles define how much authority users have over one board and its contents: The lists, cards, comments, labels, and board-level membership |
+| Board | "BoardMember.role" | "admin", "member", "observer" | Board roles define how much authority users have over one board and its contents, including lists, cards, comments, and board-level membership |
 
 ### Deletion strategies
 
@@ -432,7 +432,18 @@ A misconfigured production container therefore exits immediately rather than ser
 | Organization | `member`, `admin`, `owner` | Membership roles used by organization operations. |
 | Board | `observer`, `member`, `admin` | Observers have read-only access; members and admins have broader board permissions. |
 
-Roles are defined in `src/modules/authorization/roles.ts` and constrained by Prisma enums. The role migration preserves existing values and fails on unknown values; inspect and correct any such records before applying it. Role assignments outside the user administration endpoints remain governed by their existing organization and board rules.
+Roles are defined in `src/modules/authorization/roles.ts` and constrained by Prisma enums. The role migration preserves existing values and fails on unknown values; inspect and correct any such records before applying it. Global roles apply to user administration; organization and board membership roles apply to their respective resources. A global administrator does not automatically become an organization or board administrator.
+
+The tables below describe the current **backend API**, not frontend visibility. All listed operations require an authenticated session. A missing or invalid session returns `401`; insufficient roles normally return `403` with a machine-readable error code. Missing, archived, or inaccessible organizations and boards can return `404` rather than disclose their existence. For browser requests, prefix the paths below with `/api`.
+
+#### Global roles
+
+| Action | `user` | `moderator` | `admin` |
+| --- | --- | --- | --- |
+| Read own account (`GET /me`) | Yes | Yes | Yes |
+| List and read other users | No | Yes | Yes |
+| Edit or soft-delete other users | No | No | Yes |
+| Use the legacy `GET /admin/users` endpoint | No | No | Yes |
 
 | Endpoint | Required global role | Purpose |
 | --- | --- | --- |
@@ -444,15 +455,56 @@ Roles are defined in `src/modules/authorization/roles.ts` and constrained by Pri
 
 Administrators cannot change their own role, disable their own account, or delete themselves. A database transaction serializes changes that could remove the last active administrator. Disabled and deleted accounts cannot authenticate. User responses do not contain password hashes, TOTP secrets or recovery codes.
 
-To verify user administration against PostgreSQL, start a **fresh disposable** Compose project named `taskflow-rbac-check` on an available HTTPS port. The integration test creates and changes real users, including administrators; never point it at a shared or production database. With its frontend on port 8443, run in PowerShell:
+#### Organization roles
 
-```powershell
-$env:RBAC_TEST_URL = 'https://localhost:8443'
-$env:RBAC_TEST_POSTGRES_CONTAINER = 'taskflow-rbac-check-postgres-1'
-npm run test:users:integration
-```
+Any authenticated user can create an organization and becomes its `owner`. The following permissions apply within an organization to which the user belongs:
 
-The test expects an empty disposable database and a locally accessible Docker CLI. Administrative accounts need to be provisioned securely by the team; the demo seed is a separate backlog story.
+| Action | `member` | `admin` | `owner` |
+| --- | --- | --- | --- |
+| Read the organization and list its boards | Yes | Yes | Yes |
+| Update organization settings | No | Yes | Yes |
+| Create a board | No | Yes | Yes |
+| Add an active user as `member` | No | Yes | Yes |
+| Add an active user as `admin` | No | No | Yes |
+| Change an existing member's role | No | No | Yes, except an `owner` role |
+| Remove a `member` | No | Yes | Yes |
+| Remove an `admin` | No | No | Yes |
+| Remove an `owner` or change their role | No | No | No |
+| Archive the organization | No | No | Yes |
+
+`PUT /organizations/:organizationId/members/:userId` adds a user or sets their role; its body contains `role: "member"` or `role: "admin"`. An organization admin may repeat an unchanged `member` assignment, but cannot assign an admin role or change an existing role. `DELETE /organizations/:organizationId/members/:userId` removes a membership and its board memberships in that organization. `DELETE /organizations/:organizationId` archives the organization. These are soft archives of the organization itself; membership removal deletes the relevant membership records.
+
+#### Board roles
+
+The user must belong to the board's organization. Organization `owner` and `admin` roles grant implicit board administration. An organization `member` without an explicit board membership can read the board but has no write access; an explicit `observer` is also read-only. An explicit board `member` can write, and an explicit board `admin` can manage the board.
+
+| Action | Org member without board membership or board `observer` | Board `member` | Board `admin` | Org `admin` | Org `owner` |
+| --- | --- | --- | --- | --- | --- |
+| Read board, lists, cards and comments | Yes | Yes | Yes | Yes | Yes |
+| Create or edit lists, cards and comments; archive cards | No | Yes | Yes | Yes | Yes |
+| Edit board settings | No | No | Yes | Yes | Yes |
+| Add, change or remove board members | No | No | Yes | Yes | Yes |
+| Archive board | No | No | Yes | Only with explicit board `admin` membership | Yes |
+
+Board members being added must already belong to the organization. The current API lets a board administrator assign any of the three board roles and remove board memberships; organization owners and admins retain their implicit access even if an explicit board membership is removed. A member with write access may edit or soft-delete any comment on an accessible card, regardless of its author.
+
+| Endpoint | Required scope |
+| --- | --- |
+| `GET /organizations/:organizationId/boards` | Organization member |
+| `POST /organizations/:organizationId/boards` | Organization admin or owner |
+| `GET /boards/:boardId` | Organization member |
+| `PATCH /boards/:boardId` | Board admin, organization admin or owner |
+| `PUT /boards/:boardId/members/:userId` | Board admin, organization admin or owner; body `role` is `observer`, `member` or `admin` |
+| `DELETE /boards/:boardId/members/:userId` | Board admin, organization admin or owner |
+| `DELETE /boards/:boardId` | Explicit board admin or organization owner; archives the board |
+| `GET /boards/:boardId/lists`, `GET /lists/:listId/cards`, `GET /cards/:cardId`, `GET /cards/:cardId/comments` | Organization member with read access |
+| `POST /boards/:boardId/lists`, `PATCH /lists/:listId`, `POST /boards/:boardId/lists/reorder` | Board member or admin, organization admin or owner |
+| `POST /lists/:listId/cards`, `PATCH /cards/:cardId`, `POST /cards/:cardId/move`, `DELETE /cards/:cardId` | Board member or admin, organization admin or owner; moving a card requires write access to both lists |
+| `POST /cards/:cardId/comments`, `PATCH /cards/:cardId/comments/:commentId`, `DELETE /cards/:cardId/comments/:commentId` | Board member or admin, organization admin or owner |
+
+Scoped route guards are implemented in `src/modules/authorization/requireScopeRole.ts`; organization, board, list, card and comment services also check the applicable permissions. User-administration routes use `requireRole` and the user service. Global user mutations use an advisory transaction lock to protect the last active administrator. These backend checks remain authoritative even when a future frontend hides actions.
+
+Administrative accounts need to be provisioned securely by the team; the demo seed is a separate backlog story. The integration tests currently remain local and are not included in the repository.
 
 **TODO:** Complete list of implemented features.
 
