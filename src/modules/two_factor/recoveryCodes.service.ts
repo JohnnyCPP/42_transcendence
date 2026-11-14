@@ -1,5 +1,5 @@
 import { hashToken } from '../../shared/crypto/hashToken.js';
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import type { TwoFactorRepository } from './twoFactor.repository.js';
 
 export class RecoveryCodesService 
@@ -8,7 +8,7 @@ export class RecoveryCodesService
 
   async generateForUser(userId: string): Promise<string[]> 
   {
-    const codes = Array.from({ length: 10 }, () => randomToken(9));
+    const codes = Array.from({ length: 10 }, () => createRandomToken(9));
     await this.twoFactorRepository.replaceRecoveryCodes(userId, codes.map(hashToken));
     return codes;
   }

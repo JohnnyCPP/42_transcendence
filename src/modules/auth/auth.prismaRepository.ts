@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import type { PasswordCredential } from './auth.types.js';
 import type { AuthRepository, LoginChallenge } from './auth.repository.js';
 
@@ -32,7 +32,7 @@ export class PrismaAuthRepository implements AuthRepository
   {
     const row = await this.prisma.loginChallenge.create({
       data: {
-        id: randomToken(16),
+        id: createRandomToken(16),
         userId: input.userId,
         tokenHash: input.tokenHash,
         expiresAt: input.expiresAt,

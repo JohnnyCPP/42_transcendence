@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import { conflict } from '../../shared/errors/httpErrors.js';
 import type { UsersRepository } from '../users/users.repository.js';
 import type { User } from '../users/users.types.js';
@@ -47,7 +47,7 @@ export class PrismaRegistrationRepository implements RegistrationRepository
       return await this.prisma.$transaction(async (tx) => {
         const row = await tx.user.create({
           data: {
-            id: randomToken(16),
+            id: createRandomToken(16),
             username: input.username.trim().toLowerCase(),
             email: input.email?.trim().toLowerCase() ?? null
           }

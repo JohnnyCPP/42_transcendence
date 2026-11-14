@@ -1,5 +1,5 @@
 import { conflict } from '../../shared/errors/httpErrors.js';
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import type { CreateUserInput, User, UserFilters, UserChanges } from './users.types.js';
 import { paginateArray, type Page, type PaginationInput } from '../../shared/pagination.js';
 import { GLOBAL_ROLE } from '../authorization/roles.js';
@@ -29,7 +29,7 @@ export class InMemoryUsersRepository implements UsersRepository
 
     const now = new Date();
     const user: User = {
-      id: randomToken(16),
+      id: createRandomToken(16),
       username: normalizedUsername,
       email: input.email?.toLowerCase() ?? null,
       displayName: input.displayName ?? null,

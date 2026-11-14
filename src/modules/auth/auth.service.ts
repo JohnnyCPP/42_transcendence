@@ -1,7 +1,7 @@
 import { securityConfig } from '../../config/security.js';
 import type { PasswordHasher } from '../../shared/crypto/passwordHasher.js';
 import { hashToken } from '../../shared/crypto/hashToken.js';
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import { InMemoryRateLimiter, rateLimitKey } from '../../shared/http/rateLimit.js';
 import { badRequest, unauthorized } from '../../shared/errors/httpErrors.js';
 import type { SessionsService } from '../sessions/sessions.service.js';
@@ -109,7 +109,7 @@ export class AuthService
 
     if (await this.twoFactorService.isEnabled(user.id)) 
     {
-      const challengeToken = randomToken(32);
+      const challengeToken = createRandomToken(32);
       const challenge = await this.authRepository.createLoginChallenge({
         userId: user.id,
         tokenHash: hashToken(challengeToken),

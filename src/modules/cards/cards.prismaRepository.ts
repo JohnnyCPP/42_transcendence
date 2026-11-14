@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import type { CardsRepository } from './cards.repository.js';
 import type { Card, CreateCardInput, MoveCardInput, UpdateCardInput } from './cards.types.js';
 import type { Page, PaginationInput } from '../../shared/pagination.js';
@@ -80,7 +80,7 @@ export class PrismaCardsRepository implements CardsRepository {
       });
       const row = await tx.card.create({
         data: {
-          id: randomToken(16),
+          id: createRandomToken(16),
           listId: input.listId,
           title: input.title.trim(),
           description: input.description?.trim() || null,

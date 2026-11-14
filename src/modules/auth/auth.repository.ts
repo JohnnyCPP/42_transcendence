@@ -1,4 +1,4 @@
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import type { PasswordCredential } from './auth.types.js';
 
 export type LoginChallenge = {
@@ -46,7 +46,7 @@ export class InMemoryAuthRepository implements AuthRepository
   {
     const challenge: LoginChallenge = {
       ...input,
-      id: randomToken(16),
+      id: createRandomToken(16),
       createdAt: new Date(),
       consumedAt: null
     };
