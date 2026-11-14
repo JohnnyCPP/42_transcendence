@@ -4,6 +4,7 @@ import { securityConfig } from "../config/security.js";
 import { AuthService } from "../modules/auth/auth.service.js";
 import { BoardsService } from "../modules/boards/boards.service.js";
 import { CardsService } from "../modules/cards/cards.service.js";
+import { CommentsService } from "../modules/comments/comments.service.js";
 import { ListsService } from "../modules/lists/lists.service.js";
 import { OrganizationsService } from "../modules/organizations/organizations.service.js";
 import { RecoveryCodesService } from "../modules/two_factor/recoveryCodes.service.js";
@@ -18,6 +19,7 @@ export	type	Services =
 	authService: AuthService;
 	boardsService: BoardsService;
 	cardsService: CardsService;
+	commentsService: CommentsService;
 	listsService: ListsService;
 	organizationsService: OrganizationsService;
 	recoveryCodesService: RecoveryCodesService;
@@ -58,11 +60,13 @@ export	function	createServices(repositories: Repositories): Services
 	boardsService = new BoardsService(repositories.boardsRepository, organizationsService);
 	listsService = new ListsService(repositories.listsRepository, boardsService);
 	cardsService = new CardsService(repositories.cardsRepository, listsService);
+	const commentsService = new CommentsService(repositories.commentsRepository, cardsService);
 	return {
 
 		authService,
 		boardsService,
 		cardsService,
+		commentsService,
 		listsService,
 		organizationsService,
 		recoveryCodesService,

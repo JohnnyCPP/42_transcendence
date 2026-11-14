@@ -8,6 +8,16 @@ export class PrismaBoardsRepository implements BoardsRepository
 {
   constructor(private readonly prisma: PrismaClient) {}
 
+  async archive(boardId: string): Promise<void> {
+    await this.prisma.board.update({ where: { id: boardId }, data: { archivedAt: new Date() } });
+  }
+  async removeMember(boardId: string, userId: string): Promise<void> {
+    await this.prisma.boardMember.deleteMany({ where: { boardId, userId } });
+  }
+  async removeUserFromOrganization(organizationId: string, userId: string): Promise<void> {
+    await this.prisma.boardMember.deleteMany({ where: { userId, board: { organizationId } } });
+  }
+
   async create(input: CreateBoardInput): Promise<Board> 
   {
     const id = randomToken(16);
@@ -45,7 +55,7 @@ export class PrismaBoardsRepository implements BoardsRepository
   {
     const row = await this.prisma.boardMember.upsert({
       where: { boardId_userId: { boardId: input.boardId, userId: input.userId } },
-      create: input,
+      create: { boardId: input.boardId, userId: input.userId, role: input.role },
       update: { role: input.role }
     });
     return { boardId: row.boardId, userId: row.userId, role: row.role as BoardMember['role'], joinedAt: row.joinedAt };

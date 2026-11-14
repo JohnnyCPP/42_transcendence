@@ -36,9 +36,9 @@ export class BoardsService
     if (!board) throw notFound('Board not found', 'BOARD_NOT_FOUND');
     const role = await this.resolveBoardRole(board, actorUserId);
     if (permission === 'admin' && role !== BOARD_ROLE.ADMIN)
-      throw forbidden('Board admin role required', 'BOARD_ADMIN_REQUIRED');
+      throw forbidden('Board admin role required', 'INSUFFICIENT_BOARD_ROLE');
     if (permission === 'write' && role === BOARD_ROLE.OBSERVER)
-      throw forbidden('Observers have read-only access', 'BOARD_READ_ONLY');
+      throw forbidden('Board membership required to write', 'INSUFFICIENT_BOARD_ROLE');
     return board;
   }
 
@@ -61,10 +61,26 @@ export class BoardsService
     return this.boardsRepository.upsertMember(input);
   }
 
+  async removeBoardMember(boardId: string, actorUserId: string, userId: string): Promise<void> {
+    await this.getBoardForUser(boardId, actorUserId, 'admin');
+    if (!(await this.boardsRepository.findMember(boardId, userId)))
+      throw notFound('Board member not found', 'BOARD_MEMBER_NOT_FOUND');
+    await this.boardsRepository.removeMember(boardId, userId);
+  }
+
+  async archiveBoard(boardId: string, actorUserId: string): Promise<void> {
+    const board = await this.getBoardForUser(boardId, actorUserId, 'read');
+    const organization = await this.organizationsService.getOrganizationForUser(board.organizationId, actorUserId);
+    const membership = await this.boardsRepository.findMember(boardId, actorUserId);
+    if (organization.role !== ORG_ROLE.OWNER && membership?.role !== BOARD_ROLE.ADMIN)
+      throw forbidden('Board admin or organization owner required', 'INSUFFICIENT_BOARD_ROLE');
+    await this.boardsRepository.archive(boardId);
+  }
+
   private async resolveBoardRole(board: Board, userId: string): Promise<BoardRole>
   {
     const organization = await this.organizationsService.getOrganizationForUser(board.organizationId, userId);
     if (organization.role === ORG_ROLE.OWNER || organization.role === ORG_ROLE.ADMIN) return BOARD_ROLE.ADMIN;
-    return (await this.boardsRepository.findMember(board.id, userId))?.role ?? BOARD_ROLE.MEMBER;
+    return (await this.boardsRepository.findMember(board.id, userId))?.role ?? BOARD_ROLE.OBSERVER;
   }
 }

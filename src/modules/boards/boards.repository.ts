@@ -10,12 +10,28 @@ export interface BoardsRepository
   findMember(boardId: string, userId: string): Promise<BoardMember | null>;
   upsertMember(input: SetBoardMemberInput): Promise<BoardMember>;
   update(input: UpdateBoardInput): Promise<Board>;
+  archive(boardId: string): Promise<void>;
+  removeMember(boardId: string, userId: string): Promise<void>;
+  removeUserFromOrganization(organizationId: string, userId: string): Promise<void>;
 }
 
 export class InMemoryBoardsRepository implements BoardsRepository 
 {
   private readonly boards = new Map<string, Board>();
   private readonly members = new Map<string, BoardMember>();
+
+  async archive(boardId: string): Promise<void> {
+    const board = this.boards.get(boardId);
+    if (board) board.archivedAt = new Date();
+  }
+  async removeMember(boardId: string, userId: string): Promise<void> {
+    this.members.delete(memberKey(boardId, userId));
+  }
+  async removeUserFromOrganization(organizationId: string, userId: string): Promise<void> {
+    for (const board of this.boards.values()) {
+      if (board.organizationId === organizationId) this.members.delete(memberKey(board.id, userId));
+    }
+  }
 
   async create(input: CreateBoardInput): Promise<Board> 
   {
@@ -67,7 +83,7 @@ export class InMemoryBoardsRepository implements BoardsRepository
   {
     const key = memberKey(input.boardId, input.userId);
     const current = this.members.get(key);
-    const member: BoardMember = { ...input, joinedAt: current?.joinedAt ?? new Date() };
+    const member: BoardMember = { boardId: input.boardId, userId: input.userId, role: input.role, joinedAt: current?.joinedAt ?? new Date() };
     this.members.set(key, member);
     return member;
   }

@@ -36,9 +36,7 @@ export class OrganizationsService
 
   async updateOrganization(input: UpdateOrganizationInput): Promise<Organization> 
   {
-    const member = await this.organizationsRepository.findMember(input.organizationId, input.actorUserId);
-    if (!member) 
-      throw notFound('Organization not found', 'ORGANIZATION_NOT_FOUND');
+    const member = await this.getOrganizationForUser(input.organizationId, input.actorUserId);
     if (!canManageOrganization(member.role)) 
     {
       throw forbidden('Organization admin role required', 'ORGANIZATION_ADMIN_REQUIRED');
@@ -61,10 +59,28 @@ export class OrganizationsService
     const current = await this.organizationsRepository.findMember(input.organizationId, input.userId);
     if (current?.role === ORG_ROLE.OWNER)
       throw forbidden('The organization owner role cannot be changed', 'ORGANIZATION_OWNER_IMMUTABLE');
-    if (actor.role !== ORG_ROLE.OWNER && (input.role === ORG_ROLE.ADMIN || current?.role === ORG_ROLE.ADMIN))
+    if (actor.role !== ORG_ROLE.OWNER && (input.role === ORG_ROLE.ADMIN || (current && current.role !== input.role)))
       throw forbidden('Only an organization owner can manage admins', 'ORGANIZATION_OWNER_REQUIRED');
-    if (!(await this.usersService.findById(input.userId)))
+    const target = await this.usersService.findById(input.userId);
+    if (!target || target.status !== 'active')
       throw notFound('User not found', 'USER_NOT_FOUND');
     return this.organizationsRepository.upsertMember(input);
+  }
+
+  async archiveOrganization(organizationId: string, actorUserId: string): Promise<void> {
+    const organization = await this.getOrganizationForUser(organizationId, actorUserId);
+    if (organization.role !== ORG_ROLE.OWNER)
+      throw forbidden('Organization owner role required', 'INSUFFICIENT_ORG_ROLE');
+    await this.organizationsRepository.archive(organizationId);
+  }
+
+  async removeOrganizationMember(organizationId: string, actorUserId: string, userId: string): Promise<void> {
+    const actor = await this.getOrganizationForUser(organizationId, actorUserId);
+    if (!canManageOrganization(actor.role)) throw forbidden('Organization admin role required', 'INSUFFICIENT_ORG_ROLE');
+    const target = await this.organizationsRepository.findMember(organizationId, userId);
+    if (!target) throw notFound('Organization member not found', 'ORGANIZATION_MEMBER_NOT_FOUND');
+    if (target.role === ORG_ROLE.OWNER || (target.role === ORG_ROLE.ADMIN && actor.role !== ORG_ROLE.OWNER))
+      throw forbidden('Only the owner can remove an admin; owners cannot be removed', 'INSUFFICIENT_ORG_ROLE');
+    await this.organizationsRepository.removeMember(organizationId, userId);
   }
 }

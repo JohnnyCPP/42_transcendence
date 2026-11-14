@@ -3,6 +3,8 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { BOARD_ROLES } from '../authorization/roles.js';
 import { requireAuth } from '../authorization/requireAuth.js';
+import { requireBoardRole, requireOrgRole } from '../authorization/requireScopeRole.js';
+import { ORG_ROLE } from '../authorization/roles.js';
 import type { SessionsService } from '../sessions/sessions.service.js';
 import type { BoardsService } from './boards.service.js';
 import { paginationQuerySchema } from '../../shared/http/pagination.js';
@@ -26,12 +28,13 @@ const boardMemberSchema = z.object({ role: z.enum(BOARD_ROLES) });
 export async function registerBoardRoutes(
   app: FastifyInstance,
   boardsService: BoardsService,
-  sessionsService: SessionsService
+  sessionsService: SessionsService,
+  organizationsService: import('../organizations/organizations.service.js').OrganizationsService
 ) {
   const typedApp = app.withTypeProvider<ZodTypeProvider>();
 
   typedApp.post('/organizations/:organizationId/boards', {
-    preHandler: requireAuth(sessionsService),
+    preHandler: [requireAuth(sessionsService), requireOrgRole(organizationsService, ORG_ROLE.ADMIN)],
     schema: { params: organizationParamsSchema, body: createBoardSchema }
   }, async (request) => {
     const params = request.params;
@@ -45,7 +48,7 @@ export async function registerBoardRoutes(
   });
 
   typedApp.get('/organizations/:organizationId/boards', {
-    preHandler: requireAuth(sessionsService),
+    preHandler: [requireAuth(sessionsService), requireOrgRole(organizationsService, ORG_ROLE.MEMBER)],
     schema: { params: organizationParamsSchema, querystring: paginationQuerySchema }
   }, async (request) => {
     const params = request.params;
@@ -54,7 +57,7 @@ export async function registerBoardRoutes(
   });
 
   typedApp.get('/boards/:boardId', {
-    preHandler: requireAuth(sessionsService),
+    preHandler: [requireAuth(sessionsService), requireBoardRole(boardsService, 'read')],
     schema: { params: boardParamsSchema }
   }, async (request) => {
     const params = request.params;
@@ -63,7 +66,7 @@ export async function registerBoardRoutes(
   });
 
   typedApp.patch('/boards/:boardId', {
-    preHandler: requireAuth(sessionsService),
+    preHandler: [requireAuth(sessionsService), requireBoardRole(boardsService, 'admin')],
     schema: { params: boardParamsSchema, body: updateBoardSchema }
   }, async (request) => {
     const params = request.params;
@@ -77,7 +80,7 @@ export async function registerBoardRoutes(
   });
 
   typedApp.put('/boards/:boardId/members/:userId', {
-    preHandler: requireAuth(sessionsService),
+    preHandler: [requireAuth(sessionsService), requireBoardRole(boardsService, 'admin')],
     schema: { params: boardMemberParamsSchema, body: boardMemberSchema }
   }, async (request) => ({
     member: await boardsService.setBoardMemberRole({
@@ -87,4 +90,20 @@ export async function registerBoardRoutes(
       role: request.body.role
     })
   }));
+
+  typedApp.delete('/boards/:boardId/members/:userId', {
+    preHandler: [requireAuth(sessionsService), requireBoardRole(boardsService, 'admin')],
+    schema: { params: boardMemberParamsSchema }
+  }, async (request) => {
+    await boardsService.removeBoardMember(request.params.boardId, request.currentUser!.id, request.params.userId);
+    return { ok: true };
+  });
+
+  typedApp.delete('/boards/:boardId', {
+    preHandler: [requireAuth(sessionsService), requireBoardRole(boardsService, 'read')],
+    schema: { params: boardParamsSchema }
+  }, async (request) => {
+    await boardsService.archiveBoard(request.params.boardId, request.currentUser!.id);
+    return { ok: true };
+  });
 }

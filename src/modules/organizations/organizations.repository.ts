@@ -20,10 +20,13 @@ export interface OrganizationsRepository
   findMember(organizationId: string, userId: string): Promise<OrganizationMember | null>;
   upsertMember(input: SetOrganizationMemberInput): Promise<OrganizationMember>;
   update(input: UpdateOrganizationInput): Promise<Organization>;
+  archive(organizationId: string): Promise<void>;
+  removeMember(organizationId: string, userId: string): Promise<void>;
 }
 
 export class InMemoryOrganizationsRepository implements OrganizationsRepository 
 {
+  constructor(private readonly removeBoardMemberships?: (organizationId: string, userId: string) => Promise<void>) {}
   private readonly organizations = new Map<string, Organization>();
   private readonly members = new Map<string, OrganizationMember>();
 
@@ -119,6 +122,16 @@ export class InMemoryOrganizationsRepository implements OrganizationsRepository
     organization.slug = nextSlug;
     organization.updatedAt = new Date();
     return organization;
+  }
+
+  async archive(organizationId: string): Promise<void> {
+    const organization = this.organizations.get(organizationId);
+    if (organization) organization.archivedAt = new Date();
+  }
+
+  async removeMember(organizationId: string, userId: string): Promise<void> {
+    await this.removeBoardMemberships?.(organizationId, userId);
+    this.members.delete(memberKey(organizationId, userId));
   }
 }
 

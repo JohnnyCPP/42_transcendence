@@ -10,6 +10,17 @@ export class PrismaOrganizationsRepository implements OrganizationsRepository
 {
   constructor(private readonly prisma: PrismaClient) {}
 
+  async archive(organizationId: string): Promise<void> {
+    await this.prisma.organization.update({ where: { id: organizationId }, data: { archivedAt: new Date() } });
+  }
+
+  async removeMember(organizationId: string, userId: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.boardMember.deleteMany({ where: { userId, board: { organizationId } } });
+      await tx.organizationMember.delete({ where: { organizationId_userId: { organizationId, userId } } });
+    });
+  }
+
   async createWithOwner(input: CreateOrganizationInput): Promise<OrganizationWithRole> 
   {
     const id = randomToken(16);
@@ -68,7 +79,7 @@ export class PrismaOrganizationsRepository implements OrganizationsRepository
   {
     const row = await this.prisma.organizationMember.upsert({
       where: { organizationId_userId: { organizationId: input.organizationId, userId: input.userId } },
-      create: input,
+      create: { organizationId: input.organizationId, userId: input.userId, role: input.role },
       update: { role: input.role }
     });
     return { organizationId: row.organizationId, userId: row.userId, role: row.role as OrganizationMember['role'], joinedAt: row.joinedAt };

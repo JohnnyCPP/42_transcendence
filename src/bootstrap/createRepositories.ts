@@ -1,4 +1,6 @@
 import { env } from "../config/env.js";
+import { InMemoryCommentsRepository, type CommentsRepository } from "../modules/comments/comments.repository.js";
+import { PrismaCommentsRepository } from "../modules/comments/comments.prismaRepository.js";
 import { InMemoryAuthRepository } from "../modules/auth/auth.repository.js";
 import { InMemoryBoardsRepository } from "../modules/boards/boards.repository.js";
 import { InMemoryCardsRepository } from "../modules/cards/cards.repository.js";
@@ -35,6 +37,7 @@ export	type	Repositories =
 	authRepository: AuthRepository;
 	boardsRepository: BoardsRepository;
 	cardsRepository: CardsRepository;
+	commentsRepository: CommentsRepository;
 	listsRepository: ListsRepository;
 	organizationsRepository: OrganizationsRepository;
 	registrationRepository: RegistrationRepository;
@@ -48,6 +51,7 @@ export	function	createRepositories(prismaClient: PrismaClient | null): Repositor
 	let		authRepository: AuthRepository;
 	let		boardsRepository: BoardsRepository;
 	let		cardsRepository: CardsRepository;
+	let		commentsRepository: CommentsRepository;
 	let		listsRepository: ListsRepository;
 	let		organizationsRepository: OrganizationsRepository;
 	let		registrationRepository: RegistrationRepository;
@@ -60,8 +64,9 @@ export	function	createRepositories(prismaClient: PrismaClient | null): Repositor
 		authRepository = new InMemoryAuthRepository();
 		boardsRepository = new InMemoryBoardsRepository();
 		cardsRepository = new InMemoryCardsRepository();
+		commentsRepository = new InMemoryCommentsRepository();
 		listsRepository = new InMemoryListsRepository();
-		organizationsRepository = new InMemoryOrganizationsRepository();
+		organizationsRepository = new InMemoryOrganizationsRepository((organizationId, userId) => boardsRepository.removeUserFromOrganization(organizationId, userId));
 		sessionsRepository = new InMemorySessionsRepository();
 		twoFactorRepository = new InMemoryTwoFactorRepository();
 		usersRepository = new InMemoryUsersRepository();
@@ -80,6 +85,7 @@ export	function	createRepositories(prismaClient: PrismaClient | null): Repositor
 		authRepository = new PrismaAuthRepository(prismaClient);
 		boardsRepository = new PrismaBoardsRepository(prismaClient);
 		cardsRepository = new PrismaCardsRepository(prismaClient);
+		commentsRepository = new PrismaCommentsRepository(prismaClient);
 		listsRepository = new PrismaListsRepository(prismaClient);
 		organizationsRepository = new PrismaOrganizationsRepository(prismaClient);
 		registrationRepository = new PrismaRegistrationRepository(prismaClient);
@@ -92,6 +98,7 @@ export	function	createRepositories(prismaClient: PrismaClient | null): Repositor
 		authRepository,
 		boardsRepository,
 		cardsRepository,
+		commentsRepository,
 		listsRepository,
 		organizationsRepository,
 		registrationRepository,
