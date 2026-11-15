@@ -20,6 +20,7 @@ export interface AuthRepository
   createLoginChallenge(input: Omit<LoginChallenge, 'id' | 'createdAt' | 'consumedAt'>): Promise<LoginChallenge>;
   findLoginChallengeByTokenHash(tokenHash: string): Promise<LoginChallenge | null>;
   claimLoginChallenge(id: string, now: Date): Promise<boolean>;
+  expireLoginChallenges(now: Date): Promise<void>;
 }
 
 export class InMemoryAuthRepository implements AuthRepository 
@@ -65,5 +66,11 @@ export class InMemoryAuthRepository implements AuthRepository
     if (!challenge || challenge.consumedAt || challenge.expiresAt <= now) return false;
     challenge.consumedAt = now;
     return true;
+  }
+
+  async expireLoginChallenges(now: Date): Promise<void>
+  {
+    for (const challenge of this.challenges.values())
+      if (!challenge.consumedAt && challenge.expiresAt <= now) challenge.consumedAt = now;
   }
 }

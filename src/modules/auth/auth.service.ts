@@ -150,6 +150,8 @@ export class AuthService
     this.secondFactorIpLimiter.assertAllowed(ipKey);
 
     const challenge = await this.authRepository.findLoginChallengeByTokenHash(hashToken(input.challengeToken));
+    if (challenge && !challenge.consumedAt && challenge.expiresAt <= new Date())
+      await this.authRepository.expireLoginChallenges(new Date());
     if (!challenge || challenge.consumedAt || challenge.expiresAt <= new Date()) 
     {
       this.secondFactorChallengeLimiter.recordFailure(challengeKey);

@@ -21,6 +21,15 @@ export async function buildApp()
 		fastifyInstance.addHook("onClose", async () => { await prismaClient.$disconnect(); });
 	}
 	const repositories = createRepositories(prismaClient);
+	// Reconcile expired challenges at startup and periodically, including those never retried.
+	await repositories.authRepository.expireLoginChallenges(new Date());
+	const expiryTimer = setInterval(() => {
+		void repositories.authRepository.expireLoginChallenges(new Date()).catch((error: unknown) => {
+			fastifyInstance.log.error(error, 'Failed to expire login challenges');
+		});
+	}, 60_000);
+	expiryTimer.unref();
+	fastifyInstance.addHook('onClose', async () => { clearInterval(expiryTimer); });
 	const services = createServices(repositories);
 	registerTestDecorators(fastifyInstance, services, repositories);
 	registerErrorHandlers(fastifyInstance);

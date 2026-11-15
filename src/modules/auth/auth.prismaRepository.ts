@@ -57,6 +57,14 @@ export class PrismaAuthRepository implements AuthRepository
     });
     return result.count === 1;
   }
+
+  async expireLoginChallenges(now: Date): Promise<void>
+  {
+    await this.prisma.loginChallenge.updateMany({
+      where: { consumedAt: null, expiresAt: { lte: now } },
+      data: { consumedAt: now }
+    });
+  }
 }
 
 function mapChallenge(row: Awaited<ReturnType<PrismaClient['loginChallenge']['findUnique']>> & object): LoginChallenge 
