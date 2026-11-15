@@ -1,19 +1,19 @@
 import { env } from "../config/env.js";
 import { InMemoryApiKeysRepository } from "../modules/apiKeys/apiKeys.repository.js";
-import { InMemoryAuthRepository } from "../modules/auth/auth.repository.js";
+import { InMemoryAuthRepository } from "../modules/authentication/auth.repository.js";
 import { InMemoryBoardsRepository } from "../modules/boards/boards.repository.js";
 import { InMemoryCardsRepository } from "../modules/cards/cards.repository.js";
 import { InMemoryOrganizationsRepository } from "../modules/organizations/organizations.repository.js";
 import {
   InMemoryRegistrationRepository,
   PrismaRegistrationRepository
-} from "../modules/auth/registration.repository.js";
+} from "../modules/authentication/registration.repository.js";
 import { InMemorySessionsRepository } from "../modules/sessions/sessions.repository.js";
 import { InMemoryTwoFactorRepository } from "../modules/two_factor/twoFactor.repository.js";
 import { InMemoryUsersRepository } from "../modules/users/users.repository.js";
 import { InMemoryListsRepository } from "../modules/lists/lists.repository.js";
 import { PrismaApiKeysRepository } from "../modules/apiKeys/apiKeys.prismaRepository.js";
-import { PrismaAuthRepository } from "../modules/auth/auth.prismaRepository.js";
+import { PrismaAuthRepository } from "../modules/authentication/auth.prismaRepository.js";
 import { PrismaBoardsRepository } from "../modules/boards/boards.prismaRepository.js";
 import { PrismaCardsRepository } from "../modules/cards/cards.prismaRepository.js";
 import { PrismaListsRepository } from "../modules/lists/lists.prismaRepository.js";
@@ -22,13 +22,13 @@ import { PrismaSessionsRepository } from "../modules/sessions/sessions.prismaRep
 import { PrismaTwoFactorRepository } from "../modules/two_factor/twoFactor.prismaRepository.js";
 import { PrismaUsersRepository } from "../modules/users/users.prismaRepository.js";
 import type { ApiKeysRepository } from "../modules/apiKeys/apiKeys.repository.js";
-import type { AuthRepository } from "../modules/auth/auth.repository.js";
+import type { AuthRepository } from "../modules/authentication/auth.repository.js";
 import type { BoardsRepository } from "../modules/boards/boards.repository.js";
 import type { CardsRepository } from "../modules/cards/cards.repository.js";
 import type { ListsRepository } from "../modules/lists/lists.repository.js";
 import type { OrganizationsRepository } from "../modules/organizations/organizations.repository.js";
 import type { PrismaClient } from "@prisma/client";
-import type { RegistrationRepository } from "../modules/auth/registration.repository.js";
+import type { RegistrationRepository } from "../modules/authentication/registration.repository.js";
 import type { SessionsRepository } from "../modules/sessions/sessions.repository.js";
 import type { TwoFactorRepository } from "../modules/two_factor/twoFactor.repository.js";
 import type { UsersRepository } from "../modules/users/users.repository.js";

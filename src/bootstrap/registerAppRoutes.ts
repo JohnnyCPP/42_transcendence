@@ -1,5 +1,5 @@
 import { registerApiKeyRoutes } from "../modules/apiKeys/apiKeys.routes.js";
-import { registerAuthRoutes } from "../modules/auth/auth.routes.js";
+import { registerAuthRoutes } from "../modules/authentication/auth.routes.js";
 import { registerBoardRoutes } from "../modules/boards/boards.routes.js";
 import { registerCardRoutes } from "../modules/cards/cards.routes.js";
 import { registerListRoutes } from "../modules/lists/lists.routes.js";

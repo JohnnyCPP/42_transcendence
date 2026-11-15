@@ -1,5 +1,5 @@
 import { ApiKeysService } from "../modules/apiKeys/apiKeys.service.js";
-import { AuthService } from "../modules/auth/auth.service.js";
+import { AuthService } from "../modules/authentication/auth.service.js";
 import { BoardsService } from "../modules/boards/boards.service.js";
 import { CardsService } from "../modules/cards/cards.service.js";
 import { ListsService } from "../modules/lists/lists.service.js";
