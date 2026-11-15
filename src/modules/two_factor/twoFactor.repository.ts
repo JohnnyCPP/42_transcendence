@@ -7,8 +7,10 @@ export interface TwoFactorRepository
   findTotpByUserId(userId: string): Promise<TotpRecord | null>;
   enableTotp(userId: string, secretEncrypted: string, timeStep: number, codeHashes: string[]): Promise<boolean>;
   claimTotpTimeStep(userId: string, secretEncrypted: string, timeStep: number): Promise<boolean>;
-  disableTotp(userId: string): Promise<void>;
-  replaceRecoveryCodes(userId: string, codeHashes: string[]): Promise<void>;
+  disableTotp(userId: string, secretEncrypted: string): Promise<boolean>;
+  disableWithFactor(userId: string, secretEncrypted: string, factor: { timeStep: number } | { codeHash: string }): Promise<boolean>;
+  replaceRecoveryCodes(userId: string, codeHashes: string[]): Promise<boolean>;
+  countRemainingRecoveryCodes(userId: string): Promise<number>;
   consumeRecoveryCodeHash(userId: string, codeHash: string): Promise<boolean>;
 }
 
@@ -63,8 +65,10 @@ export class InMemoryTwoFactorRepository implements TwoFactorRepository
     return true;
   }
 
-  async disableTotp(userId: string): Promise<void> 
+  async disableTotp(userId: string, secretEncrypted: string): Promise<boolean>
   {
+    const record = this.totpRecords.get(userId);
+    if (!record?.enabledAt || record.secretEncrypted !== secretEncrypted) return false;
     this.totpRecords.delete(userId);
     const now = new Date();
     for (const code of this.recoveryCodes.values()) 
@@ -72,10 +76,26 @@ export class InMemoryTwoFactorRepository implements TwoFactorRepository
       if (code.userId === userId && !code.replacedAt) 
         code.replacedAt = now;
     }
+    return true;
   }
 
-  async replaceRecoveryCodes(userId: string, codeHashes: string[]): Promise<void> 
+  async disableWithFactor(userId: string, secretEncrypted: string, factor: { timeStep: number } | { codeHash: string }): Promise<boolean>
   {
+    const record = this.totpRecords.get(userId);
+    if (!record?.enabledAt || record.secretEncrypted !== secretEncrypted) return false;
+    if ('timeStep' in factor) {
+      if (record.lastUsedTimeStep !== null && record.lastUsedTimeStep >= factor.timeStep) return false;
+    } else {
+      const code = [...this.recoveryCodes.values()].find(item => item.userId === userId && item.codeHash === factor.codeHash && !item.usedAt && !item.replacedAt);
+      if (!code) return false;
+      code.usedAt = new Date();
+    }
+    return this.disableTotp(userId, secretEncrypted);
+  }
+
+  async replaceRecoveryCodes(userId: string, codeHashes: string[]): Promise<boolean>
+  {
+    if (!this.totpRecords.get(userId)?.enabledAt) return false;
     const now = new Date();
     for (const code of this.recoveryCodes.values()) 
     {
@@ -94,6 +114,12 @@ export class InMemoryTwoFactorRepository implements TwoFactorRepository
         replacedAt: null
       });
     }
+    return true;
+  }
+
+  async countRemainingRecoveryCodes(userId: string): Promise<number>
+  {
+    return [...this.recoveryCodes.values()].filter(code => code.userId === userId && !code.usedAt && !code.replacedAt).length;
   }
 
   async consumeRecoveryCodeHash(userId: string, codeHash: string): Promise<boolean>

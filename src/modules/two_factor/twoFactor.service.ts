@@ -82,8 +82,28 @@ export class TwoFactorService
     return this.recoveryCodesService.generateForUser(userId);
   }
 
-  disableTwoFactor(userId: string): Promise<void> 
+  remainingRecoveryCodes(userId: string): Promise<number>
   {
-    return this.twoFactorRepository.disableTotp(userId);
+    return this.twoFactorRepository.countRemainingRecoveryCodes(userId);
+  }
+
+  async disableTwoFactor(userId: string, code: string, method: 'totp' | 'recovery_code'): Promise<void>
+  {
+    const record = await this.twoFactorRepository.findTotpByUserId(userId);
+    if (!record?.enabledAt) throw badRequest('Two-factor authentication is not enabled');
+    const valid = method === 'totp' ? await this.verifyTotp(userId, code) : await this.consumeRecoveryCode(userId, code);
+    if (!valid) throw unauthorized('Invalid second factor');
+    if (!(await this.twoFactorRepository.disableTotp(userId, record.secretEncrypted)))
+      throw badRequest('Two-factor authentication has changed');
+  }
+
+  async disableWithSingleFactor(userId: string, code: string, method: 'totp' | 'recovery_code'): Promise<void>
+  {
+    const record = await this.twoFactorRepository.findTotpByUserId(userId);
+    if (!record?.enabledAt) throw badRequest('Two-factor authentication is not enabled');
+    const timeStep = method === 'totp' ? this.totpService.matchingTimeStep(code, this.totpService.decryptSecret(record.secretEncrypted)) : null;
+    if (method === 'totp' && timeStep === null) throw unauthorized('Invalid second factor');
+    const factor = method === 'totp' ? { timeStep: timeStep! } : { codeHash: hashToken(code.trim()) };
+    if (!(await this.twoFactorRepository.disableWithFactor(userId, record.secretEncrypted, factor))) throw unauthorized('Invalid second factor');
   }
 }

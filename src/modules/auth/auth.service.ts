@@ -236,6 +236,18 @@ export class AuthService
     await this.sessionsService.markReauthenticated(sessionId);
   }
 
+  async verifyPasswordForSensitiveAction(userId: string, sessionId: string, password: string): Promise<void>
+  {
+    const limiterKey = rateLimitKey('reauth-session', sessionId);
+    this.reauthenticationLimiter.assertAllowed(limiterKey);
+    const credential = await this.authRepository.findPasswordCredential(userId);
+    if (!credential || !(await this.passwordHasher.verify(credential.passwordHash, password))) {
+      this.reauthenticationLimiter.recordFailure(limiterKey);
+      throw unauthorized('Invalid credentials');
+    }
+    this.reauthenticationLimiter.reset(limiterKey);
+  }
+
   async changePassword(userId: string, newPassword: string): Promise<void> 
   {
     if (newPassword.length < 12 || newPassword.length > 128)

@@ -50,23 +50,51 @@ export class PrismaTwoFactorRepository implements TwoFactorRepository
     return result.count === 1;
   }
 
-  async disableTotp(userId: string): Promise<void> 
+  async disableTotp(userId: string, secretEncrypted: string): Promise<boolean>
   {
-    await this.prisma.$transaction([
-      this.prisma.twoFactorTotp.deleteMany({ where: { userId } }),
-      this.prisma.recoveryCode.updateMany({ where: { userId, replacedAt: null }, data: { replacedAt: new Date() } })
-    ]);
+    return this.prisma.$transaction(async tx => {
+      const deleted = await tx.twoFactorTotp.deleteMany({ where: { userId, secretEncrypted, enabledAt: { not: null } } });
+      if (!deleted.count) return false;
+      await tx.recoveryCode.updateMany({ where: { userId, replacedAt: null }, data: { replacedAt: new Date() } });
+      return true;
+    });
   }
 
-  async replaceRecoveryCodes(userId: string, codeHashes: string[]): Promise<void> 
+  async disableWithFactor(userId: string, secretEncrypted: string, factor: { timeStep: number } | { codeHash: string }): Promise<boolean>
   {
-    const now = new Date();
-    await this.prisma.$transaction([
-      this.prisma.recoveryCode.updateMany({ where: { userId, replacedAt: null }, data: { replacedAt: now } }),
-      this.prisma.recoveryCode.createMany({
-        data: codeHashes.map((codeHash) => ({ id: randomToken(16), userId, codeHash }))
-      })
-    ]);
+    return this.prisma.$transaction(async tx => {
+      const now = new Date();
+      const locked = await tx.twoFactorTotp.updateMany({
+        where: { userId, secretEncrypted, enabledAt: { not: null }, ...('timeStep' in factor ? { OR: [{ lastUsedTimeStep: null }, { lastUsedTimeStep: { lt: factor.timeStep } }] } : {}) },
+        data: { updatedAt: now }
+      });
+      if (!locked.count) return false;
+      if ('codeHash' in factor) {
+        const used = await tx.recoveryCode.updateMany({ where: { userId, codeHash: factor.codeHash, usedAt: null, replacedAt: null }, data: { usedAt: now } });
+        if (used.count !== 1) return false;
+      }
+      await tx.twoFactorTotp.delete({ where: { userId } });
+      await tx.recoveryCode.updateMany({ where: { userId, replacedAt: null }, data: { replacedAt: now } });
+      return true;
+    });
+  }
+
+  async replaceRecoveryCodes(userId: string, codeHashes: string[]): Promise<boolean>
+  {
+    return this.prisma.$transaction(async tx => {
+      const now = new Date();
+      // Lock the enabled TOTP row to serialize regeneration and disablement.
+      const locked = await tx.twoFactorTotp.updateMany({ where: { userId, enabledAt: { not: null } }, data: { updatedAt: now } });
+      if (!locked.count) return false;
+      await tx.recoveryCode.updateMany({ where: { userId, replacedAt: null }, data: { replacedAt: now } });
+      await tx.recoveryCode.createMany({ data: codeHashes.map(codeHash => ({ id: randomToken(16), userId, codeHash })) });
+      return true;
+    });
+  }
+
+  async countRemainingRecoveryCodes(userId: string): Promise<number>
+  {
+    return this.prisma.recoveryCode.count({ where: { userId, usedAt: null, replacedAt: null } });
   }
 
   async consumeRecoveryCodeHash(userId: string, codeHash: string): Promise<boolean>
