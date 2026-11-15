@@ -1,3 +1,4 @@
+import type { ApiKeysService } from "../modules/apiKeys/apiKeys.service.js";
 import type { AuthRepository } from "../modules/auth/auth.repository.js";
 import type { AuthService } from "../modules/auth/auth.service.js";
 import type { BoardsService } from "../modules/boards/boards.service.js";
@@ -21,6 +22,7 @@ declare module "fastify" {
 
 			testContext: {
 
+			apiKeysService: ApiKeysService;
 			authService: AuthService;
 			authRepository: AuthRepository;
 			boardsService: BoardsService;

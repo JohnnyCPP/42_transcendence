@@ -1,7 +1,7 @@
 import { AppError } from "../shared/errors/AppError.js";
 import cookie from "@fastify/cookie";
-import type { FastifyInstance } from "fastify";
 import { validatorCompiler } from "fastify-type-provider-zod";
+import type { FastifyInstance } from "fastify";
 
 export	async	function	configureHttpServer(fastifyInstance: FastifyInstance): Promise<void>
 {

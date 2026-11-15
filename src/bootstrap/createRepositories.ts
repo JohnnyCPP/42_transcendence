@@ -1,4 +1,5 @@
 import { env } from "../config/env.js";
+import { InMemoryApiKeysRepository } from "../modules/apiKeys/apiKeys.repository.js";
 import { InMemoryAuthRepository } from "../modules/auth/auth.repository.js";
 import { InMemoryBoardsRepository } from "../modules/boards/boards.repository.js";
 import { InMemoryCardsRepository } from "../modules/cards/cards.repository.js";
@@ -11,6 +12,7 @@ import { InMemorySessionsRepository } from "../modules/sessions/sessions.reposit
 import { InMemoryTwoFactorRepository } from "../modules/two_factor/twoFactor.repository.js";
 import { InMemoryUsersRepository } from "../modules/users/users.repository.js";
 import { InMemoryListsRepository } from "../modules/lists/lists.repository.js";
+import { PrismaApiKeysRepository } from "../modules/apiKeys/apiKeys.prismaRepository.js";
 import { PrismaAuthRepository } from "../modules/auth/auth.prismaRepository.js";
 import { PrismaBoardsRepository } from "../modules/boards/boards.prismaRepository.js";
 import { PrismaCardsRepository } from "../modules/cards/cards.prismaRepository.js";
@@ -19,6 +21,7 @@ import { PrismaOrganizationsRepository } from "../modules/organizations/organiza
 import { PrismaSessionsRepository } from "../modules/sessions/sessions.prismaRepository.js";
 import { PrismaTwoFactorRepository } from "../modules/two_factor/twoFactor.prismaRepository.js";
 import { PrismaUsersRepository } from "../modules/users/users.prismaRepository.js";
+import type { ApiKeysRepository } from "../modules/apiKeys/apiKeys.repository.js";
 import type { AuthRepository } from "../modules/auth/auth.repository.js";
 import type { BoardsRepository } from "../modules/boards/boards.repository.js";
 import type { CardsRepository } from "../modules/cards/cards.repository.js";
@@ -32,6 +35,7 @@ import type { UsersRepository } from "../modules/users/users.repository.js";
 
 export	type	Repositories = 
 {
+	apiKeysRepository: ApiKeysRepository;
 	authRepository: AuthRepository;
 	boardsRepository: BoardsRepository;
 	cardsRepository: CardsRepository;
@@ -45,6 +49,7 @@ export	type	Repositories =
 
 export	function	createRepositories(prismaClient: PrismaClient | null): Repositories
 {
+	let		apiKeysRepository: ApiKeysRepository;
 	let		authRepository: AuthRepository;
 	let		boardsRepository: BoardsRepository;
 	let		cardsRepository: CardsRepository;
@@ -57,6 +62,7 @@ export	function	createRepositories(prismaClient: PrismaClient | null): Repositor
 
 	if (env.NODE_ENV == "test")
 	{
+		apiKeysRepository = new InMemoryApiKeysRepository();
 		authRepository = new InMemoryAuthRepository();
 		boardsRepository = new InMemoryBoardsRepository();
 		cardsRepository = new InMemoryCardsRepository();
@@ -77,6 +83,7 @@ export	function	createRepositories(prismaClient: PrismaClient | null): Repositor
 				"Check DATABASE_URL and run \"prisma generate\"."
 			);
 		}
+		apiKeysRepository = new PrismaApiKeysRepository(prismaClient);
 		authRepository = new PrismaAuthRepository(prismaClient);
 		boardsRepository = new PrismaBoardsRepository(prismaClient);
 		cardsRepository = new PrismaCardsRepository(prismaClient);
@@ -89,6 +96,7 @@ export	function	createRepositories(prismaClient: PrismaClient | null): Repositor
 	}
 	return {
 
+		apiKeysRepository,
 		authRepository,
 		boardsRepository,
 		cardsRepository,
