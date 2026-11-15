@@ -8,6 +8,7 @@ export type LoginChallenge = {
   createdAt: Date;
   expiresAt: Date;
   consumedAt: Date | null;
+  failedAttempts: number;
   ipAddress: string | null;
   userAgent: string | null;
 };
@@ -17,9 +18,10 @@ export interface AuthRepository
   createPasswordCredential(input: PasswordCredential): Promise<void>;
   findPasswordCredential(userId: string): Promise<PasswordCredential | null>;
   updatePasswordCredential(input: PasswordCredential): Promise<void>;
-  createLoginChallenge(input: Omit<LoginChallenge, 'id' | 'createdAt' | 'consumedAt'>): Promise<LoginChallenge>;
+  createLoginChallenge(input: Omit<LoginChallenge, 'id' | 'createdAt' | 'consumedAt' | 'failedAttempts'>): Promise<LoginChallenge>;
   findLoginChallengeByTokenHash(tokenHash: string): Promise<LoginChallenge | null>;
   claimLoginChallenge(id: string, now: Date): Promise<boolean>;
+  recordChallengeFailure(id: string, now: Date): Promise<void>;
   expireLoginChallenges(now: Date): Promise<void>;
 }
 
@@ -43,13 +45,14 @@ export class InMemoryAuthRepository implements AuthRepository
     this.credentials.set(input.userId, input);
   }
 
-  async createLoginChallenge(input: Omit<LoginChallenge, 'id' | 'createdAt' | 'consumedAt'>): Promise<LoginChallenge> 
+  async createLoginChallenge(input: Omit<LoginChallenge, 'id' | 'createdAt' | 'consumedAt' | 'failedAttempts'>): Promise<LoginChallenge>
   {
     const challenge: LoginChallenge = {
       ...input,
       id: randomToken(16),
       createdAt: new Date(),
-      consumedAt: null
+      consumedAt: null,
+      failedAttempts: 0
     };
     this.challenges.set(challenge.id, challenge);
     return challenge;
@@ -63,9 +66,17 @@ export class InMemoryAuthRepository implements AuthRepository
   async claimLoginChallenge(id: string, now: Date): Promise<boolean>
   {
     const challenge = this.challenges.get(id);
-    if (!challenge || challenge.consumedAt || challenge.expiresAt <= now) return false;
+    if (!challenge || challenge.consumedAt || challenge.expiresAt <= now || challenge.failedAttempts >= 5) return false;
     challenge.consumedAt = now;
     return true;
+  }
+
+  async recordChallengeFailure(id: string, now: Date): Promise<void>
+  {
+    const challenge = this.challenges.get(id);
+    if (!challenge || challenge.consumedAt || challenge.expiresAt <= now || challenge.failedAttempts >= 5) return;
+    challenge.failedAttempts++;
+    if (challenge.failedAttempts >= 5) challenge.consumedAt = now;
   }
 
   async expireLoginChallenges(now: Date): Promise<void>

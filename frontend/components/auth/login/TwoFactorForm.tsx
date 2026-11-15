@@ -84,11 +84,12 @@ export default function TwoFactorForm({
               : 'text-on-surface-variant hover:text-on-surface'
           )}
         >
-          Recuperación
+          Usar código de recuperación
         </button>
       </div>
 
       <div className="space-y-2">
+        <p className="text-sm text-on-surface-variant">Tras cinco intentos incorrectos, vuelve a introducir tu contraseña.</p>
         <label htmlFor="twoFactorCode" className={uiStyles.formLabel}>
           {method === 'totp' ? 'Código de 6 dígitos' : 'Código de recuperación'}
         </label>

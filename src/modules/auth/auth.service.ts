@@ -16,7 +16,6 @@ export class AuthService
   private readonly registrationLimiter = new InMemoryRateLimiter(5, 15 * 60 * 1000);
   private readonly passwordIdentityLimiter = new InMemoryRateLimiter(5, 15 * 60 * 1000);
   private readonly passwordIpLimiter = new InMemoryRateLimiter(30, 15 * 60 * 1000);
-  private readonly secondFactorChallengeLimiter = new InMemoryRateLimiter(5, 5 * 60 * 1000);
   private readonly secondFactorIpLimiter = new InMemoryRateLimiter(30, 5 * 60 * 1000);
   private readonly reauthenticationLimiter = new InMemoryRateLimiter(5, 15 * 60 * 1000);
 
@@ -144,19 +143,21 @@ export class AuthService
     ipAddress?: string | null;
     userAgent?: string | null;
   }): Promise<LoginResult> {
-    const challengeKey = rateLimitKey('2fa-challenge', input.challengeToken);
     const ipKey = rateLimitKey('2fa-ip', input.ipAddress);
-    this.secondFactorChallengeLimiter.assertAllowed(challengeKey);
     this.secondFactorIpLimiter.assertAllowed(ipKey);
 
     const challenge = await this.authRepository.findLoginChallengeByTokenHash(hashToken(input.challengeToken));
-    if (challenge && !challenge.consumedAt && challenge.expiresAt <= new Date())
-      await this.authRepository.expireLoginChallenges(new Date());
-    if (!challenge || challenge.consumedAt || challenge.expiresAt <= new Date()) 
+    const now = new Date();
+    if (challenge && challenge.expiresAt <= now)
     {
-      this.secondFactorChallengeLimiter.recordFailure(challengeKey);
+      if (!challenge.consumedAt) await this.authRepository.expireLoginChallenges(now);
       this.secondFactorIpLimiter.recordFailure(ipKey);
-      throw unauthorized('Invalid or expired login challenge');
+      throw unauthorized('Invalid or expired login challenge', 'CHALLENGE_EXPIRED');
+    }
+    if (!challenge || challenge.consumedAt || challenge.failedAttempts >= 5)
+    {
+      this.secondFactorIpLimiter.recordFailure(ipKey);
+      throw unauthorized('Invalid credentials');
     }
 
     const ok =
@@ -166,15 +167,14 @@ export class AuthService
 
     if (!ok) 
     {
-      this.secondFactorChallengeLimiter.recordFailure(challengeKey);
+      await this.authRepository.recordChallengeFailure(challenge.id, new Date());
       this.secondFactorIpLimiter.recordFailure(ipKey);
-      throw unauthorized('Invalid second factor');
+      throw unauthorized('Invalid credentials');
     }
 
     // Compare-and-set: only one concurrent request can claim this challenge.
     if (!(await this.authRepository.claimLoginChallenge(challenge.id, new Date())))
-      throw unauthorized('Invalid or expired login challenge');
-    this.secondFactorChallengeLimiter.reset(challengeKey);
+      throw unauthorized('Invalid credentials');
 
     const user = await this.usersService.findById(challenge.userId);
     if (!user || user.status !== 'active') 
