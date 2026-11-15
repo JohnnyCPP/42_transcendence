@@ -30,7 +30,7 @@ export class InMemoryRateLimiter
 
     if (bucket.attempts >= this.maxAttempts)
     {
-      throw tooManyRequests();
+      throw tooManyRequests(Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)));
     }
   }
 
@@ -72,7 +72,10 @@ export class InMemoryRateLimiter
   {
     if (this.buckets.size < this.maxBuckets) return;
     this.removeExpired(now);
-    if (this.buckets.size >= this.maxBuckets) throw tooManyRequests();
+    if (this.buckets.size >= this.maxBuckets) {
+      const earliest = Math.min(...[...this.buckets.values()].map(bucket => bucket.resetAt));
+      throw tooManyRequests(Math.max(1, Math.ceil((earliest - now) / 1000)));
+    }
   }
 
   private removeExpired(now: number): void

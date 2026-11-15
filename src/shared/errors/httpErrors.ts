@@ -15,5 +15,5 @@ export const conflict = (message = 'Conflict', code = 'CONFLICT') =>
 export const notFound = (message = 'Not found', code = 'NOT_FOUND') =>
   new AppError(message, 404, code);
 
-export const tooManyRequests = (message = 'Too many attempts', code = 'RATE_LIMITED') =>
-  new AppError(message, 429, code);
+export const tooManyRequests = (retryAfterSeconds: number) =>
+  new AppError('Too many attempts', 429, 'RATE_LIMITED', retryAfterSeconds);

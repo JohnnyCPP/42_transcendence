@@ -6,9 +6,11 @@ import type { TwoFactorRepository } from './twoFactor.repository.js';
 import type { TotpSetup } from './twoFactor.types.js';
 import { randomToken } from '../../shared/crypto/randomToken.js';
 import { hashToken } from '../../shared/crypto/hashToken.js';
+import { InMemoryRateLimiter, rateLimitKey } from '../../shared/http/rateLimit.js';
 
 export class TwoFactorService 
 {
+  private readonly setupLimiter = new InMemoryRateLimiter(5, 10 * 60 * 1000);
   constructor(
     private readonly twoFactorRepository: TwoFactorRepository,
     private readonly usersService: UsersService,
@@ -40,6 +42,8 @@ export class TwoFactorService
 
   async confirmTotpSetup(userId: string, code: string): Promise<string[]> 
   {
+    // Reserve before async work so concurrent attempts cannot bypass the limit.
+    this.setupLimiter.consume(rateLimitKey('2fa-setup-user', userId));
     const record = await this.twoFactorRepository.findTotpByUserId(userId);
     if (!record || record.enabledAt) 
       throw badRequest('No pending TOTP setup');
@@ -52,7 +56,13 @@ export class TwoFactorService
     const codes = Array.from({ length: 10 }, () => randomToken(9));
     if (!(await this.twoFactorRepository.enableTotp(userId, record.secretEncrypted, timeStep, codes.map(hashToken))))
       throw badRequest('TOTP setup has changed or is already confirmed');
+    this.resetSetupAttempts(userId);
     return codes;
+  }
+
+  resetSetupAttempts(userId: string): void
+  {
+    this.setupLimiter.reset(rateLimitKey('2fa-setup-user', userId));
   }
 
   async verifyTotp(userId: string, code: string): Promise<boolean> 

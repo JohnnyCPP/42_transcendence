@@ -68,7 +68,7 @@ export class AuthService
     ipAddress?: string | null;
     userAgent?: string | null;
   }): Promise<LoginResult> {
-    const identityKey = rateLimitKey('login-identity', input.ipAddress, input.username.trim().toLowerCase());
+    const identityKey = rateLimitKey('login-identity', input.username.trim().toLowerCase());
     const ipKey = rateLimitKey('login-ip', input.ipAddress);
     this.passwordIdentityLimiter.assertAllowed(identityKey);
     this.passwordIpLimiter.assertAllowed(ipKey);
@@ -87,8 +87,6 @@ export class AuthService
       this.passwordIpLimiter.recordFailure(ipKey);
       throw unauthorized('Invalid credentials');
     }
-
-    this.passwordIdentityLimiter.reset(identityKey);
 
     return this.completeTrustedLogin({
       userId: user.id,
@@ -128,6 +126,8 @@ export class AuthService
       ipAddress: input.ipAddress,
       userAgent: input.userAgent
     });
+    this.twoFactorService.resetSetupAttempts(user.id);
+    this.passwordIdentityLimiter.reset(rateLimitKey('login-identity', user.username.trim().toLowerCase()));
     return {
       status: 'authenticated',
       user,
@@ -185,6 +185,9 @@ export class AuthService
       ipAddress: input.ipAddress,
       userAgent: input.userAgent
     });
+
+    this.twoFactorService.resetSetupAttempts(user.id);
+    this.passwordIdentityLimiter.reset(rateLimitKey('login-identity', user.username.trim().toLowerCase()));
 
     return {
       status: 'authenticated',
