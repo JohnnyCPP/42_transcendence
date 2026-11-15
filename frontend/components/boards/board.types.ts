@@ -1,12 +1,12 @@
 /**
- * Board tal como lo devuelve el API (`GET /organizations/:id/boards`).
+ * Board tal como lo devuelve el API.
  *
  * Endpoints:
  * - `GET  /organizations/:organizationId/boards`
  * - `POST /organizations/:organizationId/boards`
  * - `GET  /boards/:boardId`
- * - `PATCH /boards/:boardId` (name, description) — stub en BoardsProvider
- * - `DELETE /boards/:boardId` — pendiente en BE; stub UI no-op
+ * - `PATCH /boards/:boardId` (name, description)
+ * - `DELETE /boards/:boardId` — pendiente en BE; UI no-op por ahora
  *
  * Las fechas llegan como string ISO (JSON); no como `Date`.
  */

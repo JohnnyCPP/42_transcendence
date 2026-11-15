@@ -12,6 +12,7 @@ import { useOrg } from '@/components/org';
 import type { Board } from './board.types';
 import type { BoardsState } from './boards.types';
 
+/** Body de `PATCH /boards/:boardId`. */
 export type UpdateBoardInput = {
   name?: string;
   description?: string | null;
@@ -21,13 +22,13 @@ type BoardsContextValue = BoardsState & {
   refreshBoards: () => Promise<void>;
   createBoard: (name: string, description?: string) => Promise<Board>;
   /**
-   * `PATCH /boards/:boardId`
-   * Stub: cablea con `apiFetch` cuando quieras.
+   * Actualiza nombre/descripción del tablero.
+   * `PATCH /boards/:boardId` → reemplaza el board en state.
    */
   updateBoard: (boardId: string, input: UpdateBoardInput) => Promise<Board>;
   /**
    * Eliminar board — endpoint aún no existe en el BE.
-   * Stub no-op para UI; el compañero publicará `DELETE` después.
+   * No-op para que la UI no rompa; conectar cuando exista `DELETE`.
    */
   deleteBoard: (boardId: string) => Promise<void>;
   clearError: () => void;
@@ -38,7 +39,8 @@ export const BoardsContext = createContext<BoardsContextValue | null>(null);
 /**
  * Estado compartido de tableros del workspace (org) activo.
  *
- * Depende de `OrgProvider` (`useOrg`). Debe montarse debajo de él en el layout.
+ * - API: `GET/POST /organizations/:id/boards`, `PATCH /boards/:boardId`
+ * - Depende de `OrgProvider` (`useOrg`); montar debajo de él en el layout.
  */
 export const BoardsProvider = ({ children }: { children: ReactNode }) => {
   const { activeOrganization, isLoading: isOrgLoading } = useOrg();
@@ -114,31 +116,27 @@ export const BoardsProvider = ({ children }: { children: ReactNode }) => {
   );
 
   /**
+   * Actualiza nombre/descripción del tablero.
+   *
    * `PATCH /boards/:boardId`
    * Body: `{ name?, description? }` → `{ board }`
-   *
-   * TODO: sustituir el throw por apiFetch y actualizar `boards` en state.
    */
   const updateBoard = useCallback(
     async (boardId: string, input: UpdateBoardInput): Promise<Board> => {
-      void boardId;
-      void input;
-      // TODO: wire apiFetch
-      // const data = await apiFetch<{ board: Board }>(`/boards/${boardId}`, {
-      //   method: 'PATCH',
-      //   body: JSON.stringify(input),
-      // });
-      // setBoardsState((prev) => ({
-      //   ...prev,
-      //   boards: prev.boards.map((board) =>
-      //     board.id === data.board.id ? data.board : board
-      //   ),
-      //   error: null,
-      // }));
-      // return data.board;
-      throw new Error(
-        'TODO: cablea updateBoard con apiFetch (PATCH /boards/:boardId)'
-      );
+      const data = await apiFetch<{ board: Board }>(`/boards/${boardId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      });
+
+      setBoardsState((prev) => ({
+        ...prev,
+        boards: prev.boards.map((board) =>
+          board.id === data.board.id ? data.board : board
+        ),
+        error: null,
+      }));
+
+      return data.board;
     },
     []
   );
@@ -147,13 +145,12 @@ export const BoardsProvider = ({ children }: { children: ReactNode }) => {
    * Eliminar tablero — sin endpoint aún.
    * No llama a la red; la UI muestra feedback “pendiente de API”.
    *
-   * TODO: cuando exista, p. ej. `DELETE /boards/:boardId`
+   * Cuando exista: `DELETE /boards/:boardId`
    * y quitar el board de `boards` / redirigir a `/boards`.
    */
   const deleteBoard = useCallback(async (boardId: string) => {
     void boardId;
     // No-op a propósito (UI funcional, sin conectar).
-    return;
   }, []);
 
   const clearError = useCallback(() => {

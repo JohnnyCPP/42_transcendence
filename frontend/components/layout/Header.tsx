@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  HeaderActionButton,
   HeaderProps,
   MobileMenuButton,
   NotificationButton,
@@ -19,7 +18,6 @@ export default function Header({
   searchQuery,
   onSearchChange,
   onToggleMobileSidebar,
-  onOpenNewTaskModal,
 }: HeaderProps) {
   return (
     <header className="h-16 w-full sticky top-0 z-40 bg-surface-bright border-b border-outline-variant flex justify-between items-center px-6 shrink-0 shadow-xs">

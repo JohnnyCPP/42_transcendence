@@ -16,9 +16,6 @@ import {
 import { RequireActiveOrg } from './RequireActiveOrg';
 import { useWorkspaceSettings } from './useWorkspaceSettings';
 
-/**
- * Cabecera de la página: título, lead y enlace de vuelta a `/workspace`.
- */
 export function WorkspaceSettingsHeader() {
   return (
     <section className="space-y-2">

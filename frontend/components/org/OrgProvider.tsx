@@ -1,7 +1,17 @@
 'use client';
 
-import { createContext, type ReactNode, useState, useEffect, useCallback } from 'react';
-import { OrganizationWithRole, OrgState } from './org.types';
+import {
+  createContext,
+  type ReactNode,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react';
+import {
+  Organization,
+  OrganizationWithRole,
+  OrgState,
+} from './org.types';
 import { useAuth } from '../auth';
 import { apiFetch } from '@/lib/apiClient';
 
@@ -15,43 +25,50 @@ const ACTIVE_ORG_STORAGE_KEY = 'taskflow.activeOrganizationId';
 
 /** Lee el id guardado. En SSR no hay `window` → `null`. */
 function readStoredActiveOrgId(): string | null {
-	if (typeof window === 'undefined') return null;
-	const storedId = localStorage.getItem(ACTIVE_ORG_STORAGE_KEY);
-	return storedId ?? null;
+  if (typeof window === 'undefined') return null;
+  const storedId = localStorage.getItem(ACTIVE_ORG_STORAGE_KEY);
+  return storedId ?? null;
 }
 
 /** Escribe el id activo, o borra la clave si `orgId` es `null`. */
 function writeStoredActiveOrgId(orgId: string | null): void {
-	if (typeof window === 'undefined') return;
-	if (orgId === null) {
-		localStorage.removeItem(ACTIVE_ORG_STORAGE_KEY);
-	} else {
-		localStorage.setItem(ACTIVE_ORG_STORAGE_KEY, orgId);
-	}
+  if (typeof window === 'undefined') return;
+  if (orgId === null) {
+    localStorage.removeItem(ACTIVE_ORG_STORAGE_KEY);
+  } else {
+    localStorage.setItem(ACTIVE_ORG_STORAGE_KEY, orgId);
+  }
 }
 
 /** Atajo de logout / sin sesión. */
 function clearStoredActiveOrgId(): void {
-	writeStoredActiveOrgId(null);
+  writeStoredActiveOrgId(null);
 }
 
-export type UpdateOrganizationInput = {name?: string; slug?: string;};
+/** Body de `PATCH /organizations/:organizationId`. */
+export type UpdateOrganizationInput = {
+  name?: string;
+  slug?: string;
+};
 
 type OrgContextValue = OrgState & {
-	refreshOrganizations: () => Promise<void>;
-	createOrganization: (name: string, slug?: string) => Promise<void>;
-	/**
-	 * `PATCH /organizations/:organizationId`
-	 * Stub: cablea con `apiFetch` cuando quieras.
-	 */
-	updateOrganization: (organizationId: string, input: UpdateOrganizationInput) => Promise<OrganizationWithRole>;
-	/**
-	 * Eliminar org — endpoint aún no existe en el BE.
-	 * Stub no-op para UI; el compañero publicará `DELETE` después.
-	 */
-	deleteOrganization: (organizationId: string) => Promise<void>;
-	setActiveOrganization: (org: OrganizationWithRole) => void;
-	clearError: () => void;
+  refreshOrganizations: () => Promise<void>;
+  createOrganization: (name: string, slug?: string) => Promise<void>;
+  /**
+   * Actualiza nombre/slug del workspace.
+   * `PATCH /organizations/:organizationId` → fusiona en state preservando `role`.
+   */
+  updateOrganization: (
+    organizationId: string,
+    input: UpdateOrganizationInput
+  ) => Promise<OrganizationWithRole>;
+  /**
+   * Eliminar org — endpoint aún no existe en el BE.
+   * No-op para que la UI no rompa; conectar cuando exista `DELETE`.
+   */
+  deleteOrganization: (organizationId: string) => Promise<void>;
+  setActiveOrganization: (org: OrganizationWithRole) => void;
+  clearError: () => void;
 };
 
 export const OrgContext = createContext<OrgContextValue | null>(null);
@@ -59,7 +76,7 @@ export const OrgContext = createContext<OrgContextValue | null>(null);
 /**
  * Estado global de organizaciones (= “workspace” en la UI).
  *
- * - API: `GET/POST /organizations`
+ * - API: `GET/POST/PATCH /organizations`
  * - UI switcher: `/workspace`
  * - Tableros: `/boards` (filtrados por `activeOrganization`)
  *
@@ -73,166 +90,212 @@ export const OrgContext = createContext<OrgContextValue | null>(null);
  * cada F5 borraría el workspace guardado antes de recuperar la sesión.
  */
 export const OrgProvider = ({ children }: { children: ReactNode }) => {
+  const { isAuthenticated, isLoading: isAuthLoading, user } = useAuth();
+  const [orgState, setOrgState] = useState<OrgState>({
+    organizations: [],
+    activeOrganization: null,
+    isLoading: true,
+    error: null,
+  });
 
-	const { isAuthenticated, isLoading: isAuthLoading, user } = useAuth();
-	const [orgState, setOrgState] = useState<OrgState>({
-		organizations: [],
-		activeOrganization: null,
-		isLoading: true,
-		error: null,
-	  });
+  const refreshOrganizations = useCallback(async () => {
+    setOrgState((prev) => ({ ...prev, isLoading: true }));
 
-	const refreshOrganizations = useCallback(async () => {
-		setOrgState(prev => ({ ...prev, isLoading: true }));
+    try {
+      const data = await apiFetch<{ organizations: OrganizationWithRole[] }>(
+        '/organizations'
+      );
 
-		try {
-			const data = await apiFetch<{ organizations: OrganizationWithRole[] }>('/organizations');
+      let organizations = data.organizations;
 
-			let organizations = data.organizations;
+      if (organizations.length === 0) {
+        const createdOrg = await apiFetch<{
+          organization: OrganizationWithRole;
+        }>('/organizations', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: user?.name
+              ? `Organización de ${user.name}`
+              : 'Organización',
+          }),
+        });
 
-			if (organizations.length === 0) {
-				const createdOrg = await apiFetch<{ organization: OrganizationWithRole }>('/organizations', {
-					method: 'POST',
-					body: JSON.stringify({
-						name: user?.name ? `Organización de ${user.name}` : 'Organización',
-					}),
-				});
+        organizations = [createdOrg.organization];
+      }
 
-				organizations = [createdOrg.organization];
-			}
-			const storedId = readStoredActiveOrgId();
-			const activeOrg = organizations.find(org => org.id === storedId) ?? organizations[0] ?? null;
+      const storedId = readStoredActiveOrgId();
+      const activeOrg =
+        organizations.find((org) => org.id === storedId) ??
+        organizations[0] ??
+        null;
 
-			if (activeOrg) {
-				writeStoredActiveOrgId(activeOrg.id);
-			} else {
-				clearStoredActiveOrgId();
-			}
+      if (activeOrg) {
+        writeStoredActiveOrgId(activeOrg.id);
+      } else {
+        clearStoredActiveOrgId();
+      }
 
-			setOrgState({
-				organizations,
-				activeOrganization: activeOrg,
-				isLoading: false,
-				error: null,
-			});
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Error al cargar las organizaciones';
-			setOrgState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
-		}
-	}, [user?.name]);
+      setOrgState({
+        organizations,
+        activeOrganization: activeOrg,
+        isLoading: false,
+        error: null,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Error al cargar las organizaciones';
+      setOrgState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: errorMessage,
+      }));
+    }
+  }, [user?.name]);
 
-	useEffect(() => {
-		// Auth aún resolviendo sesión: no tocar storage ni resetear orgs.
-		// Si no, con isAuthenticated=false inicial borramos el id guardado en cada F5.
-		if (isAuthLoading) {
-			return;
-		}
+  useEffect(() => {
+    // Auth aún resolviendo sesión: no tocar storage ni resetear orgs.
+    // Si no, con isAuthenticated=false inicial borramos el id guardado en cada F5.
+    if (isAuthLoading) {
+      return;
+    }
 
-		if (!isAuthenticated) {
-			clearStoredActiveOrgId();
-			setOrgState({
-				organizations: [],
-				activeOrganization: null,
-				isLoading: false,
-				error: null,
-			});
-			return;
-		}
-		refreshOrganizations();
-	}, [isAuthenticated, isAuthLoading, refreshOrganizations]);
+    if (!isAuthenticated) {
+      clearStoredActiveOrgId();
+      setOrgState({
+        organizations: [],
+        activeOrganization: null,
+        isLoading: false,
+        error: null,
+      });
+      return;
+    }
+    void refreshOrganizations();
+  }, [isAuthenticated, isAuthLoading, refreshOrganizations]);
 
-	const createOrganization = useCallback(async (name: string, slug?: string) => {
-		setOrgState(prev => ({ ...prev, isLoading: true }));
-		try {
-			const data = await apiFetch<{ organization: OrganizationWithRole }>('/organizations', {
-				method: 'POST',
-				body: JSON.stringify({ name, slug }),
-			});
+  const createOrganization = useCallback(
+    async (name: string, slug?: string) => {
+      setOrgState((prev) => ({ ...prev, isLoading: true }));
+      try {
+        const data = await apiFetch<{ organization: OrganizationWithRole }>(
+          '/organizations',
+          {
+            method: 'POST',
+            body: JSON.stringify({ name, slug }),
+          }
+        );
 
-			setOrgState((prev) => ({
-				organizations: [...prev.organizations, data.organization],
-				activeOrganization: data.organization,
-				isLoading: false,
-				error: null,
-			}));
+        setOrgState((prev) => ({
+          organizations: [...prev.organizations, data.organization],
+          activeOrganization: data.organization,
+          isLoading: false,
+          error: null,
+        }));
 
-			writeStoredActiveOrgId(data.organization.id);
+        writeStoredActiveOrgId(data.organization.id);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Error al crear la organización';
+        setOrgState((prev) => ({
+          ...prev,
+          isLoading: false,
+          error: errorMessage,
+        }));
+        throw error;
+      }
+    },
+    []
+  );
 
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Error al crear la organización';
-			setOrgState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
-			throw error;
-		}
-	}, []);
+  const setActiveOrganization = useCallback((org: OrganizationWithRole) => {
+    setOrgState((prev) => ({ ...prev, activeOrganization: org }));
+    writeStoredActiveOrgId(org.id);
+  }, []);
 
-	const setActiveOrganization = useCallback((org: OrganizationWithRole) => {
-		setOrgState(prev => ({ ...prev, activeOrganization: org }));
-		writeStoredActiveOrgId(org.id);
-	}, []);
+  /**
+   * Actualiza nombre/slug del workspace.
+   *
+   * `PATCH /organizations/:organizationId`
+   * Body: `{ name?, slug? }` → `{ organization }` (sin `role`).
+   * Se fusiona en state preservando el `role` local.
+   */
+  const updateOrganization = useCallback(
+    async (
+      organizationId: string,
+      input: UpdateOrganizationInput
+    ): Promise<OrganizationWithRole> => {
+      const data = await apiFetch<{ organization: Organization }>(
+        `/organizations/${organizationId}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify(input),
+        }
+      );
 
-	/**
-	 * `PATCH /organizations/:organizationId`
-	 * Body: `{ name?, slug? }` → `{ organization }`
-	 *
-	 * TODO: sustituir el throw por apiFetch y fusionar el resultado en state.
-	 */
-	const updateOrganization = useCallback(
-		async ( organizationId: string, input: UpdateOrganizationInput): Promise<OrganizationWithRole> => {
-			void organizationId;
-			void input;
-			// TODO: wire apiFetch
-			// const data = await apiFetch<{ organization: OrganizationWithRole }>(
-			//   `/organizations/${organizationId}`,
-			//   { method: 'PATCH', body: JSON.stringify(input) }
-			// );
-			// setOrgState((prev) => {
-			//   const organizations = prev.organizations.map((org) =>
-			//     org.id === data.organization.id
-			//       ? { ...org, ...data.organization }
-			//       : org
-			//   );
-			//   const activeOrganization =
-			//     prev.activeOrganization?.id === data.organization.id
-			//       ? { ...prev.activeOrganization, ...data.organization }
-			//       : prev.activeOrganization;
-			//   return { ...prev, organizations, activeOrganization, error: null };
-			// });
-			// return organizations find / data.organization with role preserved
-			throw new Error(
-				'TODO: cablea updateOrganization con apiFetch (PATCH /organizations/:id)'
-			);
-		},
-		[]
-	);
+      let merged: OrganizationWithRole | null = null;
 
-	/**
-	 * Eliminar workspace — sin endpoint aún.
-	 * No llama a la red; la UI muestra feedback “pendiente de API”.
-	 *
-	 * TODO: cuando exista, p. ej. `DELETE /organizations/:organizationId`
-	 * y refrescar / limpiar activeOrganization.
-	 */
-	const deleteOrganization = useCallback(
-		async (organizationId: string) => {
-		void organizationId;
-		// No-op a propósito (UI funcional, sin conectar).
-		return;
-	}, []);
+      setOrgState((prev) => {
+        const organizations = prev.organizations.map((org) => {
+          if (org.id !== data.organization.id) return org;
+          merged = { ...org, ...data.organization, role: org.role };
+          return merged;
+        });
 
-	const clearError = useCallback(() => {
-		setOrgState(prev => ({ ...prev, error: null }));
-	}, []);
+        const activeOrganization =
+          prev.activeOrganization?.id === data.organization.id
+            ? {
+                ...prev.activeOrganization,
+                ...data.organization,
+                role: prev.activeOrganization.role,
+              }
+            : prev.activeOrganization;
 
+        if (activeOrganization && !merged) {
+          merged = activeOrganization;
+        }
 
-	const value: OrgContextValue = {
-		...orgState,
-		refreshOrganizations,
-		createOrganization,
-		updateOrganization,
-		deleteOrganization,
-		setActiveOrganization,
-		clearError,
-	  };
+        return { ...prev, organizations, activeOrganization, error: null };
+      });
 
-	return <OrgContext.Provider value={value}>{children}</OrgContext.Provider>;	
+      if (!merged) {
+        throw new Error('Organización no encontrada en el estado local');
+      }
+
+      return merged;
+    },
+    []
+  );
+
+  /**
+   * Eliminar workspace — sin endpoint aún.
+   * No llama a la red; la UI muestra feedback “pendiente de API”.
+   *
+   * Cuando exista: `DELETE /organizations/:organizationId`
+   * y refrescar / limpiar `activeOrganization`.
+   */
+  const deleteOrganization = useCallback(async (organizationId: string) => {
+    void organizationId;
+    // No-op a propósito (UI funcional, sin conectar).
+  }, []);
+
+  const clearError = useCallback(() => {
+    setOrgState((prev) => ({ ...prev, error: null }));
+  }, []);
+
+  const value: OrgContextValue = {
+    ...orgState,
+    refreshOrganizations,
+    createOrganization,
+    updateOrganization,
+    deleteOrganization,
+    setActiveOrganization,
+    clearError,
+  };
+
+  return (
+    <OrgContext.Provider value={value}>{children}</OrgContext.Provider>
+  );
 };
