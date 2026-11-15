@@ -24,19 +24,33 @@ export async function registerTwoFactorRoutes(
 ) {
   const typedApp = app.withTypeProvider<ZodTypeProvider>();
 
-  typedApp.post('/2fa/setup', { preHandler: requireAuth(sessionsService) }, async (request) => {
+  typedApp.post('/auth/2fa/setup', { preHandler: requireAuth(sessionsService) }, async (request, reply) => {
     assertRecentReauthentication(request.currentSession!.reauthenticatedAt);
+    reply.header('Cache-Control', 'no-store');
     return twoFactorService.beginTotpSetup(request.currentUser!.id);
   });
 
-  typedApp.post('/2fa/confirm', {
+  typedApp.post('/2fa/setup', { preHandler: requireAuth(sessionsService) }, async (request, reply) => {
+    assertRecentReauthentication(request.currentSession!.reauthenticatedAt);
+    reply.header('Cache-Control', 'no-store');
+    const setup = await twoFactorService.beginTotpSetup(request.currentUser!.id);
+    return { provisioningUri: setup.otpauthUri };
+  });
+
+  for (const path of ['/auth/2fa/verify-setup', '/2fa/confirm']) typedApp.post(path, {
     preHandler: requireAuth(sessionsService),
     schema: { body: confirmTotpSchema }
-  }, async (request) => {
+  }, async (request, reply) => {
     assertRecentReauthentication(request.currentSession!.reauthenticatedAt);
+    reply.header('Cache-Control', 'no-store');
     const body = request.body;
     const recoveryCodes = await twoFactorService.confirmTotpSetup(request.currentUser!.id, body.code);
     return { recoveryCodes };
+  });
+
+  app.get('/auth/2fa/status', { preHandler: requireAuth(sessionsService) }, async (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    return twoFactorService.status(request.currentUser!.id);
   });
 
   app.post('/2fa/recovery-codes/regenerate', { preHandler: requireAuth(sessionsService) }, async (request) => {

@@ -115,6 +115,7 @@ model TwoFactorTotp {
   secretEncrypted String    @map("secret_encrypted")
   enabledAt       DateTime? @map("enabled_at")
   confirmedAt     DateTime? @map("confirmed_at")
+  lastUsedTimeStep Int?     @map("last_used_time_step")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)

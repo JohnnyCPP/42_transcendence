@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/components/auth';
 
 /**
@@ -41,6 +42,10 @@ function ProfileMenuContent({
           </p>
         )}
       </div>
+
+      <Link href="/security" role="menuitem" className="block px-4 py-3 text-sm text-on-surface hover:bg-primary/5">
+        Seguridad de la cuenta
+      </Link>
 
       <button
         type="button"
