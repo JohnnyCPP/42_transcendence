@@ -12,7 +12,11 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:migrate:status": "prisma migrate status",
     "prisma:format": "prisma format",
-    "prisma:validate": "prisma validate"
+    "prisma:validate": "prisma validate",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:integration:coverage": "vitest run --config vitest.config.integration.ts --coverage"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
@@ -26,9 +30,11 @@
   "devDependencies": {
     "@mermaid-js/mermaid-cli": "^11.17.1",
     "@types/node": "^24.10.1",
+    "@vitest/coverage-v8": "^5.1.0",
     "prisma": "^6.16.0",
     "prisma-erd-generator": "^3.2.1",
     "puppeteer": "^25.17.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.0"
   }
 }

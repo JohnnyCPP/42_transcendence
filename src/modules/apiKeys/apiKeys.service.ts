@@ -37,7 +37,15 @@ export	class	ApiKeysService
 	{
 		const	rows = await this.apiKeysRepository.listByUser(userId);
 
-		return rows.map((row) => this.toPublic(row));
+		return rows.sort((a, b) => {
+
+					const byDate = b.createdAt.getTime() - a.createdAt.getTime();
+
+					if (byDate !== 0)
+						return byDate;
+					return b.id.localeCompare(a.id);
+				})
+				   .map((row) => this.toPublic(row));
 	}
 
 	async	revoke(userId: string, id: string): Promise<ApiKeyPublic>
