@@ -14,9 +14,10 @@
     "prisma:format": "prisma format",
     "prisma:validate": "prisma validate",
     "test": "vitest run",
-    "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:integration:coverage": "vitest run --config vitest.config.integration.ts --coverage"
+    "test:integration": "vitest run --config vitest.config.integration.ts",
+    "test:integration:coverage": "vitest run --config vitest.config.integration.ts --coverage",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",

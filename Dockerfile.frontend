@@ -6,7 +6,8 @@
 # * INTERNAL_API_URL llega como argumento de build porque Next fija los
 # * rewrites al compilar. El contenedor arranca con server.mjs.
 # */
-FROM node:20-slim AS deps
+
+FROM node:20-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -16,7 +17,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-FROM node:20-slim AS builder
+FROM node:20-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 AS builder
 WORKDIR /app
 RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 ARG INTERNAL_API_URL=http://fastify:3000
@@ -27,7 +28,7 @@ COPY . .
 RUN npm run build
 RUN sh scripts/generate-cert.sh /app/certs
 
-FROM node:20-slim AS runner
+FROM node:20-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 AS runner
 WORKDIR /app
 RUN apt-get update -y && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 ARG INTERNAL_API_URL=http://fastify:3000
