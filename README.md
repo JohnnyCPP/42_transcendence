@@ -224,6 +224,8 @@ Primary technical references:
 - [Node.js Crypto documentation](https://nodejs.org/api/crypto.html)
 - [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
 - [WCAG 2.1](https://www.w3.org/TR/WCAG21/)
+- [Vitest configuration](https://vitest.dev/config/)
+- [Vitest API](https://vitest.dev/api/test)
 
 ### AI usage
 
