@@ -82,6 +82,14 @@ function SecuritySettings() {
     {status?.enabled && !codes && <section className="space-y-4">
       <p>La autenticación en dos pasos está activada.</p>
       <p>Códigos de recuperación disponibles: {remaining ?? '…'}</p>
+      {remaining === 1 && <div role="status" className="rounded-lg border border-amber-400 bg-amber-50 p-4 text-amber-900">
+        <p className="font-semibold">Solo te queda un código de recuperación.</p>
+        <p>Genera nuevos códigos antes de necesitar el último. Puedes usarlo para confirmar la regeneración.</p>
+      </div>}
+      {remaining === 0 && <div role="status" className="rounded-lg border border-amber-400 bg-amber-50 p-4 text-amber-900">
+        <p className="font-semibold">No te quedan códigos de recuperación.</p>
+        <p>Si tienes acceso a tu aplicación de autenticación, úsala para generar nuevos códigos.</p>
+      </div>}
       {!action && <div className="flex flex-wrap gap-3">
         <button type="button" className="rounded border px-4 py-2" onClick={() => setAction('regenerate')}>Regenerar códigos</button>
         <button type="button" className="rounded border px-4 py-2" onClick={() => setAction('disable')}>Desactivar 2FA</button>
