@@ -4,7 +4,8 @@ import { useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { apiFetch } from '@/lib/apiClient';
+import { apiFetch, ApiError } from '@/lib/apiClient';
+import RecoveryCodesDialog from '@/components/auth/RecoveryCodesDialog';
 
 type Status = { enabled: boolean; confirmedAt?: string };
 type Setup = { otpauthUri: string; manualEntryKey: string };
@@ -49,7 +50,7 @@ function SecuritySettings() {
     try {
       const result = await apiFetch<{ recoveryCodes: string[] }>('/auth/2fa/verify-setup', { method: 'POST', body: JSON.stringify({ code }) });
       setSetup(null); setCode(''); setCodes(result.recoveryCodes); setStatus({ enabled: true }); setRemaining(10);
-    } catch (err) { setError(err instanceof Error ? err.message : 'No se ha podido confirmar el código.'); }
+    } catch (err) { setError(err instanceof ApiError && err.status === 400 ? 'El código no es válido o la configuración ya ha cambiado. Comprueba el código e inténtalo de nuevo.' : 'No se ha podido confirmar el código.'); }
     finally { setBusy(false); }
   }
 
@@ -65,7 +66,7 @@ function SecuritySettings() {
         setCodes(result.recoveryCodes); setRemaining(10); setAction(null);
       }
       setPassword(''); setCode('');
-    } catch (err) { setError(err instanceof Error ? err.message : 'No se ha podido completar la operación.'); }
+    } catch (err) { setError(err instanceof ApiError && err.status === 401 ? 'La contraseña o el código no son válidos. Compruébalos e inténtalo de nuevo.' : err instanceof ApiError && err.status === 429 ? 'Demasiados intentos. Espera unos minutos antes de volver a intentarlo.' : 'No se ha podido completar la operación.'); }
     finally { setBusy(false); }
   }
 
@@ -116,6 +117,7 @@ function SecuritySettings() {
       </form>}
     </section>}
     {status && !status.enabled && !setup && <form onSubmit={begin} className="space-y-4">
+      <p>La autenticación en dos pasos está desactivada.</p>
       <p>Confirma tu contraseña para configurar una aplicación de autenticación.</p>
       <label className="block">Contraseña
         <input className="block w-full rounded border p-2" type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} />
@@ -131,12 +133,7 @@ function SecuritySettings() {
       </label>
       <button className="rounded bg-primary px-4 py-2 text-white disabled:opacity-50" disabled={busy}>Activar 2FA</button>
     </form>}
-    {codes && <section className="space-y-3" aria-live="polite">
-      <h2 className="font-semibold">Guarda tus códigos de recuperación</h2>
-      <p>Se muestran una sola vez. Guárdalos en un lugar seguro para recuperar el acceso.</p>
-      <ul className="grid grid-cols-2 gap-2">{codes.map(item => <li key={item}><code>{item}</code></li>)}</ul>
-      <button type="button" onClick={() => setCodes(null)} className="rounded border px-4 py-2">Ya los he guardado</button>
-    </section>}
+    {codes && <RecoveryCodesDialog codes={codes} onSaved={() => setCodes(null)} />}
   </main>;
 }
 

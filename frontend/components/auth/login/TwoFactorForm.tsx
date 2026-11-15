@@ -63,7 +63,8 @@ export default function TwoFactorForm({
         <button
           type="button"
           disabled={isLoading}
-          onClick={() => setMethod('totp')}
+          onClick={() => { setMethod('totp'); setCode(''); setLocalError(null); }}
+          aria-pressed={method === 'totp'}
           className={cx(
             'flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors',
             method === 'totp'
@@ -76,7 +77,8 @@ export default function TwoFactorForm({
         <button
           type="button"
           disabled={isLoading}
-          onClick={() => setMethod('recovery_code')}
+          onClick={() => { setMethod('recovery_code'); setCode(''); setLocalError(null); }}
+          aria-pressed={method === 'recovery_code'}
           className={cx(
             'flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors',
             method === 'recovery_code'
@@ -90,6 +92,7 @@ export default function TwoFactorForm({
 
       <div className="space-y-2">
         <p className="text-sm text-on-surface-variant">Tras cinco intentos incorrectos, vuelve a introducir tu contraseña.</p>
+        {method === 'totp' && <p className="text-sm text-on-surface-variant">El código del autenticador cambia aproximadamente cada 30 segundos.</p>}
         <label htmlFor="twoFactorCode" className={uiStyles.formLabel}>
           {method === 'totp' ? 'Código de 6 dígitos' : 'Código de recuperación'}
         </label>
@@ -102,12 +105,14 @@ export default function TwoFactorForm({
           onChange={(e) => setCode(e.target.value)}
           placeholder={method === 'totp' ? '123456' : 'xxxxxxxxxxxx'}
           disabled={isLoading}
+          aria-invalid={Boolean(displayError)}
+          aria-describedby={displayError ? 'two-factor-error' : undefined}
           className={inputClassName}
         />
       </div>
 
       {displayError && (
-        <div className="p-3 bg-error/10 border border-error/20 rounded-lg text-error text-sm">
+        <div id="two-factor-error" role="alert" className="p-3 bg-error/10 border border-error/20 rounded-lg text-error text-sm">
           <div className="flex items-start gap-2">
             <Icon name="error" size="md" className="shrink-0 mt-0.5" />
             <span>{displayError}</span>
