@@ -18,9 +18,9 @@ export	async	function	registerApiKeyRoutes(fastifyInstance: FastifyInstance,
 												 sessionsService: SessionsService): Promise<void>
 {
 	const	typedApp = fastifyInstance.withTypeProvider<ZodTypeProvider>();
-	const	auth = { preHandler: requireAuth(sessionsService) };
+	const	authorization = { preHandler: requireAuth(sessionsService) };
 
-	typedApp.post("/api-keys", { ...auth, schema: { body: createSchema } }, async (request, reply) => {
+	typedApp.post("/api-keys", { ...authorization, schema: { body: createSchema } }, async (request, reply) => {
 
 		const	body = request.body;
 		const	result = await apiKeysService.create(request.currentUser!.id, body.name);
@@ -28,12 +28,12 @@ export	async	function	registerApiKeyRoutes(fastifyInstance: FastifyInstance,
 		return reply.status(201).send(result);
 	});
 
-	typedApp.get("/api-keys", auth, async (request) => {
+	typedApp.get("/api-keys", authorization, async (request) => {
 
 		return apiKeysService.list(request.currentUser!.id);
 	});
 
-	typedApp.delete("/api-keys/:id", { ...auth, schema: { params: keyIdParamSchema } }, async (request) => {
+	typedApp.delete("/api-keys/:id", { ...authorization, schema: { params: keyIdParamSchema } }, async (request) => {
 
 		const	params = request.params;
 

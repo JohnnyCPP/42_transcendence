@@ -13,6 +13,6 @@ export	function	registerTestDecorators(fastifyInstance: FastifyInstance,
 	fastifyInstance.decorate("testContext", {
 
 		...services,
-		authRepository: repositories.authRepository
+		authenticationsRepository: repositories.authenticationsRepository
 	});
 }
