@@ -1,9 +1,9 @@
 import { createRandomToken } from "../../shared/crypto/createRandomToken.js";
 import { PrismaClient } from "@prisma/client";
-import type { AuthenticationsRepository, LoginChallenge } from "./authentications.repository.js";
-import type { PasswordCredential } from "./authentications.types.js";
+import type { AuthenticationRepository, LoginChallenge } from "./authentication.repository.js";
+import type { PasswordCredential } from "./authentication.types.js";
 
-export	class	PrismaAuthenticationsRepository	implements	AuthenticationsRepository
+export	class	PrismaAuthenticationRepository	implements	AuthenticationRepository
 {
 	constructor(private readonly prisma: PrismaClient) {}
 

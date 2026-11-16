@@ -3,9 +3,9 @@ import { forbidden } from "../../shared/errors/httpErrors.js";
 import { requireAuth } from "../authorization/requireAuth.js";
 import { securityConfig } from "../../config/security.js";
 import { z } from "zod";
-import type { AuthenticationsService } from "./authentications.service.js";
+import type { AuthenticationService } from "./authentication.service.js";
 import type { FastifyInstance } from "fastify";
-import type { LoginResult } from "./authentications.types.js";
+import type { LoginResult } from "./authentication.types.js";
 import type { SessionsService } from "../sessions/sessions.service.js";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 
@@ -67,7 +67,7 @@ function	toPublicLoginResult(result: LoginResult)
 }
 
 export	async	function	registerAuthenticationRoutes(fastifyInstance: FastifyInstance,
-														  authenticationsService: AuthenticationsService,
+														  authenticationService: AuthenticationService,
 														  sessionsService: SessionsService)
 {
 	const	typedApp = fastifyInstance.withTypeProvider<ZodTypeProvider>();
@@ -75,7 +75,7 @@ export	async	function	registerAuthenticationRoutes(fastifyInstance: FastifyInsta
 	typedApp.post("/auth/register", { schema: { body: registerSchema } }, async (request, reply) => {
 
 		const	body = request.body;
-		const	result = await authenticationsService.register({
+		const	result = await authenticationService.register({
 
 			...body,
 			ipAddress: request.ip,
@@ -91,7 +91,7 @@ export	async	function	registerAuthenticationRoutes(fastifyInstance: FastifyInsta
 	typedApp.post("/auth/login", { schema: { body: loginSchema } }, async (request, reply) => {
 
 		const	body = request.body;
-		const	result = await authenticationsService.login({
+		const	result = await authenticationService.login({
 
 			...body,
 			ipAddress: request.ip,
@@ -108,7 +108,7 @@ export	async	function	registerAuthenticationRoutes(fastifyInstance: FastifyInsta
 	typedApp.post("/auth/login/2fa", { schema: { body: twoFactorLoginSchema } }, async (request, reply) => {
 
 		const	body = request.body;
-		const	result = await authenticationsService.completeTwoFactorLogin({
+		const	result = await authenticationService.completeTwoFactorLogin({
 
 			...body,
 			ipAddress: request.ip,
@@ -140,7 +140,7 @@ export	async	function	registerAuthenticationRoutes(fastifyInstance: FastifyInsta
 
 		const	body = request.body;
 
-		await authenticationsService.reauthenticate({
+		await authenticationService.reauthenticate({
 
 			userId: request.currentUser!.id,
 			password: body.password,
@@ -164,7 +164,7 @@ export	async	function	registerAuthenticationRoutes(fastifyInstance: FastifyInsta
 		{
 			throw forbidden("Recent reauthentication required", "REAUTHENTICATION_REQUIRED");
 		}
-		await authenticationsService.changePassword(request.currentUser!.id, body.newPassword);
+		await authenticationService.changePassword(request.currentUser!.id, body.newPassword);
 		await sessionsService.revokeOtherUserSessions(request.currentUser!.id, request.currentSession!.id);
 		return { ok: true };
 	});

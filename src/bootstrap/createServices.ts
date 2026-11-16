@@ -1,5 +1,5 @@
 import { ApiKeysService } from "../modules/apiKeys/apiKeys.service.js";
-import { AuthenticationsService } from "../modules/authentications/authentications.service.js";
+import { AuthenticationService } from "../modules/authentication/authentication.service.js";
 import { BoardsService } from "../modules/boards/boards.service.js";
 import { CardsService } from "../modules/cards/cards.service.js";
 import { ListsService } from "../modules/lists/lists.service.js";
@@ -17,7 +17,7 @@ import type { Repositories } from "./createRepositories.js";
 export	type	Services = 
 {
 	apiKeysService: ApiKeysService;
-	authenticationsService: AuthenticationsService;
+	authenticationService: AuthenticationService;
 	boardsService: BoardsService;
 	cardsService: CardsService;
 	listsService: ListsService;
@@ -32,7 +32,7 @@ export	type	Services =
 export	function	createServices(repositories: Repositories): Services
 {
 	let	apiKeysService;
-	let	authenticationsService;
+	let	authenticationService;
 	let	boardsService;
 	let	cardsService;
 	let	listsService;
@@ -52,9 +52,9 @@ export	function	createServices(repositories: Repositories): Services
 											usersService,
 											totpService, 
 											recoveryCodesService);
-	authenticationsService = new AuthenticationsService(usersService, 
-								  repositories.authenticationsRepository, 
-								  repositories.registrationsRepository,
+	authenticationService = new AuthenticationService(usersService, 
+								  repositories.authenticationRepository, 
+								  repositories.registrationRepository,
 								  new ScryptPasswordHasher(), 
 								  sessionsService,
 								  twoFactorService);
@@ -65,7 +65,7 @@ export	function	createServices(repositories: Repositories): Services
 	return {
 
 		apiKeysService,
-		authenticationsService,
+		authenticationService,
 		boardsService,
 		cardsService,
 		listsService,

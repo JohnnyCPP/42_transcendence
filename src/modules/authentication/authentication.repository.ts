@@ -1,5 +1,5 @@
 import { createRandomToken } from "../../shared/crypto/createRandomToken.js";
-import type { PasswordCredential } from "./authentications.types.js";
+import type { PasswordCredential } from "./authentication.types.js";
 
 export	type	LoginChallenge = {
 	id: string;
@@ -12,7 +12,7 @@ export	type	LoginChallenge = {
 	userAgent: string | null;
 };
 
-export	interface	AuthenticationsRepository
+export	interface	AuthenticationRepository
 {
 	createPasswordCredential(input: PasswordCredential): Promise<void>;
 
@@ -27,7 +27,7 @@ export	interface	AuthenticationsRepository
 	claimLoginChallenge(id: string, now: Date): Promise<boolean>;
 }
 
-export	class	InMemoryAuthenticationsRepository	implements	AuthenticationsRepository
+export	class	InMemoryAuthenticationRepository	implements	AuthenticationRepository
 {
 	private	readonly	credentials = new Map<string, PasswordCredential>();
 	private	readonly	challenges = new Map<string, LoginChallenge>();

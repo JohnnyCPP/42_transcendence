@@ -1,5 +1,5 @@
 import { registerApiKeyRoutes } from "../modules/apiKeys/apiKeys.routes.js";
-import { registerAuthenticationRoutes } from "../modules/authentications/authentications.routes.js";
+import { registerAuthenticationRoutes } from "../modules/authentication/authentication.routes.js";
 import { registerBoardRoutes } from "../modules/boards/boards.routes.js";
 import { registerCardRoutes } from "../modules/cards/cards.routes.js";
 import { registerListRoutes } from "../modules/lists/lists.routes.js";
@@ -14,7 +14,7 @@ export	async	function	registerAppRoutes(fastifyInstance: FastifyInstance,
 									  		  services: Services): Promise<void>
 {
 	await registerApiKeyRoutes(fastifyInstance, services.apiKeysService, services.sessionsService);
-	await registerAuthenticationRoutes(fastifyInstance, services.authenticationsService, services.sessionsService);
+	await registerAuthenticationRoutes(fastifyInstance, services.authenticationService, services.sessionsService);
 	await registerBoardRoutes(fastifyInstance, services.boardsService, services.sessionsService);
 	await registerCardRoutes(fastifyInstance, services.cardsService, services.sessionsService);
 	await registerListRoutes(fastifyInstance, services.listsService, services.sessionsService);

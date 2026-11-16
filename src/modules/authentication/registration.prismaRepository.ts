@@ -1,11 +1,11 @@
 import { createRandomToken } from "../../shared/crypto/createRandomToken.js";
 import { conflict } from "../../shared/errors/httpErrors.js";
 import type { PrismaClient } from "@prisma/client";
-import type { RegistrationInput } from "./registrations.repository.js";
-import type { RegistrationsRepository } from "./registrations.repository.js";
+import type { RegistrationInput } from "./registration.repository.js";
+import type { RegistrationRepository } from "./registration.repository.js";
 import type { User } from "../users/users.types.js";
 
-export	class	PrismaRegistrationsRepository	implements	RegistrationsRepository
+export	class	PrismaRegistrationRepository	implements	RegistrationRepository
 {
 	constructor(private readonly prisma: PrismaClient) {}
 
