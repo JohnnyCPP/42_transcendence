@@ -1,5 +1,6 @@
-import type { AuthRepository } from "../modules/auth/auth.repository.js";
-import type { AuthService } from "../modules/auth/auth.service.js";
+import type { ApiKeysService } from "../modules/apiKeys/apiKeys.service.js";
+import type { AuthenticationsRepository } from "../modules/authentications/authentications.repository.js";
+import type { AuthenticationsService } from "../modules/authentications/authentications.service.js";
 import type { BoardsService } from "../modules/boards/boards.service.js";
 import type { CardsService } from "../modules/cards/cards.service.js";
 import type { ListsService } from "../modules/lists/lists.service.js";
@@ -21,8 +22,9 @@ declare module "fastify" {
 
 			testContext: {
 
-			authService: AuthService;
-			authRepository: AuthRepository;
+			apiKeysService: ApiKeysService;
+			authenticationsService: AuthenticationsService;
+			authenticationsRepository: AuthenticationsRepository;
 			boardsService: BoardsService;
 			cardsService: CardsService;
 			listsService: ListsService;

@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import type { Session } from './sessions.types.js';
 import type { SessionsRepository } from './sessions.repository.js';
 
@@ -11,7 +11,7 @@ export class PrismaSessionsRepository implements SessionsRepository
   {
     const row = await this.prisma.session.create({
       data: {
-        id: randomToken(16),
+        id: createRandomToken(16),
         userId: input.userId,
         tokenHash: input.tokenHash,
         expiresAt: input.expiresAt,

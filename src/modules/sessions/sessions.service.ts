@@ -1,6 +1,6 @@
 import { securityConfig } from '../../config/security.js';
 import { hashToken } from '../../shared/crypto/hashToken.js';
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import type { UsersService } from '../users/users.service.js';
 import type { CreatedSession, SessionWithUser } from './sessions.types.js';
 import type { SessionsRepository } from './sessions.repository.js';
@@ -18,7 +18,7 @@ export class SessionsService
     userAgent?: string | null;
   }): Promise<CreatedSession> 
   {
-    const token = randomToken(32);
+    const token = createRandomToken(32);
     const expiresAt = new Date(Date.now() + securityConfig.sessionTtlMs);
     const session = await this.sessionsRepository.create({
       userId: input.userId,

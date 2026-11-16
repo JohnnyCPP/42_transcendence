@@ -1,4 +1,4 @@
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import type { Card, CreateCardInput, MoveCardInput, UpdateCardInput } from './cards.types.js';
 import { paginateArray, type Page, type PaginationInput } from '../../shared/pagination.js';
 
@@ -18,7 +18,7 @@ export class InMemoryCardsRepository implements CardsRepository {
     const now = new Date();
     const cards = this.activeCards(input.listId);
     const card: Card = {
-      id: randomToken(16),
+      id: createRandomToken(16),
       listId: input.listId,
       title: input.title.trim(),
       description: input.description?.trim() || null,

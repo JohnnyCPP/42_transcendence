@@ -1,3 +1,67 @@
+/*
+  schema conventions
+  ------------------
+
+  Top-level entities:
+
+    1. Generators     (primary generator first, then auxiliary generators)
+    2. Datasource     (exactly one)
+    3. Enums          (alphabetical)
+    4. Models         (alphabetical)
+
+  Fields within a model:
+
+    1. Identifiers
+    2. Business fields
+    3. Relations
+    4. Audit fields
+
+
+  Prisma's schema is declarative, not imperative: field order within 
+  a model does not affect the generated SQL.
+
+  You can order fields however you like.
+
+
+  list of enums
+  -------------
+
+	- BoardRole
+	- GlobalRole
+	- OrganizationRole
+	- UserStatus
+
+
+  list of models
+  --------------
+
+	- ApiKey
+	- Board
+	- BoardList
+	- BoardMember
+	- Card
+	- CardAssignee
+	- CardLabel
+	- Comment
+	- Label
+	- LoginChallenge
+	- Organization
+	- OrganizationMember
+	- PasswordCredential
+	- RecoveryCode
+	- Session
+	- TwoFactorTotp
+	- User
+*/
+
+
+// ------------------------------------------------------------------------- //
+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
 generator erd {
   provider = "prisma-erd-generator"
   output   = "../document/ERD.svg"
@@ -6,229 +70,152 @@ generator erd {
   disabled = false
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
+
+// ------------------------------------------------------------------------- //
+
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-enum GlobalRole {
-  user
-  moderator
+
+// ------------------------------------------------------------------------- //
+
+
+enum BoardRole {
   admin
+  member
+  observer
+}
+
+enum GlobalRole {
+  admin
+  moderator
+  user
 }
 
 enum OrganizationRole {
-  member
   admin
+  member
   owner
-}
-
-enum BoardRole {
-  observer
-  member
-  admin
 }
 
 enum UserStatus {
   active
-  disabled
   deleted
+  disabled
 }
 
-model User {
-  id                   String               @id
-  username             String               @unique
-  email                String?              @unique
-  displayName          String?              @map("display_name")
-  role                 GlobalRole           @default(user)
-  status               UserStatus           @default(active)
-  createdAt            DateTime             @default(now()) @map("created_at")
-  updatedAt            DateTime             @updatedAt @map("updated_at")
-  passwordCredential   PasswordCredential?
-  sessions             Session[]
-  loginChallenges      LoginChallenge[]
-  totp                 TwoFactorTotp?
-  recoveryCodes        RecoveryCode[]
-  createdOrganizations Organization[]       @relation("OrganizationCreator")
-  memberships          OrganizationMember[]
-  createdBoards        Board[]              @relation("BoardCreator")
-  boardMemberships     BoardMember[]
-  createdCards         Card[]               @relation("CardCreator")
-  assignedCards        CardAssignee[]
-  comments             Comment[]
 
-  @@map("users") // le indica a Prisma que traduzca el modelo a la tabla fisica en la base de datos de PostgreSQL usando minusculas y snake_case, llamndola users
-}
+// ------------------------------------------------------------------------- //
 
-model PasswordCredential {
-  userId            String   @id @map("user_id")
-  passwordHash      String   @map("password_hash")
-  passwordUpdatedAt DateTime @map("password_updated_at")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("password_credentials")
-}
+model ApiKey {
 
-model Session {
-  id                String    @id
-  userId            String    @map("user_id")
-  tokenHash         String    @unique @map("session_token_hash")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  lastSeenAt        DateTime  @default(now()) @map("last_seen_at")
-  expiresAt         DateTime  @map("expires_at")
-  revokedAt         DateTime? @map("revoked_at")
-  ipAddress         String?   @map("ip_address")
-  userAgent         String?   @map("user_agent")
-  reauthenticatedAt DateTime? @map("reauthenticated_at")
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String    @id
+  createdById String    @map("created_by_id")
 
-  @@index([userId]) // Sin un indice, PostgreSQL tendria que revisar toda la tabla de sesiones una por una para encontrar las de ese usuario
-  @@index([expiresAt])
-  @@map("sessions")
-}
+  name        String
+  prefix      String    @unique
+  hashedKey   String    @unique @map("hashed_key")
 
-model LoginChallenge {
-  id         String    @id
-  userId     String    @map("user_id")
-  tokenHash  String    @unique @map("challenge_token_hash")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  expiresAt  DateTime  @map("expires_at")
-  consumedAt DateTime? @map("consumed_at")
-  ipAddress  String?   @map("ip_address")
-  userAgent  String?   @map("user_agent")
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdBy   User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
-  @@index([userId])
-  @@index([expiresAt])
-  @@map("login_challenges")
-}
+  createdAt   DateTime  @default(now()) @map("created_at")
+  lastUsedAt  DateTime? @map("last_used_at")
+  revokedAt   DateTime? @map("revoked_at")
 
-model TwoFactorTotp {
-  id              String    @id
-  userId          String    @unique @map("user_id")
-  secretEncrypted String    @map("secret_encrypted")
-  enabledAt       DateTime? @map("enabled_at")
-  confirmedAt     DateTime? @map("confirmed_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("two_factor_totp")
-}
-
-model RecoveryCode {
-  id         String    @id
-  userId     String    @map("user_id")
-  codeHash   String    @map("code_hash")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  usedAt     DateTime? @map("used_at")
-  replacedAt DateTime? @map("replaced_at")
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("recovery_codes")
-}
-
-model Organization {
-  id              String               @id
-  name            String
-  slug            String               @unique
-  createdByUserId String               @map("created_by_user_id")
-  createdAt       DateTime             @default(now()) @map("created_at")
-  updatedAt       DateTime             @updatedAt @map("updated_at")
-  archivedAt      DateTime?            @map("archived_at")
-  createdBy       User                 @relation("OrganizationCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  members         OrganizationMember[]
-  boards          Board[]
-
-  @@map("organizations")
-}
-
-model OrganizationMember {
-  organizationId String       @map("organization_id")
-  userId         String       @map("user_id")
-  role           OrganizationRole
-  joinedAt       DateTime     @default(now()) @map("joined_at")
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([organizationId, userId]) //Al combinar organizationId y userId como una clave primaria compuesta, le dices a PostgreSQL: "La combinación de estos dos IDs debe ser única en todo momento". Esto evita duplicados
-  @@index([userId])
-  @@map("organization_members")
+  @@index([createdById])
+  @@map("api_keys")
 }
 
 model Board {
+
+  // identifiers
   id              String        @id
   organizationId  String        @map("organization_id")
+  createdByUserId String        @map("created_by_user_id")
+
+  // business fields
   name            String
   description     String?
-  createdByUserId String        @map("created_by_user_id")
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
-  archivedAt      DateTime?     @map("archived_at")
-  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdBy       User          @relation("BoardCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  // relations
   lists           BoardList[]
   members         BoardMember[]
   labels          Label[]
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy       User          @relation("BoardCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
 
+  // audit fields
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  archivedAt      DateTime?     @map("archived_at")
+
+  // block attributes
   @@index([organizationId])
   @@map("boards")
 }
 
-model BoardMember {
-  boardId  String   @map("board_id")
-  userId   String   @map("user_id")
-  role     BoardRole @default(member)
-  joinedAt DateTime @default(now()) @map("joined_at")
+model BoardList {
 
-  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String    @id
+  boardId    String    @map("board_id")
+
+  name       String
+  position   Int
+
+  cards      Card[]
+  board      Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  archivedAt DateTime? @map("archived_at")
+
+  // Le dice a la base de datos que la combinacion de boardId y position debe ser unica.
+  @@unique([boardId, position])
+  @@index([boardId])
+  @@map("board_lists")
+}
+
+model BoardMember {
+
+  boardId  String    @map("board_id")
+  userId   String    @map("user_id")
+
+  role     BoardRole @default(member)
+
+  board    Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  joinedAt DateTime  @default(now()) @map("joined_at")
 
   @@id([boardId, userId])
   @@index([userId])
   @@map("board_members")
 }
 
-model BoardList {
-  id         String    @id
-  boardId    String    @map("board_id")
-  name       String
-  position   Int
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-  archivedAt DateTime? @map("archived_at")
-  board      Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  cards      Card[]
-
-  @@unique([boardId, position]) //Le dice a la base de datos que la combinacion de boardId y position debe ser unica.
-  @@index([boardId])
-  @@map("board_lists")
-}
-
 model Card {
-  id          String    @id
-  listId      String    @map("list_id")
+
+  id          String         @id
+  listId      String         @map("list_id")
+  createdById String         @map("created_by_id")
+
   title       String
   description String?
   position    Int
-  dueDate     DateTime? @map("due_date")
-  createdById String    @map("created_by_id")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  archivedAt  DateTime? @map("archived_at")
+  dueDate     DateTime?      @map("due_date")
 
-  list      BoardList      @relation(fields: [listId], references: [id], onDelete: Cascade)
-  createdBy User           @relation("CardCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  assignees CardAssignee[]
-  comments  Comment[]
-  labels    CardLabel[]
+  assignees   CardAssignee[]
+  comments    Comment[]
+  labels      CardLabel[]
+  list        BoardList      @relation(fields: [listId], references: [id], onDelete: Cascade)
+  createdBy   User           @relation("CardCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  archivedAt  DateTime?      @map("archived_at")
 
   @@unique([listId, position])
   @@index([listId])
@@ -237,29 +224,47 @@ model Card {
 }
 
 model CardAssignee {
+
   cardId     String   @map("card_id")
   userId     String   @map("user_id")
-  assignedAt DateTime @default(now()) @map("assigned_at")
 
-  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card       Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now()) @map("assigned_at")
 
   @@id([cardId, userId])
   @@index([userId])
   @@map("card_assignees")
 }
 
+model CardLabel {
+
+  cardId  String @map("card_id")
+  labelId String @map("label_id")
+
+  card    Card   @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  label   Label  @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([cardId, labelId])
+  @@index([labelId])
+  @@map("card_labels")
+}
+
 model Comment {
+
   id        String    @id
   cardId    String    @map("card_id")
   authorId  String    @map("author_id")
+
   content   String
+
+  card      Card      @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
-
-  card   Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
 
   @@index([cardId])
   @@index([authorId])
@@ -267,27 +272,181 @@ model Comment {
 }
 
 model Label {
-  id      String @id
-  boardId String @map("board_id")
+
+  id      String      @id
+  boardId String      @map("board_id")
+
   name    String
   color   String
 
-  board Board       @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  cards CardLabel[]
+  cards   CardLabel[]
+  board   Board       @relation(fields: [boardId], references: [id], onDelete: Cascade)
 
   @@unique([boardId, name])
   @@index([boardId])
   @@map("labels")
 }
 
-model CardLabel {
-  cardId  String @map("card_id")
-  labelId String @map("label_id")
+model LoginChallenge {
 
-  card  Card  @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+  id         String    @id
+  userId     String    @map("user_id")
 
-  @@id([cardId, labelId])
-  @@index([labelId])
-  @@map("card_labels")
+  tokenHash  String    @unique @map("challenge_token_hash")
+  ipAddress  String?   @map("ip_address")
+  userAgent  String?   @map("user_agent")
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now()) @map("created_at")
+  expiresAt  DateTime  @map("expires_at")
+  consumedAt DateTime? @map("consumed_at")
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("login_challenges")
+}
+
+model Organization {
+
+  id              String               @id
+  createdByUserId String               @map("created_by_user_id")
+
+  name            String
+  slug            String               @unique
+
+  members         OrganizationMember[]
+  boards          Board[]
+  createdBy       User                 @relation("OrganizationCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+  archivedAt      DateTime?            @map("archived_at")
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+
+  organizationId String       @map("organization_id")
+  userId         String       @map("user_id")
+
+  role           OrganizationRole
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  joinedAt       DateTime     @default(now()) @map("joined_at")
+
+  // Al combinar organizationId y userId como una clave primaria compuesta, 
+  // le dices a PostgreSQL: "La combinación de estos dos IDs debe ser única 
+  // en todo momento". Esto evita duplicados
+  @@id([organizationId, userId])
+  @@index([userId])
+  @@map("organization_members")
+}
+
+model PasswordCredential {
+
+  userId            String   @id @map("user_id")
+
+  passwordHash      String   @map("password_hash")
+  passwordUpdatedAt DateTime @map("password_updated_at")
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("password_credentials")
+}
+
+model RecoveryCode {
+
+  id         String    @id
+  userId     String    @map("user_id")
+
+  codeHash   String    @map("code_hash")
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now()) @map("created_at")
+  usedAt     DateTime? @map("used_at")
+  replacedAt DateTime? @map("replaced_at")
+
+  @@index([userId])
+  @@map("recovery_codes")
+}
+
+model Session {
+
+  id                String    @id
+  userId            String    @map("user_id")
+
+  tokenHash         String    @unique @map("session_token_hash")
+  ipAddress         String?   @map("ip_address")
+  userAgent         String?   @map("user_agent")
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  reauthenticatedAt DateTime? @map("reauthenticated_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  lastSeenAt        DateTime  @default(now()) @map("last_seen_at")
+  expiresAt         DateTime  @map("expires_at")
+  revokedAt         DateTime? @map("revoked_at")
+
+  // Sin un indice, PostgreSQL tendria que revisar toda la tabla de sesiones 
+  // una por una para encontrar las de ese usuario
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model TwoFactorTotp {
+
+  id              String    @id
+  userId          String    @unique @map("user_id")
+
+  secretEncrypted String    @map("secret_encrypted")
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  enabledAt       DateTime? @map("enabled_at")
+  confirmedAt     DateTime? @map("confirmed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("two_factor_totp")
+}
+
+model User {
+
+  id                   String               @id
+
+  username             String               @unique
+  email                String?              @unique
+  displayName          String?              @map("display_name")
+  role                 GlobalRole           @default(user)
+  status               UserStatus           @default(active)
+  passwordCredential   PasswordCredential?
+  totp                 TwoFactorTotp?
+
+  sessions             Session[]
+  loginChallenges      LoginChallenge[]
+  recoveryCodes        RecoveryCode[]
+  memberships          OrganizationMember[]
+  boardMemberships     BoardMember[]
+  assignedCards        CardAssignee[]
+  comments             Comment[]
+  apiKeys              ApiKey[]
+  createdOrganizations Organization[]       @relation("OrganizationCreator")
+  createdBoards        Board[]              @relation("BoardCreator")
+  createdCards         Card[]               @relation("CardCreator")
+
+  createdAt            DateTime             @default(now()) @map("created_at")
+  updatedAt            DateTime             @updatedAt @map("updated_at")
+
+  // le indica a Prisma que traduzca el modelo a la tabla fisica en la base 
+  // de datos de PostgreSQL usando minusculas y snake_case, llamandola users
+  @@map("users")
 }

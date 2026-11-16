@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import type { TotpRecord } from './twoFactor.types.js';
 import type { TwoFactorRepository } from './twoFactor.repository.js';
 
@@ -11,7 +11,7 @@ export class PrismaTwoFactorRepository implements TwoFactorRepository
   {
     const row = await this.prisma.twoFactorTotp.upsert({
       where: { userId },
-      create: { id: randomToken(16), userId, secretEncrypted },
+      create: { id: createRandomToken(16), userId, secretEncrypted },
       update: { secretEncrypted, enabledAt: null, confirmedAt: null }
     });
     return mapTotp(row);
@@ -45,7 +45,7 @@ export class PrismaTwoFactorRepository implements TwoFactorRepository
     await this.prisma.$transaction([
       this.prisma.recoveryCode.updateMany({ where: { userId, replacedAt: null }, data: { replacedAt: now } }),
       this.prisma.recoveryCode.createMany({
-        data: codeHashes.map((codeHash) => ({ id: randomToken(16), userId, codeHash }))
+        data: codeHashes.map((codeHash) => ({ id: createRandomToken(16), userId, codeHash }))
       })
     ]);
   }

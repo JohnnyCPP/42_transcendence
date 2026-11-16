@@ -1,5 +1,5 @@
-import type { FastifyInstance } from "fastify";
-import { registerAuthRoutes } from "../modules/auth/auth.routes.js";
+import { registerApiKeyRoutes } from "../modules/apiKeys/apiKeys.routes.js";
+import { registerAuthenticationRoutes } from "../modules/authentications/authentications.routes.js";
 import { registerBoardRoutes } from "../modules/boards/boards.routes.js";
 import { registerCardRoutes } from "../modules/cards/cards.routes.js";
 import { registerListRoutes } from "../modules/lists/lists.routes.js";
@@ -7,12 +7,14 @@ import { registerOrganizationRoutes } from "../modules/organizations/organizatio
 import { registerTwoFactorRoutes } from "../modules/two_factor/twoFactor.routes.js";
 import { registerUiRoutes } from "../ui/ui.routes.js";
 import { registerUserRoutes } from "../modules/users/users.routes.js";
+import type { FastifyInstance } from "fastify";
 import type { Services } from "./createServices.js";
 
 export	async	function	registerAppRoutes(fastifyInstance: FastifyInstance,
 									  		  services: Services): Promise<void>
 {
-	await registerAuthRoutes(fastifyInstance, services.authService, services.sessionsService);
+	await registerApiKeyRoutes(fastifyInstance, services.apiKeysService, services.sessionsService);
+	await registerAuthenticationRoutes(fastifyInstance, services.authenticationsService, services.sessionsService);
 	await registerBoardRoutes(fastifyInstance, services.boardsService, services.sessionsService);
 	await registerCardRoutes(fastifyInstance, services.cardsService, services.sessionsService);
 	await registerListRoutes(fastifyInstance, services.listsService, services.sessionsService);

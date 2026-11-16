@@ -1,8 +1,8 @@
 import { env } from "../config/env.js";
+import "./testContext.types.js";
 import type { FastifyInstance } from "fastify";
 import type { Repositories } from "./createRepositories.js";
 import type { Services } from "./createServices.js";
-import "./testContext.types.js";
 
 export	function	registerTestDecorators(fastifyInstance: FastifyInstance, 
 										   services: Services, 
@@ -13,6 +13,6 @@ export	function	registerTestDecorators(fastifyInstance: FastifyInstance,
 	fastifyInstance.decorate("testContext", {
 
 		...services,
-		authRepository: repositories.authRepository
+		authenticationsRepository: repositories.authenticationsRepository
 	});
 }

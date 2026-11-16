@@ -14,6 +14,7 @@
 - Features List
 - Modules
 - Individual Contributions
+- Testing
 
 ## Tree
 
@@ -223,6 +224,8 @@ Primary technical references:
 - [Node.js Crypto documentation](https://nodejs.org/api/crypto.html)
 - [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
 - [WCAG 2.1](https://www.w3.org/TR/WCAG21/)
+- [Vitest configuration](https://vitest.dev/config/)
+- [Vitest API](https://vitest.dev/api/test)
 
 ### AI usage
 
@@ -480,3 +483,58 @@ The test expects an empty disposable database and a locally accessible Docker CL
 
 **TODO:** Any challenges faced and how they were overcome.
 
+## Testing
+
+This application is covered by multiple layers of automated tests.
+
+- Unit tests are focused on one function or class in isolation. There should be many unit tests because they provide quick feedback when something breaks.
+
+- Integration tests focus on the full request path: Route -> Service -> Repository -> DB. They are more expensive than unit tests but still relatively fast.
+
+- End-to-end tests simulate a real user going through the entire system. They are the slowest, most fragile, and most expensive to maintain. They should only be used for critical user flows and high-risk areas.
+
+Dependencies are mocked in unit tests, but in integration tests they are real.
+
+### Testing Pyramid
+
+To decide how many tests should we make for each type, we follow the approach of the testing pyramid.
+
+The testing pyramid is a model for thinking about how many tests of each kind a healthy project should have.
+
+The key insight behind the testing pyramid is economic: Bugs caught by a fast unit test are usually fixed in minutes, while the same bug caught by an E2E test might take days to trace because the failure could be anywhere in the stack.
+
+### Location of Test Files
+
+We use two testing conventions to determine where the testing files are located: unit tests are colocated and integration tests are in a separate directory.
+
+```text
+src/modules/apiKeys/
+├── apiKeys.service.ts
+├── apiKeys.service.test.ts        ← unit tests for the service
+├── apiKeys.repository.ts
+├── apiKeys.prismaRepository.ts
+├── apiKeys.routes.ts
+└── apiKeys.types.ts
+```
+
+The benefits of colocated unit tests are that refactoring is easier (move a file, its test follows), and the tests are easily discoverable.
+
+Is worth mentioning that unit tests leverage in-memory repositories that are implemented for each module, instead of using DB mocks.
+
+Integration tests touch multiple modules and often share setup (a test DB, a built app instance).
+
+This is why they are located in a top-level "test" directory.
+
+```text
+test/
+├── integration/
+│   └── apiKeys.routes.test.ts     ← HTTP-level tests for /api-keys
+└── setup/
+    └── testApp.ts                 ← shared app factory for integration tests
+```
+
+The app.ts from the main application exports the buildApp() function, allowing tests to build an application for each test suite without affecting the main application sources.
+
+Integration tests have a different setup needs (DB lifecycle, teardown) and different runtime characteristics than the main application, so they work separately.
+
+The benefit of placing integration tests in a separate directory is that allows to differentiate unit tests from integration tests easily.

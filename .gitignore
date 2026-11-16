@@ -14,8 +14,9 @@ dist/
 *.log
 .worktrees/
 starter/
-test/
 frontend/certs/
 *.pem
 frontend/.next/
 frontend/node_modules/
+coverage/
+cookies.txt
