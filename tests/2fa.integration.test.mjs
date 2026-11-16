@@ -11,7 +11,7 @@ const { buildApp } = await import('../dist/app.js');
 const { SecretBox } = await import('../dist/shared/crypto/encryption.js');
 const secret = 'JBSWY3DPEHPK3PXP'; // Public test fixture, never a real account secret.
 const password = 'local test password 123';
-const hash = value => createHash('sha256').update(value).digest('base64url');
+const hash = value => createHash('sha256').update(value).digest('hex');
 const codeAt = epoch => { const generator = authenticator.clone(); generator.options = { epoch, step: 30 }; return generator.generate(secret); };
 const wrongCode = () => {
   const epoch = Date.now();

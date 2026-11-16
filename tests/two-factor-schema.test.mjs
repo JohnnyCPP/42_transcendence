@@ -34,9 +34,11 @@ test('AES-GCM uses fresh IVs and rejects altered or malformed payloads', () => {
 
 test('recovery codes are hashed and consumed once', async () => {
   const repo = new InMemoryTwoFactorRepository();
+  await repo.upsertPendingTotp('user', 'secret');
+  await repo.enableTotp('user', 'secret', 0, []);
   let hashes;
   const save = repo.replaceRecoveryCodes.bind(repo);
-  repo.replaceRecoveryCodes = async (id, values) => { hashes = values; await save(id, values); };
+  repo.replaceRecoveryCodes = async (id, values) => { hashes = values; return await save(id, values); };
   const service = new RecoveryCodesService(repo);
   const codes = await service.generateForUser('user');
   assert.equal(codes.length, 10);

@@ -12,6 +12,9 @@ import { apiFetch } from '@/lib/apiClient';
 /**
  * Contenedor del flujo de login (credenciales → opcional 2FA → dashboard).
  *
+ * - Credenciales: `login` → si `requires_2fa`, guarda el challenge y cambia de paso.
+ * - 2FA: `complete2fa` con el challenge + código → redirige a `/dashboard`.
+ * Los errores visibles los gestiona `useAuth` / `AuthProvider`.
  */
 export default function LoginPage() {
   const router = useRouter();
@@ -19,6 +22,7 @@ export default function LoginPage() {
   const [step, setStep] = useState<LoginStep>('credentials');
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
 
+  /** Envía username/password; puede pasar a paso 2FA o al dashboard. */
   const handleLogin = useCallback(
     async (credentials: LoginCredentials) => {
       try {
@@ -39,6 +43,7 @@ export default function LoginPage() {
     [clearError, login, router]
   );
 
+  /** Completa el login con TOTP o recovery code tras un challenge activo. */
   const handleTwoFactor = useCallback(
     async (code: string, method: TwoFactorMethod) => {
       if (!challengeToken) return;
@@ -67,6 +72,7 @@ export default function LoginPage() {
     [challengeToken, clearError, complete2fa, router]
   );
 
+  /** Vuelve al paso de credenciales y limpia el challenge. */
   const handleBackFromTwoFactor = useCallback(() => {
     clearError();
     setChallengeToken(null);
