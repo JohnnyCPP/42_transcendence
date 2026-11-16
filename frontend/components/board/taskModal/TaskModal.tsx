@@ -16,7 +16,7 @@ interface TaskModalProps {
   columns: BoardColumn[];
   users: User[];
   onClose: () => void;
-  onSave: (updatedTask: TaskItem, newColumnId: string) => void;
+  onSave: (updatedTask: TaskItem, newColumnId: string) => Promise<void>;
   onDelete: (taskId: string, columnId: string) => void;
 }
 
@@ -38,7 +38,7 @@ export default function TaskModal({
   const { formData, updateField } = useTaskModalState(task, currentColumnId);
 
   // Lógica de envío del formulario
-  const { titleError, clearTitleError, handleSubmit } = useTaskModalSubmit(
+  const { titleError, clearTitleError, saveError, isSaving, handleSubmit } = useTaskModalSubmit(
     task,
     formData,
     users,
@@ -71,6 +71,8 @@ export default function TaskModal({
           users={users}
           formData={formData}
           titleError={titleError}
+          saveError={saveError}
+          isSaving={isSaving}
           onTitleChange={handleTitleChange}
           onDescriptionChange={updateField.setDescription}
           onColumnChange={updateField.setColumnId}

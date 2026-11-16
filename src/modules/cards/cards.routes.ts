@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { requireAuth } from '../authorization/requireAuth.js';
 import type { SessionsService } from '../sessions/sessions.service.js';
 import type { CardsService } from './cards.service.js';
+import { cardPriorities } from './cards.types.js';
 import { paginationQuerySchema } from '../../shared/http/pagination.js';
 import { paginationMetadata } from '../../shared/pagination.js';
 
@@ -11,6 +12,7 @@ const listParamsSchema = z.object({ listId: z.string().min(1) });
 const cardParamsSchema = z.object({ cardId: z.string().min(1) });
 const createCardSchema = z.object({
   title: z.string().trim().min(1).max(200),
+  priority: z.enum(cardPriorities).optional(),
   description: z.string().trim().max(5000).optional().nullable(),
   dueDate: z.coerce.date().nullable().optional()
 });

@@ -4,6 +4,7 @@ import { expect } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import { ScryptPasswordHasher } from '/app/dist/shared/crypto/passwordHasher.js';
 
+// Refuse to run against any database other than the disposable Compose fixture.
 const url = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL) : null;
 if (process.env.RBAC_INTEGRATION !== 'isolated' || url?.hostname !== 'postgres' || url.pathname !== '/rbac_integration')
   throw new Error('RBAC integration tests require the isolated Compose database');
@@ -27,6 +28,7 @@ async function expectResponse(actor, method, path, status, body) {
   return result.body;
 }
 
+// Seed users with global roles and authenticate through the running API.
 beforeAll(async () => {
   const passwordHash = await new ScryptPasswordHasher().hash(password);
   const roles = { admina: 'admin', adminb: 'admin', moderator: 'moderator', owner: 'user', orgadmin: 'user',
@@ -42,6 +44,7 @@ beforeAll(async () => {
 });
 afterAll(async () => { await prisma.$disconnect(); });
 
+// Exercise organization membership and access through HTTP and real persistence.
 it('organization roles: reading, invitations, management and archiving', async () => {
   const created = await expectResponse('owner', 'POST', '/organizations', 200, { name: 'RBAC organization' });
   const org = `/organizations/${created.organization.id}`;
@@ -49,6 +52,7 @@ it('organization roles: reading, invitations, management and archiving', async (
   await expectResponse('owner', 'PUT', membership('orgadmin'), 200, { role: 'admin' });
   await expectResponse('owner', 'PUT', membership('member'), 200, { role: 'member' });
   await expectResponse('orgadmin', 'PUT', membership('target'), 200, { role: 'member' });
+  // Members can read the organization; outsiders cannot discover it.
   for (const actor of ['owner', 'orgadmin', 'member']) {
     await expectResponse(actor, 'GET', org, 200);
     await expectResponse(actor, 'GET', `${org}/boards`, 200);
@@ -60,6 +64,7 @@ it('organization roles: reading, invitations, management and archiving', async (
   await expectResponse('orgadmin', 'PATCH', org, 200, { name: 'Updated' });
   await expectResponse('member', 'POST', `${org}/boards`, 403, { name: 'Forbidden' });
   await expectResponse('orgadmin', 'POST', `${org}/boards`, 200, { name: 'Allowed' });
+  // Check membership management and prevent demotion or removal of the owner.
   await expectResponse('member', 'PUT', membership('target'), 403, { role: 'member' });
   await expectResponse('orgadmin', 'PUT', membership('target'), 403, { role: 'admin' });
   await expectResponse('owner', 'PUT', membership('owner'), 403, { role: 'member' });
@@ -75,6 +80,7 @@ it('organization roles: reading, invitations, management and archiving', async (
   await expectResponse('owner', 'GET', org, 404);
 });
 
+// Board permissions are checked independently of organization membership.
 it('board roles: read, write, comments, memberships and archiving', async () => {
   const createdOrg = await expectResponse('owner', 'POST', '/organizations', 200, { name: 'RBAC boards' });
   const org = `/organizations/${createdOrg.organization.id}`;
@@ -92,6 +98,7 @@ it('board roles: read, write, comments, memberships and archiving', async () => 
     await expectResponse(actor, 'GET', board, 200);
     await expectResponse(actor, 'GET', `${board}/lists`, 200);
   }
+  // Read-only roles cannot change the board or its memberships.
   for (const actor of ['observer', 'reader']) {
     await expectResponse(actor, 'POST', `${board}/lists`, 403, { name: 'Forbidden' });
     await expectResponse(actor, 'PATCH', board, 403, { name: 'Forbidden' });
@@ -106,7 +113,16 @@ it('board roles: read, write, comments, memberships and archiving', async () => 
   await expectResponse('member', 'PATCH', `/lists/${list.id}`, 200, { name: 'Updated list' });
   await expectResponse('observer', 'POST', `${board}/lists/reorder`, 403, { listIds: [list.id] });
   await expectResponse('member', 'POST', `${board}/lists/reorder`, 200, { listIds: [list.id] });
+  // Cards default to Low; chosen and updated priorities must persist in PostgreSQL.
   const card = (await expectResponse('member', 'POST', `/lists/${list.id}/cards`, 200, { title: 'Card' })).card;
+  expect(card.priority).toBe('Low');
+  const urgentCard = (await expectResponse('member', 'POST', `/lists/${list.id}/cards`, 200, { title: 'Urgent card', priority: 'Urgent' })).card;
+  expect((await prisma.card.findUniqueOrThrow({ where: { id: urgentCard.id } })).priority).toBe('Urgent');
+  const priorityUpdate = await expectResponse('member', 'PATCH', `/cards/${card.id}`, 200, { priority: 'Urgent' });
+  expect(priorityUpdate.card.priority).toBe('Urgent');
+  expect((await expectResponse('observer', 'GET', `/cards/${card.id}`, 200)).card.priority).toBe('Urgent');
+  expect((await prisma.card.findUniqueOrThrow({ where: { id: card.id } })).priority).toBe('Urgent');
+  // Compare read/write permissions for cards, moves and comments.
   const cardUrl = `/cards/${card.id}`;
   await expectResponse('observer', 'GET', cardUrl, 200);
   await expectResponse('observer', 'PATCH', cardUrl, 403, { title: 'Forbidden' });
@@ -125,6 +141,7 @@ it('board roles: read, write, comments, memberships and archiving', async () => 
   await expectResponse('boardadmin', 'DELETE', membership('member'), 200);
   await expectResponse('member', 'POST', `/lists/${list.id}/cards`, 403, { title: 'Forbidden' });
   await expectResponse('owner', 'PUT', membership('member'), 200, { role: 'member' });
+  // Removing an organization member also removes stale board membership.
   await expectResponse('orgadmin', 'DELETE', `${org}/members/${users.member.id}`, 200);
   await expectResponse('orgadmin', 'PUT', `${org}/members/${users.member.id}`, 200, { role: 'member' });
   await expectResponse('member', 'POST', `${board}/lists`, 403, { name: 'No stale access' });
@@ -136,6 +153,7 @@ it('board roles: read, write, comments, memberships and archiving', async () => 
   await expectResponse('owner', 'DELETE', `/boards/${other.id}`, 200);
 });
 
+// Verify user administration and the last-admin rule against the real database.
 it('global roles: safe user administration and concurrent last-admin protection', async () => {
   const target = `/users/${users.target.id}`;
   for (const actor of ['reader', 'moderator', 'admina']) await expectResponse(actor, 'GET', '/me', 200);
@@ -162,6 +180,7 @@ it('global roles: safe user administration and concurrent last-admin protection'
   const list = await expectResponse('admina', 'GET', '/users', 200);
   expect(list.users.some(user => user.id === users.target.id)).toBe(false);
   expect((await prisma.user.findUnique({ where: { id: users.target.id } })).status).toBe('deleted');
+  // Concurrent demotions must leave exactly one active administrator.
   const results = await Promise.all([
     call('admina', 'PATCH', `/users/${users.adminb.id}`, { role: 'user' }),
     call('adminb', 'PATCH', `/users/${users.admina.id}`, { role: 'user' })

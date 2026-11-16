@@ -372,7 +372,7 @@ No hay librerías extra de clases: solo el helper `cx`.
 
 ### Aún local / limitado
 - **Borrar columna**: no hay `DELETE /lists` en el BE (pendiente de equipo).
-- **Assignees / priority**: UI; el BE no los persiste (`priority` default en el mapper).
+- **Priority**: persistida por el backend; **assignees** siguen siendo solo UI.
 - **`mockUsers`**: solo para el selector del modal.
 
 ---

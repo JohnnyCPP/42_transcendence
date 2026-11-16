@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 
 const project = `taskflow-rbac-${randomBytes(5).toString('hex')}`;
-const base = ['compose', '-p', project, '-f', 'tests/compose.rbac.yml'];
+const base = ['compose', '-p', project, '-f', 'test/compose.rbac.yml'];
 let result;
 try {
   result = spawnSync('docker', [...base, 'up', '--build', '--abort-on-container-exit', '--exit-code-from', 'rbac-tests'], { stdio: 'inherit' });

@@ -83,6 +83,7 @@ export class PrismaCardsRepository implements CardsRepository {
           id: createRandomToken(16),
           listId: input.listId,
           title: input.title.trim(),
+          priority: input.priority ?? 'Low',
           description: input.description?.trim() || null,
           position: (last?.position ?? 0) + 1000,
           dueDate: input.dueDate ?? null,
@@ -112,6 +113,7 @@ export class PrismaCardsRepository implements CardsRepository {
       where: { id: input.cardId },
       data: {
         title: input.title?.trim(),
+        priority: input.priority,
         description: input.description === undefined ? undefined : input.description?.trim() || null,
         dueDate: input.dueDate === undefined ? undefined : input.dueDate
       }
@@ -150,6 +152,7 @@ function mapCard(row: {
   id: string;
   listId: string;
   title: string;
+  priority: Card['priority'];
   description: string | null;
   position: number;
   dueDate: Date | null;

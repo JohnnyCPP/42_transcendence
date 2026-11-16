@@ -89,6 +89,14 @@ enum BoardRole {
   observer
 }
 
+enum CardPriority {
+  Low
+  Medium
+  Urgent
+  Enhancement
+  Complete
+}
+
 enum GlobalRole {
   admin
   moderator
@@ -203,6 +211,7 @@ model Card {
   createdById String         @map("created_by_id")
 
   title       String
+  priority    CardPriority @default(Low)
   description String?
   position    Int
   dueDate     DateTime?      @map("due_date")
