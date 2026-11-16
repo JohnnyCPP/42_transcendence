@@ -1,5 +1,5 @@
 import { badRequest } from '../../shared/errors/httpErrors.js';
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import type { BoardList, CreateListInput, ReorderListsInput, UpdateListInput } from './lists.types.js';
 import { paginateArray, type Page, type PaginationInput } from '../../shared/pagination.js';
 
@@ -22,7 +22,7 @@ export class InMemoryListsRepository implements ListsRepository
     const currentLists = this.activeLists(input.boardId);
     const nextPosition = currentLists.length ? Math.max(...currentLists.map((list) => list.position)) + 1000 : 1000;
     const list: BoardList = {
-      id: randomToken(16),
+      id: createRandomToken(16),
       boardId: input.boardId,
       name: input.name.trim(),
       position: nextPosition,

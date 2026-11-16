@@ -1,4 +1,4 @@
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import type { Session } from './sessions.types.js';
 
 export interface SessionsRepository {
@@ -17,7 +17,7 @@ export class InMemorySessionsRepository implements SessionsRepository
     const now = new Date();
     const session: Session = {
       ...input,
-      id: randomToken(16),
+      id: createRandomToken(16),
       createdAt: now,
       lastSeenAt: now,
       revokedAt: null

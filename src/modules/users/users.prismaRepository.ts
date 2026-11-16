@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import { conflict } from '../../shared/errors/httpErrors.js';
 import type { CreateUserInput, User, UserFilters, UserChanges } from './users.types.js';
 import type { UsersRepository } from './users.repository.js';
@@ -15,7 +15,7 @@ export class PrismaUsersRepository implements UsersRepository
     try {
       const row = await this.prisma.user.create({
         data: {
-          id: randomToken(16),
+          id: createRandomToken(16),
           username: input.username.trim().toLowerCase(),
           email: input.email?.trim().toLowerCase() ?? null,
           displayName: input.displayName ?? null

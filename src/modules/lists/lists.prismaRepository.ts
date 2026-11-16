@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import { assertSameListSet, type ListsRepository } from './lists.repository.js';
 import type { BoardList, CreateListInput, ReorderListsInput, UpdateListInput } from './lists.types.js';
 import type { Page, PaginationInput } from '../../shared/pagination.js';
@@ -76,7 +76,7 @@ export class PrismaListsRepository implements ListsRepository
         from (select pg_advisory_xact_lock(hashtext(${`list-position:${input.boardId}`}))) acquired
       `;
       const last = await tx.boardList.findFirst({ where: { boardId: input.boardId, archivedAt: null }, orderBy: { position: 'desc' }, select: { position: true } });
-      const row = await tx.boardList.create({ data: { id: randomToken(16), boardId: input.boardId, name: input.name.trim(), position: (last?.position ?? 0) + 1000 } });
+      const row = await tx.boardList.create({ data: { id: createRandomToken(16), boardId: input.boardId, name: input.name.trim(), position: (last?.position ?? 0) + 1000 } });
       return mapList(row);
     }));
   }

@@ -1,4 +1,4 @@
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import type { Board, BoardMember, CreateBoardInput, SetBoardMemberInput, UpdateBoardInput } from './boards.types.js';
 import { paginateArray, type Page, type PaginationInput } from '../../shared/pagination.js';
 
@@ -21,7 +21,7 @@ export class InMemoryBoardsRepository implements BoardsRepository
   {
     const now = new Date();
     const board: Board = {
-      id: randomToken(16),
+      id: createRandomToken(16),
       organizationId: input.organizationId,
       name: input.name.trim(),
       description: input.description?.trim() || null,

@@ -16,3 +16,5 @@ Dockerfile*
 /document
 .git
 *.log
+/coverage
+cookies.txt
