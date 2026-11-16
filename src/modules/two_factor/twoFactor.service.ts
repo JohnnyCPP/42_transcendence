@@ -4,7 +4,7 @@ import type { RecoveryCodesService } from './recoveryCodes.service.js';
 import type { TotpService } from './totp.service.js';
 import type { TwoFactorRepository } from './twoFactor.repository.js';
 import type { TotpSetup } from './twoFactor.types.js';
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import { hashToken } from '../../shared/crypto/hashToken.js';
 import { InMemoryRateLimiter, rateLimitKey } from '../../shared/http/rateLimit.js';
 
@@ -53,7 +53,7 @@ export class TwoFactorService
     if (timeStep === null)
       throw badRequest('Invalid TOTP code');
 
-    const codes = Array.from({ length: 10 }, () => randomToken(9));
+    const codes = Array.from({ length: 10 }, () => createRandomToken(9));
     if (!(await this.twoFactorRepository.enableTotp(userId, record.secretEncrypted, timeStep, codes.map(hashToken))))
       throw badRequest('TOTP setup has changed or is already confirmed');
     this.resetSetupAttempts(userId);

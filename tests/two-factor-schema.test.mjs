@@ -4,14 +4,14 @@ import { randomBytes } from 'node:crypto';
 
 process.env.NODE_ENV = 'test';
 const { SecretBox } = await import('../dist/shared/crypto/encryption.js');
-const { InMemoryAuthRepository } = await import('../dist/modules/auth/auth.repository.js');
+const { InMemoryAuthenticationsRepository } = await import('../dist/modules/authentications/authentications.repository.js');
 const { InMemoryTwoFactorRepository } = await import('../dist/modules/two_factor/twoFactor.repository.js');
 const { RecoveryCodesService } = await import('../dist/modules/two_factor/recoveryCodes.service.js');
 const { hashToken } = await import('../dist/shared/crypto/hashToken.js');
 const { buildApp } = await import('../dist/app.js');
 const { authenticator } = await import('otplib');
 const { PrismaTwoFactorRepository } = await import('../dist/modules/two_factor/twoFactor.prismaRepository.js');
-const { PrismaAuthRepository } = await import('../dist/modules/auth/auth.prismaRepository.js');
+const { PrismaAuthenticationsRepository } = await import('../dist/modules/authentications/authentications.prismaRepository.js');
 
 test('AES-GCM uses fresh IVs and rejects altered or malformed payloads', () => {
   const box = new SecretBox(randomBytes(32).toString('base64'));
@@ -46,7 +46,7 @@ test('recovery codes are hashed and consumed once', async () => {
 });
 
 test('completed and expired challenges are recorded and cannot be claimed', async () => {
-  const repo = new InMemoryAuthRepository();
+  const repo = new InMemoryAuthenticationsRepository();
   const now = new Date();
   const create = (tokenHash, expiresAt) => repo.createLoginChallenge({ userId: 'user', tokenHash, expiresAt, ipAddress: null, userAgent: null });
   const expired = await create('expired', new Date(now.getTime() - 1));
@@ -69,7 +69,7 @@ test('Prisma updates consume codes and expire challenges conditionally', async (
   assert.deepEqual(codeUpdate.where, { userId: 'user', codeHash: 'hash', usedAt: null, replacedAt: null });
   assert.ok(codeUpdate.data.usedAt instanceof Date);
   const now = new Date();
-  await new PrismaAuthRepository(prisma).expireLoginChallenges(now);
+  await new PrismaAuthenticationsRepository(prisma).expireLoginChallenges(now);
   assert.deepEqual(challengeUpdate, { where: { consumedAt: null, expiresAt: { lte: now } }, data: { consumedAt: now } });
 });
 

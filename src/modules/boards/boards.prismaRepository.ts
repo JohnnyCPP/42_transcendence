@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import type { BoardsRepository } from './boards.repository.js';
 import type { Board, BoardMember, CreateBoardInput, SetBoardMemberInput, UpdateBoardInput } from './boards.types.js';
 import type { Page, PaginationInput } from '../../shared/pagination.js';
@@ -20,7 +20,7 @@ export class PrismaBoardsRepository implements BoardsRepository
 
   async create(input: CreateBoardInput): Promise<Board> 
   {
-    const id = randomToken(16);
+    const id = createRandomToken(16);
     const row = await this.prisma.$transaction(async (tx) => {
       const created = await tx.board.create({ data: { id, organizationId: input.organizationId, name: input.name.trim(), description: input.description?.trim() || null, createdByUserId: input.actorUserId } });
       await tx.boardMember.create({ data: { boardId: id, userId: input.actorUserId, role: 'admin' } });

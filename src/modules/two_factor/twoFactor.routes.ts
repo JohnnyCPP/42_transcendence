@@ -7,7 +7,7 @@ import { requireAuth } from '../authorization/requireAuth.js';
 import type { SessionsService } from '../sessions/sessions.service.js';
 import type { TwoFactorService } from './twoFactor.service.js';
 import { InMemoryRateLimiter, rateLimitKey } from '../../shared/http/rateLimit.js';
-import type { AuthService } from '../auth/auth.service.js';
+import type { AuthenticationsService } from '../authentications/authentications.service.js';
 
 const confirmTotpSchema = z.object({ code: z.string().regex(/^\d{6}$/) });
 const disableSchema = z.discriminatedUnion('method', [
@@ -27,7 +27,7 @@ export async function registerTwoFactorRoutes(
   app: FastifyInstance,
   twoFactorService: TwoFactorService,
   sessionsService: SessionsService,
-  authService: AuthService
+  authService: AuthenticationsService
 ) {
   const typedApp = app.withTypeProvider<ZodTypeProvider>();
   const disableLimiter = new InMemoryRateLimiter(5, 15 * 60 * 1000);

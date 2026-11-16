@@ -1,4 +1,4 @@
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 
 export type Comment = {
   id: string; cardId: string; authorId: string; content: string;
@@ -26,7 +26,7 @@ export class InMemoryCommentsRepository implements CommentsRepository {
   }
   async create(cardId: string, authorId: string, content: string): Promise<Comment> {
     const now = new Date();
-    const item = { id: randomToken(16), cardId, authorId, content, createdAt: now, updatedAt: now, deletedAt: null };
+    const item = { id: createRandomToken(16), cardId, authorId, content, createdAt: now, updatedAt: now, deletedAt: null };
     this.comments.set(item.id, item);
     return item;
   }

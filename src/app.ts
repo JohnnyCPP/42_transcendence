@@ -22,9 +22,9 @@ export async function buildApp()
 	}
 	const repositories = createRepositories(prismaClient);
 	// Reconcile expired challenges at startup and periodically, including those never retried.
-	await repositories.authRepository.expireLoginChallenges(new Date());
+	await repositories.authenticationsRepository.expireLoginChallenges(new Date());
 	const expiryTimer = setInterval(() => {
-		void repositories.authRepository.expireLoginChallenges(new Date()).catch((error: unknown) => {
+		void repositories.authenticationsRepository.expireLoginChallenges(new Date()).catch((error: unknown) => {
 			fastifyInstance.log.error(error, 'Failed to expire login challenges');
 		});
 	}, 60_000);

@@ -1,5 +1,5 @@
 import { Prisma, PrismaClient } from '@prisma/client';
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import type { TotpRecord } from './twoFactor.types.js';
 import type { TwoFactorRepository } from './twoFactor.repository.js';
 
@@ -12,7 +12,7 @@ export class PrismaTwoFactorRepository implements TwoFactorRepository
     const updated = await this.prisma.twoFactorTotp.updateMany({ where: { userId, enabledAt: null }, data: { secretEncrypted, confirmedAt: null, lastUsedTimeStep: null } });
     if (updated.count) return this.findTotpByUserId(userId);
     try {
-      return mapTotp(await this.prisma.twoFactorTotp.create({ data: { id: randomToken(16), userId, secretEncrypted } }));
+      return mapTotp(await this.prisma.twoFactorTotp.create({ data: { id: createRandomToken(16), userId, secretEncrypted } }));
     } catch (error) {
       if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') throw error;
       const retry = await this.prisma.twoFactorTotp.updateMany({ where: { userId, enabledAt: null }, data: { secretEncrypted, confirmedAt: null, lastUsedTimeStep: null } });
@@ -36,7 +36,7 @@ export class PrismaTwoFactorRepository implements TwoFactorRepository
       });
       if (!updated.count) return false;
       await tx.recoveryCode.updateMany({ where: { userId, replacedAt: null }, data: { replacedAt: now } });
-      await tx.recoveryCode.createMany({ data: codeHashes.map((codeHash) => ({ id: randomToken(16), userId, codeHash })) });
+      await tx.recoveryCode.createMany({ data: codeHashes.map((codeHash) => ({ id: createRandomToken(16), userId, codeHash })) });
       return true;
     });
   }
@@ -87,7 +87,7 @@ export class PrismaTwoFactorRepository implements TwoFactorRepository
       const locked = await tx.twoFactorTotp.updateMany({ where: { userId, enabledAt: { not: null } }, data: { updatedAt: now } });
       if (!locked.count) return false;
       await tx.recoveryCode.updateMany({ where: { userId, replacedAt: null }, data: { replacedAt: now } });
-      await tx.recoveryCode.createMany({ data: codeHashes.map(codeHash => ({ id: randomToken(16), userId, codeHash })) });
+      await tx.recoveryCode.createMany({ data: codeHashes.map(codeHash => ({ id: createRandomToken(16), userId, codeHash })) });
       return true;
     });
   }

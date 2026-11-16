@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import type { Comment, CommentsRepository } from './comments.repository.js';
 
 export class PrismaCommentsRepository implements CommentsRepository {
@@ -11,7 +11,7 @@ export class PrismaCommentsRepository implements CommentsRepository {
     return this.prisma.comment.findFirst({ where: { id, deletedAt: null } });
   }
   create(cardId: string, authorId: string, content: string): Promise<Comment> {
-    return this.prisma.comment.create({ data: { id: randomToken(16), cardId, authorId, content } });
+    return this.prisma.comment.create({ data: { id: createRandomToken(16), cardId, authorId, content } });
   }
   async update(id: string, content: string): Promise<Comment | null> {
     const result = await this.prisma.comment.updateMany({ where: { id, deletedAt: null }, data: { content } });

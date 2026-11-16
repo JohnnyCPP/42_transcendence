@@ -1,13 +1,14 @@
-import { ScryptPasswordHasher } from "../shared/crypto/passwordHasher.js";
-import { SecretBox } from "../shared/crypto/encryption.js";
-import { securityConfig } from "../config/security.js";
-import { AuthService } from "../modules/auth/auth.service.js";
+import { ApiKeysService } from "../modules/apiKeys/apiKeys.service.js";
+import { AuthenticationsService } from "../modules/authentications/authentications.service.js";
 import { BoardsService } from "../modules/boards/boards.service.js";
 import { CardsService } from "../modules/cards/cards.service.js";
 import { CommentsService } from "../modules/comments/comments.service.js";
 import { ListsService } from "../modules/lists/lists.service.js";
 import { OrganizationsService } from "../modules/organizations/organizations.service.js";
 import { RecoveryCodesService } from "../modules/two_factor/recoveryCodes.service.js";
+import { ScryptPasswordHasher } from "../shared/crypto/passwordHasher.js";
+import { SecretBox } from "../shared/crypto/encryption.js";
+import { securityConfig } from "../config/security.js";
 import { SessionsService } from "../modules/sessions/sessions.service.js";
 import { TotpService } from "../modules/two_factor/totp.service.js";
 import { TwoFactorService } from "../modules/two_factor/twoFactor.service.js";
@@ -16,7 +17,8 @@ import type { Repositories } from "./createRepositories.js";
 
 export	type	Services = 
 {
-	authService: AuthService;
+	apiKeysService: ApiKeysService;
+	authenticationsService: AuthenticationsService;
 	boardsService: BoardsService;
 	cardsService: CardsService;
 	commentsService: CommentsService;
@@ -31,7 +33,8 @@ export	type	Services =
 
 export	function	createServices(repositories: Repositories): Services
 {
-	let	authService;
+	let	apiKeysService;
+	let	authenticationsService;
 	let	boardsService;
 	let	cardsService;
 	let	listsService;
@@ -42,6 +45,7 @@ export	function	createServices(repositories: Repositories): Services
 	let	twoFactorService;
 	let	usersService;
 
+	apiKeysService = new ApiKeysService(repositories.apiKeysRepository);
 	usersService = new UsersService(repositories.usersRepository);
 	sessionsService = new SessionsService(repositories.sessionsRepository, usersService);
 	totpService = new TotpService(new SecretBox(securityConfig.totpEncryptionKeyBase64));
@@ -50,9 +54,9 @@ export	function	createServices(repositories: Repositories): Services
 											usersService,
 											totpService, 
 											recoveryCodesService);
-	authService = new AuthService(usersService, 
-								  repositories.authRepository, 
-								  repositories.registrationRepository,
+	authenticationsService = new AuthenticationsService(usersService, 
+								  repositories.authenticationsRepository, 
+								  repositories.registrationsRepository,
 								  new ScryptPasswordHasher(), 
 								  sessionsService,
 								  twoFactorService);
@@ -63,7 +67,8 @@ export	function	createServices(repositories: Repositories): Services
 	const commentsService = new CommentsService(repositories.commentsRepository, cardsService);
 	return {
 
-		authService,
+		apiKeysService,
+		authenticationsService,
 		boardsService,
 		cardsService,
 		commentsService,

@@ -1,9 +1,9 @@
-import { PrismaClient } from '@prisma/client';
-import { randomToken } from '../../shared/crypto/randomToken.js';
-import type { PasswordCredential } from './auth.types.js';
-import type { AuthRepository, LoginChallenge } from './auth.repository.js';
+import { createRandomToken } from "../../shared/crypto/createRandomToken.js";
+import { PrismaClient } from "@prisma/client";
+import type { AuthenticationsRepository, LoginChallenge } from "./authentications.repository.js";
+import type { PasswordCredential } from "./authentications.types.js";
 
-export class PrismaAuthRepository implements AuthRepository 
+export	class	PrismaAuthenticationsRepository	implements	AuthenticationsRepository
 {
   constructor(private readonly prisma: PrismaClient) {}
 
@@ -32,7 +32,7 @@ export class PrismaAuthRepository implements AuthRepository
   {
     const row = await this.prisma.loginChallenge.create({
       data: {
-        id: randomToken(16),
+        id: createRandomToken(16),
         userId: input.userId,
         tokenHash: input.tokenHash,
         expiresAt: input.expiresAt,
@@ -81,7 +81,7 @@ export class PrismaAuthRepository implements AuthRepository
   }
 }
 
-function mapChallenge(row: Awaited<ReturnType<PrismaClient['loginChallenge']['findUnique']>> & object): LoginChallenge 
+function	mapChallenge(row: Awaited<ReturnType<PrismaClient["loginChallenge"]["findUnique"]>> & object): LoginChallenge
 {
   return {
     id: row.id,

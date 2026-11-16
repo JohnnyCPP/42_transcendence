@@ -1,6 +1,6 @@
 import { AppError } from "../shared/errors/AppError.js";
-import type { FastifyInstance } from "fastify";
 import { hasZodFastifySchemaValidationErrors } from "fastify-type-provider-zod";
+import type { FastifyInstance } from "fastify";
 
 export	function	registerErrorHandlers(fastifyInstance: FastifyInstance): void
 {

@@ -1,4 +1,4 @@
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import type { RecoveryCodeRecord, TotpRecord } from './twoFactor.types.js';
 
 export interface TwoFactorRepository 
@@ -25,7 +25,7 @@ export class InMemoryTwoFactorRepository implements TwoFactorRepository
     const current = this.totpRecords.get(userId);
     if (current?.enabledAt) return null;
     const record: TotpRecord = {
-      id: current?.id ?? randomToken(16),
+      id: current?.id ?? createRandomToken(16),
       userId,
       secretEncrypted,
       enabledAt: null,
@@ -104,7 +104,7 @@ export class InMemoryTwoFactorRepository implements TwoFactorRepository
     }
     for (const codeHash of codeHashes) 
     {
-      const id = randomToken(16);
+      const id = createRandomToken(16);
       this.recoveryCodes.set(id, {
         id,
         userId,

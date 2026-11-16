@@ -1,4 +1,4 @@
-import { randomToken } from '../../shared/crypto/randomToken.js';
+import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import { conflict } from '../../shared/errors/httpErrors.js';
 import { ORG_ROLE } from '../authorization/roles.js';
 import type {
@@ -46,7 +46,7 @@ export class InMemoryOrganizationsRepository implements OrganizationsRepository
 
     const now = new Date();
     const organization: Organization = {
-      id: randomToken(16),
+      id: createRandomToken(16),
       name: input.name.trim(),
       slug,
       createdByUserId: input.createdByUserId,
