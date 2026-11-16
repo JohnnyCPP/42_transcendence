@@ -111,7 +111,7 @@ export default function TwoFactorForm({
         />
       </div>
 
-      <FormErrorBanner id="two-factor-error" error={displayError} />
+      <div id="two-factor-error"><FormErrorBanner error={displayError} /></div>
 
       <Button
         type="submit"

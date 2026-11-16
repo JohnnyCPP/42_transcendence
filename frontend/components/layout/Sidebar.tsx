@@ -89,6 +89,7 @@ export default function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
             active={isBoardsActive}
             fill={isBoardsActive}
           />
+          <NavItem href="/security" onClick={onCloseMobile} icon="security" label="Seguridad de la cuenta" active={pathname === "/security"} fill={pathname === "/security"} />
           {canReadUsers && <NavItem href="/users" onClick={onCloseMobile} icon="group" label="Gestionar usuarios" active={pathname === '/users'} fill={pathname === '/users'} />}
         </nav>
 

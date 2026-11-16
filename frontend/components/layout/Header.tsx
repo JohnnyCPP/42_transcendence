@@ -2,7 +2,6 @@
 
 import {
   HeaderProps,
-  HeaderActionButton,
   MobileMenuButton,
   NotificationButton,
   ProfileMenu,
@@ -19,7 +18,6 @@ export default function Header({
   searchQuery,
   onSearchChange,
   onToggleMobileSidebar,
-  onOpenNewTaskModal,
 }: HeaderProps) {
   return (
     <header className="h-16 w-full sticky top-0 z-40 bg-surface-bright border-b border-outline-variant flex justify-between items-center px-6 shrink-0 shadow-xs">
@@ -29,13 +27,6 @@ export default function Header({
 
       <div className="flex items-center gap-4 ml-auto">
         <NotificationButton />
-
-        {onOpenNewTaskModal && <HeaderActionButton
-          icon="add"
-          label="Nueva tarea"
-          onClick={onOpenNewTaskModal}
-          className="hidden md:flex border border-primary text-primary px-3 py-1.5 rounded font-semibold text-[12px] hover:bg-primary/5"
-        />}
 
         <ProfileMenu />
       </div>

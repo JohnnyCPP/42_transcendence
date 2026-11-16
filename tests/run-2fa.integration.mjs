@@ -32,7 +32,7 @@ try {
   if (!match) throw new Error('Unexpected PostgreSQL port mapping');
   const env = { ...process.env, NODE_ENV: 'development', DATABASE_URL: `postgresql://local_2fa:local_2fa_only@127.0.0.1:${match[1]}/local_2fa`, TOTP_ENCRYPTION_KEY_BASE64: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', COOKIE_SECURE: 'false', SESSION_COOKIE_NAME: 'local_2fa_sid' };
   run(process.execPath, ['node_modules/prisma/build/index.js', 'migrate', 'deploy'], { env });
-  run(process.execPath, ['--test', 'tests/2fa.integration.test.mjs'], { env });
+  run(process.execPath, ['node_modules/vitest/vitest.mjs', 'run', '--config', 'vitest.config.postgres.ts', 'test/integration/twoFactor.postgres.test.ts'], { env });
 } catch (error) {
   console.error(error.message);
   process.exitCode = 1;

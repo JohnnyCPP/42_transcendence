@@ -5,7 +5,6 @@ type FormErrorBannerProps = {
   /** Si es false o null, no renderiza nada. */
   error?: string | null;
   className?: string;
-  id?: string;
 };
 
 /**
@@ -16,13 +15,11 @@ type FormErrorBannerProps = {
 export default function FormErrorBanner({
   error,
   className,
-  id,
 }: FormErrorBannerProps) {
   if (!error) return null;
 
   return (
     <div
-      id={id}
       role="alert"
       className={cx(
         'rounded-lg border border-error/20 bg-error/10 p-3 text-sm text-error',

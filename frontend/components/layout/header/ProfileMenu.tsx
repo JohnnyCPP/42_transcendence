@@ -54,9 +54,6 @@ function ProfileMenuContent({
         <span className="material-symbols-outlined text-[18px]">settings</span>
         Ajustes
       </Link>
-      <Link href="/security" role="menuitem" onClick={onNavigate} className="block px-4 py-3 text-sm text-on-surface hover:bg-primary/5">
-        Seguridad de la cuenta
-      </Link>
 
       <button
         type="button"

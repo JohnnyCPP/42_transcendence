@@ -1,11 +1,11 @@
 // Story 11.7: authorization rules for global, organization and board roles.
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
+import { it, onTestFinished } from 'vitest';
+import { expect as vitestExpect } from 'vitest';
 
 process.env.NODE_ENV = 'test';
 process.env.SESSION_COOKIE_NAME = 'rbac_test_sid';
 process.env.TOTP_ENCRYPTION_KEY_BASE64 = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
-const { buildApp } = await import('../dist/app.js');
+const { buildApp } = await import('../../src/app.js');
 
 async function fixture(names) {
   const app = await buildApp();
@@ -21,15 +21,15 @@ async function fixture(names) {
   };
   const expect = async (who, method, url, status, payload) => {
     const result = await call(who, method, url, payload);
-    assert.equal(result.status, status, `${who} ${method} ${url}: ${JSON.stringify(result.body)}`);
+    vitestExpect(result.status, `${who} ${method} ${url}: ${JSON.stringify(result.body)}`).toBe(status);
     return result.body;
   };
   return { app, accounts, expect, call };
 }
 
-test('global roles: user management and last administrator', async t => {
+it('global roles: user management and last administrator', async () => {
   const { app, accounts: a, expect } = await fixture(['admin', 'admin2', 'moderator', 'user', 'target']);
-  t.after(() => app.close());
+  onTestFinished(() => app.close());
   const service = app.testContext.usersService;
   await service.updateManagedUser('fixture', a.admin.user.id, { role: 'admin' });
   await service.updateManagedUser('fixture', a.admin2.user.id, { role: 'admin' });
@@ -39,8 +39,8 @@ test('global roles: user management and last administrator', async t => {
   for (const actor of ['moderator', 'admin']) {
     await expect(actor, 'GET', '/users?role=user&status=active', 200);
     const result = await expect(actor, 'GET', `/users/${id}`, 200);
-    assert.equal('passwordHash' in result.user, false);
-    assert.equal('secretEncrypted' in result.user, false);
+    vitestExpect('passwordHash' in result.user).toBe(false);
+    vitestExpect('secretEncrypted' in result.user).toBe(false);
   }
   for (const method of ['GET', 'PATCH', 'DELETE']) await expect('user', method, method === 'GET' ? '/users' : `/users/${id}`, 403, method === 'PATCH' ? { displayName: 'No' } : undefined);
   await expect('moderator', 'GET', '/admin/users', 403);
@@ -53,16 +53,16 @@ test('global roles: user management and last administrator', async t => {
   await expect('admin', 'PATCH', `/users/${id}`, 200, { displayName: 'Updated', status: 'disabled' });
   await expect('admin', 'DELETE', `/users/${id}`, 200);
   const page = await expect('admin', 'GET', '/users', 200);
-  assert.equal(page.users.some(user => user.id === id), false);
+  vitestExpect(page.users.some(user => user.id === id)).toBe(false);
   await expect('admin', 'GET', `/users/${id}`, 404);
   await expect('admin', 'PATCH', `/users/${a.admin2.user.id}`, 200, { role: 'user' });
   await expect('admin2', 'PATCH', `/users/${a.admin.user.id}`, 403, { role: 'user' });
-  await assert.rejects(() => service.updateManagedUser('fixture', a.admin.user.id, { role: 'user' }), error => error.code === 'LAST_ADMIN');
+  await vitestExpect(service.updateManagedUser('fixture', a.admin.user.id, { role: 'user' })).rejects.toMatchObject({ code: 'LAST_ADMIN' });
 });
 
-test('organization roles: membership, settings, boards and archive', async t => {
+it('organization roles: membership, settings, boards and archive', async () => {
   const { app, accounts: a, expect } = await fixture(['owner', 'admin', 'member', 'target', 'outsider']);
-  t.after(() => app.close());
+  onTestFinished(() => app.close());
   const org = await app.testContext.organizationsService.createOrganization({ name: 'RBAC organization', createdByUserId: a.owner.user.id });
   const base = `/organizations/${org.id}`;
   const membership = who => `${base}/members/${a[who].user.id}`;
@@ -92,9 +92,9 @@ test('organization roles: membership, settings, boards and archive', async t => 
   await expect('owner', 'GET', base, 404);
 });
 
-test('board roles: read, writes, membership and archive', async t => {
+it('board roles: read, writes, membership and archive', async () => {
   const { app, accounts: a, expect } = await fixture(['owner', 'orgadmin', 'boardadmin', 'member', 'observer', 'reader', 'outsider']);
-  t.after(() => app.close());
+  onTestFinished(() => app.close());
   const org = await app.testContext.organizationsService.createOrganization({ name: 'Board roles', createdByUserId: a.owner.user.id });
   const orgUrl = `/organizations/${org.id}`;
   for (const name of ['orgadmin', 'boardadmin', 'member', 'observer', 'reader'])

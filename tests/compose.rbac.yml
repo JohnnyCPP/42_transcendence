@@ -34,12 +34,15 @@ services:
 
   rbac-tests:
     image: taskflow-rbac-integration-backend
-    entrypoint: ["node", "--test", "/app/rbac-tests/rbac.integration.test.mjs"]
+    entrypoint: ["node", "/app/node_modules/vitest/vitest.mjs", "run", "--config", "/app/vitest.config.postgres.ts", "/app/test/integration/rbac.postgres.test.ts"]
     environment:
       DATABASE_URL: postgresql://rbac_test:rbac_test_only@postgres:5432/rbac_integration
       RBAC_INTEGRATION: isolated
+    tmpfs:
+      - /app/node_modules/.vite-temp:mode=1777
     volumes:
-      - .:/app/rbac-tests:ro
+      - ../vitest.config.postgres.ts:/app/vitest.config.postgres.ts:ro
+      - ../test/integration/rbac.postgres.test.ts:/app/test/integration/rbac.postgres.test.ts:ro
     depends_on:
       backend:
         condition: service_healthy

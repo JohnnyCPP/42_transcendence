@@ -5,30 +5,47 @@ import type { PasswordCredential } from "./authentications.types.js";
 
 export	class	PrismaAuthenticationsRepository	implements	AuthenticationsRepository
 {
-  constructor(private readonly prisma: PrismaClient) {}
+	constructor(private readonly prisma: PrismaClient) {}
 
-  async createPasswordCredential(input: PasswordCredential): Promise<void> 
-  {
-    await this.prisma.passwordCredential.create({
-      data: { userId: input.userId, passwordHash: input.passwordHash, passwordUpdatedAt: input.passwordUpdatedAt }
-    });
-  }
+	async	createPasswordCredential(input: PasswordCredential): Promise<void>
+	{
+		await this.prisma.passwordCredential.create({
 
-  async findPasswordCredential(userId: string): Promise<PasswordCredential | null> 
-  {
-    const row = await this.prisma.passwordCredential.findUnique({ where: { userId } });
-    return row ? { userId: row.userId, passwordHash: row.passwordHash, passwordUpdatedAt: row.passwordUpdatedAt } : null;
-  }
+			data: {
 
-  async updatePasswordCredential(input: PasswordCredential): Promise<void> 
-  {
-    await this.prisma.passwordCredential.update({
-      where: { userId: input.userId },
-      data: { passwordHash: input.passwordHash, passwordUpdatedAt: input.passwordUpdatedAt }
-    });
-  }
+				userId: input.userId, 
+				passwordHash: input.passwordHash, 
+				passwordUpdatedAt: input.passwordUpdatedAt 
+			}
+		});
+	}
 
-  async createLoginChallenge(input: Omit<LoginChallenge, 'id' | 'createdAt' | 'consumedAt' | 'failedAttempts'>): Promise<LoginChallenge>
+	async	findPasswordCredential(userId: string): Promise<PasswordCredential | null>
+	{
+		const	row = await this.prisma.passwordCredential.findUnique({ where: { userId } });
+
+		return row ? { 
+
+			userId: row.userId, 
+			passwordHash: row.passwordHash, 
+			passwordUpdatedAt: row.passwordUpdatedAt 
+		} : null;
+	}
+
+	async	updatePasswordCredential(input: PasswordCredential): Promise<void>
+	{
+		await this.prisma.passwordCredential.update({
+
+			where: { userId: input.userId },
+			data: { 
+
+				passwordHash: input.passwordHash, 
+				passwordUpdatedAt: input.passwordUpdatedAt 
+			}
+		});
+	}
+
+	async createLoginChallenge(input: Omit<LoginChallenge, 'id' | 'createdAt' | 'consumedAt' | 'failedAttempts'>): Promise<LoginChallenge>
   {
     const row = await this.prisma.loginChallenge.create({
       data: {
@@ -43,13 +60,14 @@ export	class	PrismaAuthenticationsRepository	implements	AuthenticationsRepositor
     return mapChallenge(row);
   }
 
-  async findLoginChallengeByTokenHash(tokenHash: string): Promise<LoginChallenge | null> 
-  {
-    const row = await this.prisma.loginChallenge.findUnique({ where: { tokenHash } });
-    return row ? mapChallenge(row) : null;
-  }
+	async	findLoginChallengeByTokenHash(tokenHash: string): Promise<LoginChallenge | null>
+	{
+		const	row = await this.prisma.loginChallenge.findUnique({ where: { tokenHash } });
 
-  async claimLoginChallenge(id: string, now: Date): Promise<boolean>
+		return row ? mapChallenge(row) : null;
+	}
+
+	async claimLoginChallenge(id: string, now: Date): Promise<boolean>
   {
     const result = await this.prisma.loginChallenge.updateMany({
       where: { id, consumedAt: null, expiresAt: { gt: now }, failedAttempts: { lt: 5 } },
@@ -58,7 +76,7 @@ export	class	PrismaAuthenticationsRepository	implements	AuthenticationsRepositor
     return result.count === 1;
   }
 
-  async recordChallengeFailure(id: string, now: Date): Promise<void>
+async recordChallengeFailure(id: string, now: Date): Promise<void>
   {
     await this.prisma.$transaction(async (tx) => {
       await tx.loginChallenge.updateMany({
@@ -72,26 +90,28 @@ export	class	PrismaAuthenticationsRepository	implements	AuthenticationsRepositor
     });
   }
 
-  async expireLoginChallenges(now: Date): Promise<void>
+async expireLoginChallenges(now: Date): Promise<void>
   {
     await this.prisma.loginChallenge.updateMany({
       where: { consumedAt: null, expiresAt: { lte: now } },
       data: { consumedAt: now }
     });
   }
+
 }
 
 function	mapChallenge(row: Awaited<ReturnType<PrismaClient["loginChallenge"]["findUnique"]>> & object): LoginChallenge
 {
-  return {
-    id: row.id,
-    userId: row.userId,
-    tokenHash: row.tokenHash,
-    createdAt: row.createdAt,
-    expiresAt: row.expiresAt,
-    consumedAt: row.consumedAt,
-    failedAttempts: row.failedAttempts,
-    ipAddress: row.ipAddress,
-    userAgent: row.userAgent
-  };
+	return {
+
+		id: row.id,
+		userId: row.userId,
+		tokenHash: row.tokenHash,
+		createdAt: row.createdAt,
+		expiresAt: row.expiresAt,
+		consumedAt: row.consumedAt,
+		failedAttempts: row.failedAttempts,
+		ipAddress: row.ipAddress,
+		userAgent: row.userAgent
+	};
 }

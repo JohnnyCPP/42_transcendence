@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import Header from './Header';
+import { HeaderActionButton } from './header/HeaderActionButton';
 import Sidebar from './Sidebar';
 
 /**
@@ -40,8 +41,12 @@ export function AppShell({
           onToggleMobileSidebar={() =>
             setIsMobileSidebarOpen((open) => !open)
           }
-          onOpenNewTaskModal={onOpenNewTaskModal}
         />
+        {onOpenNewTaskModal && (
+          <div className="flex justify-end px-6 pt-3">
+            <HeaderActionButton icon="add" label="Nueva tarea" onClick={onOpenNewTaskModal} className="border border-primary text-primary px-3 py-1.5 rounded font-semibold text-[12px] hover:bg-primary/5" />
+          </div>
+        )}
         {children}
       </main>
     </>

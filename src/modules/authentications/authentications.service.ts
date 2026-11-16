@@ -13,56 +13,54 @@ import type { UsersService } from "../users/users.service.js";
 
 export	class	AuthenticationsService
 {
-  private readonly registrationLimiter = new InMemoryRateLimiter(5, 15 * 60 * 1000);
-  private readonly passwordIdentityLimiter = new InMemoryRateLimiter(5, 15 * 60 * 1000);
-  private readonly passwordIpLimiter = new InMemoryRateLimiter(30, 15 * 60 * 1000);
-  private readonly secondFactorIpLimiter = new InMemoryRateLimiter(30, 5 * 60 * 1000);
-  private readonly reauthenticationLimiter = new InMemoryRateLimiter(5, 15 * 60 * 1000);
+	private	readonly	registrationLimiter = new InMemoryRateLimiter(5, 15 * 60 * 1000);
+	private	readonly	passwordIdentityLimiter = new InMemoryRateLimiter(5, 15 * 60 * 1000);
+	private	readonly	passwordIpLimiter = new InMemoryRateLimiter(30, 15 * 60 * 1000);
+	
+	private	readonly	secondFactorIpLimiter = new InMemoryRateLimiter(30, 5 * 60 * 1000);
+	private	readonly	reauthenticationLimiter = new InMemoryRateLimiter(5, 15 * 60 * 1000);
 
-  constructor(
-    private readonly usersService: UsersService,
-    private readonly authenticationsRepository: AuthenticationsRepository,
-    private readonly registrationRepository: RegistrationsRepository,
-    private readonly passwordHasher: PasswordHasher,
-    private readonly sessionsService: SessionsService,
-    private readonly twoFactorService: TwoFactorService
-  ) {}
+	constructor(private readonly usersService: UsersService,
+				private readonly authenticationsRepository: AuthenticationsRepository,
+				private readonly registrationsRepository: RegistrationsRepository,
+				private readonly passwordHasher: PasswordHasher,
+				private readonly sessionsService: SessionsService,
+				private readonly twoFactorService: TwoFactorService) {}
 
-  async register(input: {
-    username: string;
-    email?: string | null;
-    password: string;
-    ipAddress?: string | null;
-    userAgent?: string | null;
-  }): Promise<LoginResult> {
-    if (input.password.length < 12 || input.password.length > 128)
-      throw badRequest('Password must be between 12 and 128 characters');
+	async	register(input: {
 
-    this.registrationLimiter.consume(rateLimitKey('register-ip', input.ipAddress));
+		username: string;
+		email?: string | null;
+		password: string;
+		ipAddress?: string | null;
+		userAgent?: string | null; }): Promise<LoginResult>
+	{
+		if (input.password.length < 12 || input.password.length > 128)
+			throw badRequest("Password must be between 12 and 128 characters");
+		this.registrationLimiter.consume(rateLimitKey("register-ip", input.ipAddress));
+		const	passwordHash = await this.passwordHasher.hash(input.password);
+		const	user = await this.registrationsRepository.createUserWithCredential({
 
-    const passwordHash = await this.passwordHasher.hash(input.password);
-    const user = await this.registrationRepository.createUserWithCredential({
-      username: input.username,
-      email: input.email ?? null,
-      passwordHash,
-      passwordUpdatedAt: new Date()
-    });
+			username: input.username,
+			email: input.email ?? null,
+			passwordHash,
+			passwordUpdatedAt: new Date()
+		});
+		const	createdSession = await this.sessionsService.createSession({
 
-    const createdSession = await this.sessionsService.createSession({
-      userId: user.id,
-      ipAddress: input.ipAddress,
-      userAgent: input.userAgent
-    });
+			userId: user.id,
+			ipAddress: input.ipAddress,
+			userAgent: input.userAgent
+		});
+		return {
+			status: "authenticated",
+			user,
+			sessionToken: createdSession.token,
+			sessionExpiresAt: createdSession.session.expiresAt
+		};
+	}
 
-    return {
-      status: 'authenticated',
-      user,
-      sessionToken: createdSession.token,
-      sessionExpiresAt: createdSession.session.expiresAt
-    };
-  }
-
-  async login(input: {
+	async login(input: {
     username: string;
     password: string;
     ipAddress?: string | null;
@@ -95,7 +93,7 @@ export	class	AuthenticationsService
     });
   }
 
-  async completeTrustedLogin(input: {
+	async completeTrustedLogin(input: {
     userId: string;
     ipAddress?: string | null;
     userAgent?: string | null;
@@ -136,7 +134,7 @@ export	class	AuthenticationsService
     };
   }
 
-  async completeTwoFactorLogin(input: {
+	async completeTwoFactorLogin(input: {
     challengeToken: string;
     code: string;
     method: 'totp' | 'recovery_code';
@@ -197,49 +195,62 @@ export	class	AuthenticationsService
     };
   }
 
-  async reauthenticate(input: {
-    userId: string;
-    password: string;
-    sessionId: string;
-    secondFactorCode?: string;
-    secondFactorMethod?: 'totp' | 'recovery_code';
-  }): Promise<void> 
-  {
-    const { userId, password, sessionId, secondFactorCode, secondFactorMethod } = input;
-    const limiterKey = rateLimitKey('reauth-session', sessionId);
-    this.reauthenticationLimiter.assertAllowed(limiterKey);
-    const credential = await this.authenticationsRepository.findPasswordCredential(userId);
-    if (!credential || !(await this.passwordHasher.verify(credential.passwordHash, password))) 
-    {
-      this.reauthenticationLimiter.recordFailure(limiterKey);
-      throw unauthorized('Invalid credentials');
-    }
+	async	reauthenticate(input: {
 
-    if (await this.twoFactorService.isEnabled(userId)) 
-    {
-      if (!secondFactorCode || !secondFactorMethod) 
-      {
-        this.reauthenticationLimiter.recordFailure(limiterKey);
-        throw unauthorized('Second factor required');
-      }
+		userId: string;
+		password: string;
+		sessionId: string;
+		secondFactorCode?: string;
+		secondFactorMethod?: "totp" | "recovery_code"; }): Promise<void>
+	{
+		const	{ 
+			userId, 
+			password, 
+			sessionId, 
+			secondFactorCode, 
+			secondFactorMethod 
+		} = input;
+		const	limiterKey = rateLimitKey("reauth-session", sessionId);
 
-      const secondFactorOk =
-        secondFactorMethod === 'totp'
-          ? await this.twoFactorService.verifyTotp(userId, secondFactorCode)
-          : await this.twoFactorService.consumeRecoveryCode(userId, secondFactorCode);
+		this.reauthenticationLimiter.assertAllowed(limiterKey);
+		const	credential = await this.authenticationsRepository.findPasswordCredential(userId);
+		if (!credential || !(await this.passwordHasher.verify(credential.passwordHash, password)))
+		{
+			this.reauthenticationLimiter.recordFailure(limiterKey);
+			throw unauthorized("Invalid credentials");
+		}
+		if (await this.twoFactorService.isEnabled(userId))
+		{
+			if (!secondFactorCode || !secondFactorMethod)
+			{
+				this.reauthenticationLimiter.recordFailure(limiterKey);
+				throw unauthorized("Second factor required");
+			}
+			const	secondFactorOk = secondFactorMethod === "totp" ? await this.twoFactorService.verifyTotp(userId, secondFactorCode)
+																   : await this.twoFactorService.consumeRecoveryCode(userId, secondFactorCode);
+			if (!secondFactorOk)
+			{
+				this.reauthenticationLimiter.recordFailure(limiterKey);
+				throw unauthorized("Invalid second factor");
+			}
+		}
+		this.reauthenticationLimiter.reset(limiterKey);
+		await this.sessionsService.markReauthenticated(sessionId);
+	}
 
-      if (!secondFactorOk) 
-      {
-        this.reauthenticationLimiter.recordFailure(limiterKey);
-        throw unauthorized('Invalid second factor');
-      }
-    }
+	async	changePassword(userId: string, newPassword: string): Promise<void>
+	{
+		if (newPassword.length < 12 || newPassword.length > 128)
+			throw badRequest("Password must be between 12 and 128 characters");
+		await this.authenticationsRepository.updatePasswordCredential({
 
-    this.reauthenticationLimiter.reset(limiterKey);
-    await this.sessionsService.markReauthenticated(sessionId);
-  }
+			userId,
+			passwordHash: await this.passwordHasher.hash(newPassword),
+			passwordUpdatedAt: new Date()
+		});
+	}
 
-  async verifyPasswordForSensitiveAction(userId: string, sessionId: string, password: string): Promise<void>
+async verifyPasswordForSensitiveAction(userId: string, sessionId: string, password: string): Promise<void>
   {
     const limiterKey = rateLimitKey('reauth-session', sessionId);
     this.reauthenticationLimiter.assertAllowed(limiterKey);
@@ -251,14 +262,4 @@ export	class	AuthenticationsService
     this.reauthenticationLimiter.reset(limiterKey);
   }
 
-  async changePassword(userId: string, newPassword: string): Promise<void> 
-  {
-    if (newPassword.length < 12 || newPassword.length > 128)
-      throw badRequest('Password must be between 12 and 128 characters');
-    await this.authenticationsRepository.updatePasswordCredential({
-      userId,
-      passwordHash: await this.passwordHasher.hash(newPassword),
-      passwordUpdatedAt: new Date()
-    });
-  }
 }
