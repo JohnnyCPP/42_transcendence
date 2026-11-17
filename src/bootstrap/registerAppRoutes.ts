@@ -1,4 +1,3 @@
-import { createRateLimiter } from "../shared/http/rateLimit.js";
 import { env } from "../config/env.js";
 import { InMemoryRateLimiter } from "../shared/http/rateLimit.js";
 import { registerApiKeyRoutes } from "../modules/apiKeys/apiKeys.routes.js";

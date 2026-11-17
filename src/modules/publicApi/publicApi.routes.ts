@@ -1,4 +1,4 @@
-import { rateLimitKey } from "../../shared/http/rateLimit.js";
+import { getRateLimitKey } from "../../shared/http/rateLimit.js";
 import { requireApiKey } from "../authorization/requireApiKey.js";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { PublicApiDependencies } from "./publicApi.types.js";
@@ -23,7 +23,7 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 	typedApp = fastifyInstance.withTypeProvider<ZodTypeProvider>();
 	rateLimit = async (request: FastifyRequest, _reply: FastifyReply) => {
 
-		dependencies.rateLimiter.consume(rateLimitKey("public-api-key", request.currentApiKey!.id));
+		dependencies.rateLimiter.consume(getRateLimitKey("public-api-key", request.currentApiKey!.id));
 	};
 	guards = [
 		requireApiKey(dependencies.apiKeysService, dependencies.usersService),

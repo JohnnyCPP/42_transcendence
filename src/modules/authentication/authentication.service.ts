@@ -1,7 +1,7 @@
 import { badRequest, unauthorized } from "../../shared/errors/httpErrors.js";
 import { createRandomToken } from "../../shared/crypto/createRandomToken.js";
 import { hashToken } from "../../shared/crypto/hashToken.js";
-import { InMemoryRateLimiter, rateLimitKey } from "../../shared/http/rateLimit.js";
+import { InMemoryRateLimiter, getRateLimitKey } from "../../shared/http/rateLimit.js";
 import { securityConfig } from "../../config/security.js";
 import type { AuthenticationRepository } from "./authentication.repository.js";
 import type { LoginResult } from "./authentication.types.js";
@@ -37,7 +37,7 @@ export	class	AuthenticationService
 	{
 		if (input.password.length < 12 || input.password.length > 128)
 			throw badRequest("Password must be between 12 and 128 characters");
-		this.registrationLimiter.consume(rateLimitKey("register-ip", input.ipAddress));
+		this.registrationLimiter.consume(getRateLimitKey("register-ip", input.ipAddress));
 		const	passwordHash = await this.passwordHasher.hash(input.password);
 		const	user = await this.registrationRepository.createUserWithCredential({
 
@@ -67,8 +67,8 @@ export	class	AuthenticationService
 		ipAddress?: string | null;
 		userAgent?: string | null; }): Promise<LoginResult>
 	{
-		const	identityKey = rateLimitKey("login-identity", input.ipAddress, input.username.trim().toLowerCase());
-		const	ipKey = rateLimitKey("login-ip", input.ipAddress);
+		const	identityKey = getRateLimitKey("login-identity", input.ipAddress, input.username.trim().toLowerCase());
+		const	ipKey = getRateLimitKey("login-ip", input.ipAddress);
 
 		this.passwordIdentityLimiter.assertAllowed(identityKey);
 		this.passwordIpLimiter.assertAllowed(ipKey);
@@ -144,8 +144,8 @@ export	class	AuthenticationService
 		ipAddress?: string | null;
 		userAgent?: string | null; }): Promise<LoginResult>
 	{
-		const	challengeKey = rateLimitKey("2fa-challenge", input.challengeToken);
-		const	ipKey = rateLimitKey("2fa-ip", input.ipAddress);
+		const	challengeKey = getRateLimitKey("2fa-challenge", input.challengeToken);
+		const	ipKey = getRateLimitKey("2fa-ip", input.ipAddress);
 
 		this.secondFactorChallengeLimiter.assertAllowed(challengeKey);
 		this.secondFactorIpLimiter.assertAllowed(ipKey);
@@ -200,7 +200,7 @@ export	class	AuthenticationService
 			secondFactorCode, 
 			secondFactorMethod 
 		} = input;
-		const	limiterKey = rateLimitKey("reauth-session", sessionId);
+		const	limiterKey = getRateLimitKey("reauth-session", sessionId);
 
 		this.reauthenticationLimiter.assertAllowed(limiterKey);
 		const	credential = await this.authenticationRepository.findPasswordCredential(userId);

@@ -97,16 +97,10 @@ export	class	InMemoryRateLimiter
  * the meaning of hashing <scope> and <parts> is to avoid 
  * sensitive data from being present in memory
  */
-export	function	rateLimitKey(scope: string, 
+export	function	getRateLimitKey(scope: string, 
 								 ...parts: Array<string | null | undefined>): string
 {
 	return createHash("sha256").update([scope, 
 									    ...parts.map((part) => part ?? "unknown")].join("\0"))
 							   .digest("hex");
-}
-
-export	function	createRateLimiter(): InMemoryRateLimiter
-{
-	return new InMemoryRateLimiter(env.PUBLIC_API_RATE_LIMIT_RPM,
-								   env.PUBLIC_API_RATE_LIMIT_WINDOW_MS);
 }
