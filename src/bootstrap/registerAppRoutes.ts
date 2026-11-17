@@ -1,9 +1,13 @@
+import { createRateLimiter } from "../shared/http/rateLimit.js";
+import { env } from "../config/env.js";
+import { InMemoryRateLimiter } from "../shared/http/rateLimit.js";
 import { registerApiKeyRoutes } from "../modules/apiKeys/apiKeys.routes.js";
 import { registerAuthenticationRoutes } from "../modules/authentication/authentication.routes.js";
 import { registerBoardRoutes } from "../modules/boards/boards.routes.js";
 import { registerCardRoutes } from "../modules/cards/cards.routes.js";
 import { registerListRoutes } from "../modules/lists/lists.routes.js";
 import { registerOrganizationRoutes } from "../modules/organizations/organizations.routes.js";
+import { registerPublicApiRoutes } from "../modules/publicApi/publicApi.routes.js";
 import { registerTwoFactorRoutes } from "../modules/two_factor/twoFactor.routes.js";
 import { registerUiRoutes } from "../ui/ui.routes.js";
 import { registerUserRoutes } from "../modules/users/users.routes.js";
@@ -13,6 +17,8 @@ import type { Services } from "./createServices.js";
 export	async	function	registerAppRoutes(fastifyInstance: FastifyInstance,
 									  		  services: Services): Promise<void>
 {
+	let	rateLimiter;
+
 	await registerApiKeyRoutes(fastifyInstance, services.apiKeysService, services.sessionsService);
 	await registerAuthenticationRoutes(fastifyInstance, services.authenticationService, services.sessionsService);
 	await registerBoardRoutes(fastifyInstance, services.boardsService, services.sessionsService);
@@ -22,4 +28,12 @@ export	async	function	registerAppRoutes(fastifyInstance: FastifyInstance,
 	await registerTwoFactorRoutes(fastifyInstance, services.twoFactorService, services.sessionsService);
 	await registerUiRoutes(fastifyInstance);
 	await registerUserRoutes(fastifyInstance, services.sessionsService, services.usersService);
+	rateLimiter = new InMemoryRateLimiter(env.PUBLIC_API_RATE_LIMIT_RPM, env.PUBLIC_API_RATE_LIMIT_WINDOW_MS);
+	await registerPublicApiRoutes(fastifyInstance, {
+
+		apiKeysService: services.apiKeysService,
+		usersService: services.usersService,
+		boardsService: services.boardsService,
+		rateLimiter
+	});
 }

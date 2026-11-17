@@ -8,7 +8,7 @@ export	function	registerErrorHandlers(fastifyInstance: FastifyInstance): void
 
 		if (error instanceof AppError)
 		{
-			return reply.status(error.statusCode).send({
+			return reply.headers(error.headers).status(error.statusCode).send({
 
 				error: error.code, 
 				message: error.message 
