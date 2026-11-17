@@ -32,6 +32,7 @@
     "@mermaid-js/mermaid-cli": "^11.17.1",
     "@types/node": "^24.10.1",
     "@vitest/coverage-v8": "^5.1.0",
+    "pino-pretty": "^13.2.0",
     "prisma": "^6.16.0",
     "prisma-erd-generator": "^3.2.1",
     "puppeteer": "^25.17.0",

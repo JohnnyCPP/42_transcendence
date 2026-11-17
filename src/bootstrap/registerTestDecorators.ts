@@ -3,6 +3,7 @@ import "./testContext.types.js";
 import type { FastifyInstance } from "fastify";
 import type { Repositories } from "./createRepositories.js";
 import type { Services } from "./createServices.js";
+import type { UsersRepository } from "../modules/users/users.repository.js";
 
 export	function	registerTestDecorators(fastifyInstance: FastifyInstance, 
 										   services: Services, 
@@ -13,6 +14,7 @@ export	function	registerTestDecorators(fastifyInstance: FastifyInstance,
 	fastifyInstance.decorate("testContext", {
 
 		...services,
-		authenticationRepository: repositories.authenticationRepository
+		authenticationRepository: repositories.authenticationRepository,
+		usersRepository: repositories.usersRepository
 	});
 }

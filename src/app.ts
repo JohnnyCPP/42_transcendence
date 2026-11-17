@@ -8,11 +8,30 @@ import { registerAppRoutes } from "./bootstrap/registerAppRoutes.js";
 import { registerErrorHandlers } from "./bootstrap/registerErrorHandlers.js";
 import { registerHealthCheck } from "./bootstrap/registerHealthCheck.js";
 import { registerTestDecorators } from "./bootstrap/registerTestDecorators.js";
+import { requireApiKey } from "./modules/authorization/requireApiKey.js";
 import type { PrismaClient } from "@prisma/client";
 
 export async function buildApp() 
 {
-	const	fastifyInstance = Fastify({ logger: env.NODE_ENV !== "test" });
+	const	envToLogger = {
+		development: {
+
+			level: "debug",
+			transport: {
+
+			  target: "pino-pretty",
+			  options: { 
+				  translateTime: "HH:MM:ss Z", 
+				  ignore: "pid,hostname" 
+			  }
+			}
+		},
+		production: {
+			level: "info"
+		},
+		test: false
+	};
+	const	fastifyInstance = Fastify({ logger: envToLogger[env.NODE_ENV] ?? true });
 	const	prismaClient: PrismaClient | null = createPrismaClient();
 
 	await configureHttpServer(fastifyInstance);
@@ -26,5 +45,17 @@ export async function buildApp()
 	registerErrorHandlers(fastifyInstance);
 	registerHealthCheck(fastifyInstance, prismaClient);
 	await registerAppRoutes(fastifyInstance, services);
+
+	if (env.NODE_ENV === "test")
+	{
+		fastifyInstance.get("/__test/api-key-ping", {
+			preHandler: requireApiKey(services.apiKeysService, services.usersService)
+		}, async (request) => ({
+
+			userId: request.currentUser!.id,
+			keyId: request.currentApiKey!.id
+		}));
+	}
+
 	return fastifyInstance;
 }
