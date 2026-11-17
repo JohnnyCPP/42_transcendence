@@ -4,13 +4,13 @@ import { BoardsService } from "../modules/boards/boards.service.js";
 import { CardsService } from "../modules/cards/cards.service.js";
 import { ListsService } from "../modules/lists/lists.service.js";
 import { OrganizationsService } from "../modules/organizations/organizations.service.js";
-import { RecoveryCodesService } from "../modules/two_factor/recoveryCodes.service.js";
+import { RecoveryCodesService } from "../modules/twoFactor/recoveryCodes.service.js";
 import { ScryptPasswordHasher } from "../shared/crypto/passwordHasher.js";
 import { SecretBox } from "../shared/crypto/encryption.js";
 import { securityConfig } from "../config/security.js";
 import { SessionsService } from "../modules/sessions/sessions.service.js";
-import { TotpService } from "../modules/two_factor/totp.service.js";
-import { TwoFactorService } from "../modules/two_factor/twoFactor.service.js";
+import { TotpService } from "../modules/twoFactor/totp.service.js";
+import { TwoFactorService } from "../modules/twoFactor/twoFactor.service.js";
 import { UsersService } from "../modules/users/users.service.js";
 import type { Repositories } from "./createRepositories.js";
 

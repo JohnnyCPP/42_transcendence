@@ -7,7 +7,7 @@ import { registerCardRoutes } from "../modules/cards/cards.routes.js";
 import { registerListRoutes } from "../modules/lists/lists.routes.js";
 import { registerOrganizationRoutes } from "../modules/organizations/organizations.routes.js";
 import { registerPublicApiRoutes } from "../modules/publicApi/publicApi.routes.js";
-import { registerTwoFactorRoutes } from "../modules/two_factor/twoFactor.routes.js";
+import { registerTwoFactorRoutes } from "../modules/twoFactor/twoFactor.routes.js";
 import { registerUiRoutes } from "../ui/ui.routes.js";
 import { registerUserRoutes } from "../modules/users/users.routes.js";
 import type { FastifyInstance } from "fastify";

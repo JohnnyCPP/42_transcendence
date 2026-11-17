@@ -6,7 +6,7 @@ import { InMemoryCardsRepository } from "../modules/cards/cards.repository.js";
 import { InMemoryOrganizationsRepository } from "../modules/organizations/organizations.repository.js";
 import { InMemoryRegistrationRepository } from "../modules/authentication/registration.repository.js";
 import { InMemorySessionsRepository } from "../modules/sessions/sessions.repository.js";
-import { InMemoryTwoFactorRepository } from "../modules/two_factor/twoFactor.repository.js";
+import { InMemoryTwoFactorRepository } from "../modules/twoFactor/twoFactor.repository.js";
 import { InMemoryUsersRepository } from "../modules/users/users.repository.js";
 import { InMemoryListsRepository } from "../modules/lists/lists.repository.js";
 import { PrismaApiKeysRepository } from "../modules/apiKeys/apiKeys.prismaRepository.js";
@@ -17,7 +17,7 @@ import { PrismaListsRepository } from "../modules/lists/lists.prismaRepository.j
 import { PrismaOrganizationsRepository } from "../modules/organizations/organizations.prismaRepository.js";
 import { PrismaRegistrationRepository } from "../modules/authentication/registration.prismaRepository.js";
 import { PrismaSessionsRepository } from "../modules/sessions/sessions.prismaRepository.js";
-import { PrismaTwoFactorRepository } from "../modules/two_factor/twoFactor.prismaRepository.js";
+import { PrismaTwoFactorRepository } from "../modules/twoFactor/twoFactor.prismaRepository.js";
 import { PrismaUsersRepository } from "../modules/users/users.prismaRepository.js";
 import type { ApiKeysRepository } from "../modules/apiKeys/apiKeys.repository.js";
 import type { AuthenticationRepository } from "../modules/authentication/authentication.repository.js";
@@ -28,7 +28,7 @@ import type { OrganizationsRepository } from "../modules/organizations/organizat
 import type { PrismaClient } from "@prisma/client";
 import type { RegistrationRepository } from "../modules/authentication/registration.repository.js";
 import type { SessionsRepository } from "../modules/sessions/sessions.repository.js";
-import type { TwoFactorRepository } from "../modules/two_factor/twoFactor.repository.js";
+import type { TwoFactorRepository } from "../modules/twoFactor/twoFactor.repository.js";
 import type { UsersRepository } from "../modules/users/users.repository.js";
 
 export	type	Repositories = 

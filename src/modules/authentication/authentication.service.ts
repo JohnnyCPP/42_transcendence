@@ -8,7 +8,7 @@ import type { LoginResult } from "./authentication.types.js";
 import type { PasswordHasher } from "../../shared/crypto/passwordHasher.js";
 import type { RegistrationRepository } from "./registration.repository.js";
 import type { SessionsService } from "../sessions/sessions.service.js";
-import type { TwoFactorService } from "../two_factor/twoFactor.service.js";
+import type { TwoFactorService } from "../twoFactor/twoFactor.service.js";
 import type { UsersService } from "../users/users.service.js";
 
 export	class	AuthenticationService
