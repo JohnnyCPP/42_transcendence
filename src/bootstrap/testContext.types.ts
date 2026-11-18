@@ -1,12 +1,14 @@
 import type { ApiKeysService } from "../modules/apiKeys/apiKeys.service.js";
-import type { AuthenticationsRepository } from "../modules/authentications/authentications.repository.js";
-import type { AuthenticationsService } from "../modules/authentications/authentications.service.js";
+import type { AuthenticationRepository } from "../modules/authentication/authentication.repository.js";
+import type { AuthenticationService } from "../modules/authentication/authentication.service.js";
 import type { BoardsService } from "../modules/boards/boards.service.js";
 import type { CardsService } from "../modules/cards/cards.service.js";
 import type { ListsService } from "../modules/lists/lists.service.js";
 import type { OrganizationsService } from "../modules/organizations/organizations.service.js";
+import type { PublicApiService } from "../modules/publicApi/publicApi.service.js";
 import type { SessionsService } from "../modules/sessions/sessions.service.js";
-import type { TwoFactorService } from "../modules/two_factor/twoFactor.service.js";
+import type { TwoFactorService } from "../modules/twoFactor/twoFactor.service.js";
+import type { UsersRepository } from "../modules/users/users.repository.js";
 import type { UsersService } from "../modules/users/users.service.js";
 
 // the types listed in the testContext object must match 
@@ -23,14 +25,16 @@ declare module "fastify" {
 			testContext: {
 
 			apiKeysService: ApiKeysService;
-			authenticationsService: AuthenticationsService;
-			authenticationsRepository: AuthenticationsRepository;
+			authenticationService: AuthenticationService;
+			authenticationRepository: AuthenticationRepository;
 			boardsService: BoardsService;
 			cardsService: CardsService;
 			listsService: ListsService;
 			organizationsService: OrganizationsService;
+			publicApiService: PublicApiService;
 			sessionsService: SessionsService;
 			twoFactorService: TwoFactorService;
+			usersRepository: UsersRepository;
 			usersService: UsersService;
 		};
 	}

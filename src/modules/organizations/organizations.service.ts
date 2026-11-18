@@ -26,6 +26,11 @@ export class OrganizationsService
     return this.organizationsRepository.listForUser(userId, pagination);
   }
 
+	listOrganizationIds(userId: string): Promise<string[]>
+	{
+		return this.organizationsRepository.listOrganizationIds(userId);
+	}
+
   async getOrganizationForUser(organizationId: string, userId: string): Promise<OrganizationWithRole>
    {
     const organization = await this.organizationsRepository.findForUser(organizationId, userId);
