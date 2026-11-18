@@ -24,12 +24,12 @@ export async function registerTwoFactorRoutes(
 ) {
   const typedApp = app.withTypeProvider<ZodTypeProvider>();
 
-  typedApp.post('/2fa/setup', { preHandler: requireAuth(sessionsService) }, async (request) => {
+  typedApp.post('/api/v1/two-factor/begin', { preHandler: requireAuth(sessionsService) }, async (request) => {
     assertRecentReauthentication(request.currentSession!.reauthenticatedAt);
     return twoFactorService.beginTotpSetup(request.currentUser!.id);
   });
 
-  typedApp.post('/2fa/confirm', {
+  typedApp.post('/api/v1/two-factor/confirm', {
     preHandler: requireAuth(sessionsService),
     schema: { body: confirmTotpSchema }
   }, async (request) => {
@@ -39,13 +39,13 @@ export async function registerTwoFactorRoutes(
     return { recoveryCodes };
   });
 
-  app.post('/2fa/recovery-codes/regenerate', { preHandler: requireAuth(sessionsService) }, async (request) => {
+  typedApp.post('/api/v1/two-factor/regenerate', { preHandler: requireAuth(sessionsService) }, async (request) => {
     assertRecentReauthentication(request.currentSession!.reauthenticatedAt);
     const recoveryCodes = await twoFactorService.regenerateRecoveryCodes(request.currentUser!.id);
     return { recoveryCodes };
   });
 
-  app.delete('/2fa', { preHandler: requireAuth(sessionsService) }, async (request) => {
+  typedApp.delete('/api/v1/two-factor', { preHandler: requireAuth(sessionsService) }, async (request) => {
     assertRecentReauthentication(request.currentSession!.reauthenticatedAt);
     await twoFactorService.disableTwoFactor(request.currentUser!.id);
     await sessionsService.revokeOtherUserSessions(request.currentUser!.id, request.currentSession!.id);

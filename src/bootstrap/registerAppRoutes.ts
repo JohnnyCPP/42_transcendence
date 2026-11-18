@@ -8,7 +8,6 @@ import { registerListRoutes } from "../modules/lists/lists.routes.js";
 import { registerOrganizationRoutes } from "../modules/organizations/organizations.routes.js";
 import { registerPublicApiRoutes } from "../modules/publicApi/publicApi.routes.js";
 import { registerTwoFactorRoutes } from "../modules/twoFactor/twoFactor.routes.js";
-import { registerUiRoutes } from "../ui/ui.routes.js";
 import { registerUserRoutes } from "../modules/users/users.routes.js";
 import type { FastifyInstance } from "fastify";
 import type { Services } from "./createServices.js";
@@ -25,7 +24,6 @@ export	async	function	registerAppRoutes(fastifyInstance: FastifyInstance,
 	await registerListRoutes(fastifyInstance, services.listsService, services.sessionsService);
 	await registerOrganizationRoutes(fastifyInstance, services.organizationsService, services.sessionsService);
 	await registerTwoFactorRoutes(fastifyInstance, services.twoFactorService, services.sessionsService);
-	await registerUiRoutes(fastifyInstance);
 	await registerUserRoutes(fastifyInstance, services.sessionsService, services.usersService);
 	rateLimiter = new InMemoryRateLimiter(env.PUBLIC_API_RATE_LIMIT_RPM, env.PUBLIC_API_RATE_LIMIT_WINDOW_MS);
 	await registerPublicApiRoutes(fastifyInstance, {

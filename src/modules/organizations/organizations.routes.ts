@@ -34,7 +34,7 @@ export async function registerOrganizationRoutes(
 ) {
   const typedApp = app.withTypeProvider<ZodTypeProvider>();
 
-  typedApp.post('/organizations', {
+  typedApp.post('/api/v1/organizations', {
     preHandler: requireAuth(sessionsService),
     schema: { body: createOrganizationSchema }
   }, async (request) => {
@@ -46,7 +46,7 @@ export async function registerOrganizationRoutes(
     return { organization };
   });
 
-  typedApp.get('/organizations', {
+  typedApp.get('/api/v1/organizations', {
     preHandler: requireAuth(sessionsService),
     schema: { querystring: paginationQuerySchema }
   }, async (request) => {
@@ -54,7 +54,7 @@ export async function registerOrganizationRoutes(
     return { organizations: page.items, pagination: paginationMetadata(page) };
   });
 
-  typedApp.get('/organizations/:organizationId', {
+  typedApp.get('/api/v1/organizations/:organizationId', {
     preHandler: requireAuth(sessionsService),
     schema: { params: organizationParamsSchema }
   }, async (request) => {
@@ -66,7 +66,7 @@ export async function registerOrganizationRoutes(
     return { organization };
   });
 
-  typedApp.patch('/organizations/:organizationId', {
+  typedApp.patch('/api/v1/organizations/:organizationId', {
     preHandler: requireAuth(sessionsService),
     schema: {
       params: organizationParamsSchema,
@@ -83,7 +83,7 @@ export async function registerOrganizationRoutes(
     return { organization };
   });
 
-  typedApp.put('/organizations/:organizationId/members/:userId', {
+  typedApp.put('/api/v1/organizations/:organizationId/members/:userId', {
     preHandler: requireAuth(sessionsService),
     schema: { params: organizationMemberParamsSchema, body: organizationMemberSchema }
   }, async (request) => ({

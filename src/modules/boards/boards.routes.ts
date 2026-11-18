@@ -41,7 +41,7 @@ export	async	function	registerBoardRoutes(app: FastifyInstance,
 {
 	const	typedApp = app.withTypeProvider<ZodTypeProvider>();
 
-	typedApp.get("/boards", {
+	typedApp.get("/api/v1/boards", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
@@ -58,7 +58,7 @@ export	async	function	registerBoardRoutes(app: FastifyInstance,
 		};
 	});
 
-	typedApp.delete("/boards/:boardId", {
+	typedApp.delete("/api/v1/boards/:boardId", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
@@ -72,7 +72,7 @@ export	async	function	registerBoardRoutes(app: FastifyInstance,
 		return { board };
 	});
 
-	typedApp.post("/organizations/:organizationId/boards", {
+	typedApp.post("/api/v1/organizations/:organizationId/boards", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
@@ -96,7 +96,7 @@ export	async	function	registerBoardRoutes(app: FastifyInstance,
 		return { board };
 	});
 
-	typedApp.get("/organizations/:organizationId/boards", {
+	typedApp.get("/api/v1/organizations/:organizationId/boards", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
@@ -116,7 +116,7 @@ export	async	function	registerBoardRoutes(app: FastifyInstance,
 		};
 	});
 
-	typedApp.get("/boards/:boardId", {
+	typedApp.get("/api/v1/boards/:boardId", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
@@ -132,7 +132,7 @@ export	async	function	registerBoardRoutes(app: FastifyInstance,
 		return { board };
 	});
 
-	typedApp.patch("/boards/:boardId", {
+	typedApp.patch("/api/v1/boards/:boardId", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
@@ -156,7 +156,7 @@ export	async	function	registerBoardRoutes(app: FastifyInstance,
 		return { board };
 	});
 
-	typedApp.put("/boards/:boardId/members/:userId", {
+	typedApp.put("/api/v1/boards/:boardId/members/:userId", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {

@@ -72,7 +72,7 @@ export	async	function	registerAuthenticationRoutes(fastifyInstance: FastifyInsta
 {
 	const	typedApp = fastifyInstance.withTypeProvider<ZodTypeProvider>();
 
-	typedApp.post("/auth/register", { schema: { body: registerSchema } }, async (request, reply) => {
+	typedApp.post("/api/v1/register", { schema: { body: registerSchema } }, async (request, reply) => {
 
 		const	body = request.body;
 		const	result = await authenticationService.register({
@@ -88,7 +88,7 @@ export	async	function	registerAuthenticationRoutes(fastifyInstance: FastifyInsta
 		return toPublicLoginResult(result);
 	});
 
-	typedApp.post("/auth/login", { schema: { body: loginSchema } }, async (request, reply) => {
+	typedApp.post("/api/v1/login", { schema: { body: loginSchema } }, async (request, reply) => {
 
 		const	body = request.body;
 		const	result = await authenticationService.login({
@@ -105,7 +105,7 @@ export	async	function	registerAuthenticationRoutes(fastifyInstance: FastifyInsta
 		return toPublicLoginResult(result);
 	});
 
-	typedApp.post("/auth/login/2fa", { schema: { body: twoFactorLoginSchema } }, async (request, reply) => {
+	typedApp.post("/api/v1/two-factor/login", { schema: { body: twoFactorLoginSchema } }, async (request, reply) => {
 
 		const	body = request.body;
 		const	result = await authenticationService.completeTwoFactorLogin({
@@ -122,7 +122,7 @@ export	async	function	registerAuthenticationRoutes(fastifyInstance: FastifyInsta
 		return toPublicLoginResult(result);
 	});
 
-	typedApp.post("/auth/logout", async (request, reply) => {
+	typedApp.post("/api/v1/logout", async (request, reply) => {
 
 		const	token = request.cookies[securityConfig.cookieName];
 
@@ -132,7 +132,7 @@ export	async	function	registerAuthenticationRoutes(fastifyInstance: FastifyInsta
 		return { ok: true };
 	});
 
-	typedApp.post("/auth/reauthenticate", {
+	typedApp.post("/api/v1/reauthenticate", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: { body: reauthenticateSchema }
@@ -151,7 +151,7 @@ export	async	function	registerAuthenticationRoutes(fastifyInstance: FastifyInsta
 		return { ok: true };
 	});
 
-	typedApp.post("/auth/password/change", {
+	typedApp.post("/api/v1/change-password", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: { body: changePasswordSchema }

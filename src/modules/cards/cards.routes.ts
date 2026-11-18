@@ -34,7 +34,7 @@ export	async	function	registerCardRoutes(fastifyInstance: FastifyInstance,
 {
 	const	typedApp = fastifyInstance.withTypeProvider<ZodTypeProvider>();
 
-	typedApp.post("/lists/:listId/cards", {
+	typedApp.post("/api/v1/lists/:listId/cards", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
@@ -54,7 +54,7 @@ export	async	function	registerCardRoutes(fastifyInstance: FastifyInstance,
 		return { card };
 	});
 
-	typedApp.get("/lists/:listId/cards", {
+	typedApp.get("/api/v1/lists/:listId/cards", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
@@ -72,7 +72,7 @@ export	async	function	registerCardRoutes(fastifyInstance: FastifyInstance,
 		};
 	});
 
-	typedApp.get("/cards/:cardId", {
+	typedApp.get("/api/v1/cards/:cardId", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
@@ -83,7 +83,7 @@ export	async	function	registerCardRoutes(fastifyInstance: FastifyInstance,
 		card: await cardsService.getCardForUser(request.params.cardId, request.currentUser!.id)
 	}));
 
-	typedApp.patch("/cards/:cardId", {
+	typedApp.patch("/api/v1/cards/:cardId", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
@@ -100,7 +100,7 @@ export	async	function	registerCardRoutes(fastifyInstance: FastifyInstance,
 		})
 	}));
 
-	typedApp.post("/cards/:cardId/move", {
+	typedApp.post("/api/v1/cards/:cardId/move", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
@@ -117,7 +117,7 @@ export	async	function	registerCardRoutes(fastifyInstance: FastifyInstance,
 		})
 	}));
 
-	typedApp.delete("/cards/:cardId", {
+	typedApp.delete("/api/v1/cards/:cardId", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {

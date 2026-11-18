@@ -24,12 +24,12 @@ const updateUserSchema = z.object({
 export async function registerUserRoutes(app: FastifyInstance, sessionsService: SessionsService, usersService: UsersService) 
 {
   const typedApp = app.withTypeProvider<ZodTypeProvider>();
-  app.get('/me', { preHandler: requireAuth(sessionsService) }, async (request) => ({
+  typedApp.get('/api/v1/me', { preHandler: requireAuth(sessionsService) }, async (request) => ({
     user: request.currentUser
   }));
 
   typedApp.get(
-    '/admin/users',
+    '/api/v1/admin-users',
     {
       preHandler: [requireAuth(sessionsService), requireRole(GLOBAL_ROLE.ADMIN)],
       schema: { querystring: paginationQuerySchema }
@@ -40,7 +40,7 @@ export async function registerUserRoutes(app: FastifyInstance, sessionsService: 
     }
   );
 
-  typedApp.get('/users', {
+  typedApp.get('/api/v1/users', {
     preHandler: [requireAuth(sessionsService), requireRole(GLOBAL_ROLE.MODERATOR, GLOBAL_ROLE.ADMIN)],
     schema: { querystring: listQuerySchema }
   }, async (request) => {
@@ -49,17 +49,17 @@ export async function registerUserRoutes(app: FastifyInstance, sessionsService: 
     return { users: page.items, pagination: paginationMetadata(page) };
   });
 
-  typedApp.get('/users/:id', {
+  typedApp.get('/api/v1/users/:id', {
     preHandler: [requireAuth(sessionsService), requireRole(GLOBAL_ROLE.MODERATOR, GLOBAL_ROLE.ADMIN)],
     schema: { params: userParamsSchema }
   }, async (request) => ({ user: await usersService.getManagedUser(request.params.id) }));
 
-  typedApp.patch('/users/:id', {
+  typedApp.patch('/api/v1/users/:id', {
     preHandler: [requireAuth(sessionsService), requireRole(GLOBAL_ROLE.ADMIN)],
     schema: { params: userParamsSchema, body: updateUserSchema }
   }, async (request) => ({ user: await usersService.updateManagedUser(request.currentUser!.id, request.params.id, request.body) }));
 
-  typedApp.delete('/users/:id', {
+  typedApp.delete('/api/v1/users/:id', {
     preHandler: [requireAuth(sessionsService), requireRole(GLOBAL_ROLE.ADMIN)],
     schema: { params: userParamsSchema }
   }, async (request) => ({ user: await usersService.deleteManagedUser(request.currentUser!.id, request.params.id) }));

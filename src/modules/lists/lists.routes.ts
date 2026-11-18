@@ -33,7 +33,7 @@ export	async	function	registerListRoutes(app: FastifyInstance,
 {
 	const	typedApp = app.withTypeProvider<ZodTypeProvider>();
 
-	typedApp.post("/boards/:boardId/lists", {
+	typedApp.post("/api/v1/boards/:boardId/lists", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
@@ -57,7 +57,7 @@ export	async	function	registerListRoutes(app: FastifyInstance,
 		return { list };
 	});
 
-	typedApp.get("/boards/:boardId/lists", {
+	typedApp.get("/api/v1/boards/:boardId/lists", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
@@ -77,7 +77,7 @@ export	async	function	registerListRoutes(app: FastifyInstance,
 		};
 	});
 
-	typedApp.patch("/lists/:listId", {
+	typedApp.patch("/api/v1/lists/:listId", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
@@ -101,7 +101,7 @@ export	async	function	registerListRoutes(app: FastifyInstance,
 		return { list };
 	});
 
-	typedApp.post("/boards/:boardId/lists/reorder", {
+	typedApp.post("/api/v1/boards/:boardId/lists/reorder", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
@@ -125,7 +125,7 @@ export	async	function	registerListRoutes(app: FastifyInstance,
 		return { lists };
 	});
 
-	typedApp.delete("/lists/:listId", {
+	typedApp.delete("/api/v1/lists/:listId", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
