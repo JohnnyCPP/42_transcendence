@@ -124,4 +124,18 @@ export	async	function	registerListRoutes(app: FastifyInstance,
 		});
 		return { lists };
 	});
+
+	typedApp.delete("/lists/:listId", {
+
+		preHandler: requireAuth(sessionsService),
+		schema: {
+			params: listParamsSchema
+		}
+	}, async (request) => {
+
+		let	list;
+
+		list = await listsService.archiveList(request.params.listId, request.currentUser!.id);
+		return { list };
+	});
 }

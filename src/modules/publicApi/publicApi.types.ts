@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { ApiKeysService } from "../apiKeys/apiKeys.service.js";
 import type { BoardsService } from "../boards/boards.service.js";
 import type { CardsService } from "../cards/cards.service.js";
+import type { ListsService } from "../lists/lists.service.js";
 import type { InMemoryRateLimiter } from "../../shared/http/rateLimit.js";
 import type { PublicApiService } from "../publicApi/publicApi.service.js";
 import type { UsersService } from "../users/users.service.js";
@@ -11,6 +12,7 @@ export	type	PublicApiDependencies = {
 	usersService: UsersService;
 	boardsService: BoardsService;
 	cardsService: CardsService;
+	listsService: ListsService;
 	publicApiService: PublicApiService;
 	rateLimiter: InMemoryRateLimiter;
 };

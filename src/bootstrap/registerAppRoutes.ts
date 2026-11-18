@@ -34,6 +34,7 @@ export	async	function	registerAppRoutes(fastifyInstance: FastifyInstance,
 		usersService: services.usersService,
 		boardsService: services.boardsService,
 		cardsService: services.cardsService,
+		listsService: services.listsService,
 		publicApiService: services.publicApiService,
 		rateLimiter
 	});

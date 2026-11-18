@@ -207,4 +207,31 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 		});
 		return reply.status(201).send({ card });
 	});
+
+	typedApp.delete("/api/v1/lists/:listId", {
+
+		preHandler: guards,
+		schema: {
+			params: z.object({ listId: z.string().min(1) }),
+			response: {
+				200: z.object({
+					list: z.object({
+						id: z.string(),
+						boardId: z.string(),
+						name: z.string(),
+						position: z.number().int()
+					})
+				})
+			}
+		}
+	}, async (request) => {
+
+		let	list;
+
+		list = await dependencies.listsService.archiveList(
+			request.params.listId,
+			request.currentUser!.id
+		);
+		return { list };
+	});
 }

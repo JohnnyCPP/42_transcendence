@@ -54,4 +54,12 @@ export	class	ListsService
 		await this.boardsService.getByBoardIdAndUserId(input.boardId, input.actorUserId, "write");
 		return this.listsRepository.reorder(input);
 	}
+
+	async archiveList(listId: string, actorUserId: string): Promise<BoardList>
+	{
+		let	list;
+
+		list = await this.getByListIdAndUserId(listId, actorUserId, "write");
+		return this.listsRepository.archive(list.id);
+	}
 }
