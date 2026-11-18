@@ -1,3 +1,10 @@
+import {
+	createOrganizationDocs,
+	getOrganizationDocs,
+	listOrganizationsDocs,
+	setOrganizationMemberRoleDocs,
+	updateOrganizationDocs
+} from "./organizations.types.js";
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
@@ -36,7 +43,14 @@ export async function registerOrganizationRoutes(
 
   typedApp.post('/api/v1/organizations', {
     preHandler: requireAuth(sessionsService),
-    schema: { body: createOrganizationSchema }
+    schema: { 
+			tags: createOrganizationDocs.tags,
+			summary: createOrganizationDocs.summary,
+			description: createOrganizationDocs.description,
+			body: createOrganizationDocs.body,
+			response: createOrganizationDocs.response,
+			security: createOrganizationDocs.security
+	}
   }, async (request) => {
     const body = request.body;
     const organization = await organizationsService.createOrganization({
@@ -48,7 +62,14 @@ export async function registerOrganizationRoutes(
 
   typedApp.get('/api/v1/organizations', {
     preHandler: requireAuth(sessionsService),
-    schema: { querystring: paginationQuerySchema }
+    schema: {
+			tags: listOrganizationsDocs.tags,
+			summary: listOrganizationsDocs.summary,
+			description: listOrganizationsDocs.description,
+			querystring: listOrganizationsDocs.querystring,
+			response: listOrganizationsDocs.response,
+			security: listOrganizationsDocs.security
+	}
   }, async (request) => {
     const page = await organizationsService.listUserOrganizations(request.currentUser!.id, request.query);
     return { organizations: page.items, pagination: paginationMetadata(page) };
@@ -56,7 +77,14 @@ export async function registerOrganizationRoutes(
 
   typedApp.get('/api/v1/organizations/:organizationId', {
     preHandler: requireAuth(sessionsService),
-    schema: { params: organizationParamsSchema }
+    schema: {
+			tags: getOrganizationDocs.tags,
+			summary: getOrganizationDocs.summary,
+			description: getOrganizationDocs.description,
+			params: getOrganizationDocs.params,
+			response: getOrganizationDocs.response,
+			security: getOrganizationDocs.security
+	}
   }, async (request) => {
     const params = request.params;
     const organization = await organizationsService.getOrganizationForUser(
@@ -69,8 +97,13 @@ export async function registerOrganizationRoutes(
   typedApp.patch('/api/v1/organizations/:organizationId', {
     preHandler: requireAuth(sessionsService),
     schema: {
-      params: organizationParamsSchema,
-      body: updateOrganizationSchema
+			tags: updateOrganizationDocs.tags,
+			summary: updateOrganizationDocs.summary,
+			description: updateOrganizationDocs.description,
+			params: updateOrganizationDocs.params,
+			body: updateOrganizationDocs.body,
+			response: updateOrganizationDocs.response,
+			security: updateOrganizationDocs.security
     }
   }, async (request) => {
     const params = request.params;
@@ -85,7 +118,15 @@ export async function registerOrganizationRoutes(
 
   typedApp.put('/api/v1/organizations/:organizationId/members/:userId', {
     preHandler: requireAuth(sessionsService),
-    schema: { params: organizationMemberParamsSchema, body: organizationMemberSchema }
+    schema: {
+			tags: setOrganizationMemberRoleDocs.tags,
+			summary: setOrganizationMemberRoleDocs.summary,
+			description: setOrganizationMemberRoleDocs.description,
+			params: setOrganizationMemberRoleDocs.params,
+			body: setOrganizationMemberRoleDocs.body,
+			response: setOrganizationMemberRoleDocs.response,
+			security: setOrganizationMemberRoleDocs.security
+	}
   }, async (request) => ({
     member: await organizationsService.setOrganizationMemberRole({
       organizationId: request.params.organizationId,
