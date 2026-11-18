@@ -110,7 +110,7 @@ export	const	listMyBoardsDocs = {
 			boards: z.array(boardSchema),
 			pagination: paginationSchema
 		}).describe("Paginated list of boards."),
-		401: boardErrorSchema.describe("Authentication required")
+		401: boardErrorSchema.describe("Authentication required.")
 	}
 } as const;
 

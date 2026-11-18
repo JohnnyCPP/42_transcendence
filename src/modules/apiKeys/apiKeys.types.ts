@@ -71,8 +71,8 @@ export	const	createApiKeyDocs = {
 
 	response: {
 		201: createApiKeyResultSchema.describe("The created key plus its one-time plaintext."),
-		400: apiKeyErrorSchema.describe("Validation error"),
-		401: apiKeyErrorSchema.describe("Authentication required")
+		400: apiKeyErrorSchema.describe("Validation error."),
+		401: apiKeyErrorSchema.describe("Authentication required.")
 	}
 } as const;
 
@@ -109,7 +109,7 @@ export	const	revokeApiKeyDocs = {
 
 	response: {
 		200: apiKeyPublicSchema.describe("The revoked key record."),
-		401: apiKeyErrorSchema.describe("Authentication required"),
-		404: apiKeyErrorSchema.describe("API key not found or not owned by the caller")
+		401: apiKeyErrorSchema.describe("Authentication required."),
+		404: apiKeyErrorSchema.describe("API key not found or not owned by the caller.")
 	}
 } as const;

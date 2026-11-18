@@ -1,3 +1,11 @@
+import {
+	archiveCardDocs,
+	createCardDocs,
+	getCardDocs,
+	listCardsDocs,
+	moveCardDocs,
+	updateCardDocs
+} from "./cards.types.js";
 import { paginationMetadata } from "../../shared/pagination.js";
 import { paginationQuerySchema } from "../../shared/http/pagination.js";
 import { requireAuth } from "../authorization/requireAuth.js";
@@ -6,27 +14,6 @@ import type { CardsService } from "./cards.service.js";
 import type { FastifyInstance } from "fastify";
 import type { SessionsService } from "../sessions/sessions.service.js";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
-
-const	listParamsSchema = z.object({
-	listId: z.string().min(1)
-});
-
-const	cardParamsSchema = z.object({
-	cardId: z.string().min(1)
-});
-
-const	createCardSchema = z.object({
-
-	title: z.string().trim().min(1).max(200),
-	description: z.string().trim().max(5000).optional().nullable(),
-	dueDate: z.coerce.date().nullable().optional()
-});
-
-const	updateCardSchema = createCardSchema.partial();
-
-const	moveCardSchema = z.object({
-	targetListId: z.string().min(1)
-});
 
 export	async	function	registerCardRoutes(fastifyInstance: FastifyInstance,
 											   cardsService: CardsService,
@@ -38,8 +25,13 @@ export	async	function	registerCardRoutes(fastifyInstance: FastifyInstance,
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
-			params: listParamsSchema,
-			body: createCardSchema 
+					tags: createCardDocs.tags,
+					summary: createCardDocs.summary,
+					description: createCardDocs.description,
+					params: createCardDocs.params,
+					body: createCardDocs.body,
+					response: createCardDocs.response,
+					security: []
 		}
 	}, async (request) => {
 
@@ -58,8 +50,13 @@ export	async	function	registerCardRoutes(fastifyInstance: FastifyInstance,
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
-			params: listParamsSchema, 
-			querystring: paginationQuerySchema 
+					tags: listCardsDocs.tags,
+					summary: listCardsDocs.summary,
+					description: listCardsDocs.description,
+					params: listCardsDocs.params,
+					querystring: paginationQuerySchema,
+					response: listCardsDocs.response,
+					security: []
 		}
 	}, async (request) => {
 
@@ -76,7 +73,12 @@ export	async	function	registerCardRoutes(fastifyInstance: FastifyInstance,
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
-			params: cardParamsSchema
+					tags: getCardDocs.tags,
+					summary: getCardDocs.summary,
+					description: getCardDocs.description,
+					params: getCardDocs.params,
+					response: getCardDocs.response,
+					security: []
 		}
 	}, async (request) => ({
 
@@ -87,8 +89,13 @@ export	async	function	registerCardRoutes(fastifyInstance: FastifyInstance,
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
-			params: cardParamsSchema,
-			body: updateCardSchema
+					tags: updateCardDocs.tags,
+					summary: updateCardDocs.summary,
+					description: updateCardDocs.description,
+					params: updateCardDocs.params,
+					body: updateCardDocs.body,
+					response: updateCardDocs.response,
+					security: []
 		}
 	}, async (request) => ({
 
@@ -104,8 +111,13 @@ export	async	function	registerCardRoutes(fastifyInstance: FastifyInstance,
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
-			params: cardParamsSchema,
-			body: moveCardSchema
+					tags: moveCardDocs.tags,
+					summary: moveCardDocs.summary,
+					description: moveCardDocs.description,
+					params: moveCardDocs.params,
+					body: moveCardDocs.body,
+					response: moveCardDocs.response,
+					security: []
 		}
 	}, async (request) => ({
 
@@ -121,7 +133,12 @@ export	async	function	registerCardRoutes(fastifyInstance: FastifyInstance,
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
-			params: cardParamsSchema
+					tags: archiveCardDocs.tags,
+					summary: archiveCardDocs.summary,
+					description: archiveCardDocs.description,
+					params: archiveCardDocs.params,
+					response: archiveCardDocs.response,
+					security: []
 		}
 	}, async (request) => {
 
@@ -129,6 +146,6 @@ export	async	function	registerCardRoutes(fastifyInstance: FastifyInstance,
 			cardId: request.params.cardId,
 			actorUserId: request.currentUser!.id
 		});
-		return { ok: true };
+		return { ok: true } as const;
 	});
 }
