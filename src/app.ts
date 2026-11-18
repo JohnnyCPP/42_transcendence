@@ -7,6 +7,7 @@ import Fastify from "fastify";
 import { registerAppRoutes } from "./bootstrap/registerAppRoutes.js";
 import { registerErrorHandlers } from "./bootstrap/registerErrorHandlers.js";
 import { registerHealthCheck } from "./bootstrap/registerHealthCheck.js";
+import { registerSwagger } from "./bootstrap/registerSwagger.js";
 import { registerTestDecorators } from "./bootstrap/registerTestDecorators.js";
 import { requireApiKey } from "./modules/authorization/requireApiKey.js";
 import type { PrismaClient } from "@prisma/client";
@@ -44,7 +45,11 @@ export async function buildApp()
 	registerTestDecorators(fastifyInstance, services, repositories);
 	registerErrorHandlers(fastifyInstance);
 	registerHealthCheck(fastifyInstance, prismaClient);
+	await registerSwagger(fastifyInstance);
 	await registerAppRoutes(fastifyInstance, services);
+
+	await fastifyInstance.ready();
+	console.log(fastifyInstance.printRoutes());
 
 	if (env.NODE_ENV === "test")
 	{

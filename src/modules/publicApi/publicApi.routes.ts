@@ -1,12 +1,16 @@
 import {
-	boardParamsSchema,
 	boardDetailSchema,
-	createBoardApiSchema,
-	updateBoardApiSchema,
+	boardParamsSchema,
 	boardSummarySchema,
-	createCardApiSchema,
 	cardSummarySchema,
-	paginatedBoardsSchema
+	createBoardApiSchema,
+	createCardApiSchema,
+	commonErrors,
+	errorSchema,
+	listParamsSchema,
+	listSummarySchema,
+	paginatedBoardsSchema,
+	updateBoardApiSchema
 } from "./publicApi.types.js";
 import { getRateLimitKey } from "../../shared/http/rateLimit.js";
 import { requireApiKey } from "../authorization/requireApiKey.js";
@@ -45,13 +49,25 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 
 		preHandler: guards,
 		schema: {
+
+			tags: ["Boards"],
+
+			summary: "List accessible boards",
+
+			description:
+				"Returns every non-archived board the API key owner can access. " +
+				"Use `organizationId` to restrict results to a single organization; " +
+				"omitting it returns boards across all organizations the owner belongs to.",
+
 			querystring: z.object({
 				organizationId: z.string().min(1).optional(),
 				limit: z.coerce.number().int().min(1).max(100).default(50),
 				offset: z.coerce.number().int().min(0).default(0)
 			}),
+
 			response: {
-				200: paginatedBoardsSchema
+				200: paginatedBoardsSchema.describe("Paginated list of boards."),
+				...commonErrors
 			}
 		}
 	}, async (request) => {
@@ -86,11 +102,20 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 
 		preHandler: guards,
 		schema: {
+
+			tags: ["Boards"],
+
+			summary: "Get a board with its lists and cards",
+
+			description:
+				"Returns a board along with all of its active lists and cards. " +
+				"Responds with 404 (not 403) when the board is inaccessible, " +
+				"to avoid leaking the existence of other users' boards.",
+
 			params: boardParamsSchema,
+
 			response: {
-				200: z.object({
-					board: boardDetailSchema
-				})
+				200: z.object({ board: boardDetailSchema }).describe("Board with nested lists and cards."),
 			}
 		}
 	}, async (request) => {
@@ -114,11 +139,20 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 
 		preHandler: guards,
 		schema: {
+			
+			tags: ["Boards"],
+
+			summary: "Create a board",
+
+			description:
+				"Creates a board in the given organization. The API key owner must be " +
+				"an `owner` or `admin` of that organization. Responds with 404 if the " +
+				"organization does not exist or the owner is not a member.",
+
 			body: createBoardApiSchema,
+
 			response: {
-				201: z.object({
-					board: boardSummarySchema
-				})
+				201: z.object({ board: boardSummarySchema }).describe("Board that was created."),
 			}
 		}
 	}, async (request, reply) => {
@@ -139,12 +173,22 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 
 		preHandler: guards,
 		schema: {
+
+			tags: ["Boards"],
+
+			summary: "Update a board",
+
+			description:
+				"Updates a board's name and/or description. Both fields are optional, " +
+				"but at least one must be supplied. The API key owner must be a board " +
+				"`admin`. Responds with 404 when the board is inaccessible.",
+
 			params: boardParamsSchema,
+
 			body: updateBoardApiSchema,
+
 			response: {
-				200: z.object({
-					board: boardSummarySchema
-				})
+				200: z.object({ board: boardSummarySchema }).describe("Board that was updated."),
 			}
 		}
 	}, async (request) => {
@@ -164,11 +208,20 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 
 		preHandler: guards,
 		schema: {
+
+			tags: ["Boards"],
+
+			summary: "Archive a board",
+
+			description:
+				"Archives a board. Archived boards disappear " +
+				"from listings and become inaccessible: a second DELETE on the same " +
+				"board returns 404 because the board is no longer readable.",
+
 			params: boardParamsSchema,
+
 			response: {
-				200: z.object({
-					board: boardSummarySchema
-				})
+				200: z.object({ board: boardSummarySchema }).describe("Board that was archived."),
 			}
 		}
 	}, async (request) => {
@@ -187,11 +240,20 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 
 		preHandler: guards,
 		schema: {
+
+			tags: ["Cards"],
+
+			summary: "Create a card",
+
+			description:
+				"Creates a card in the given list. The list id uniquely identifies the " +
+				"target list, so the parent board does not need to be supplied. The API " +
+				"key owner must have write access to the list.",
+
 			body: createCardApiSchema,
+
 			response: {
-				201: z.object({
-					card: cardSummarySchema
-				})
+				201: z.object({ card: cardSummarySchema }).describe("Card that was created."),
 			}
 		}
 	}, async (request, reply) => {
@@ -212,16 +274,20 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 
 		preHandler: guards,
 		schema: {
-			params: z.object({ listId: z.string().min(1) }),
+
+			tags: ["Lists"],
+
+			summary: "Archive a list",
+
+			description:
+				"Archives a list and removes it from the board. The API key owner " +
+				"must have write access to the list's board. Responds with 404 when the " +
+				"list is inaccessible.",
+
+			params: listParamsSchema,
+
 			response: {
-				200: z.object({
-					list: z.object({
-						id: z.string(),
-						boardId: z.string(),
-						name: z.string(),
-						position: z.number().int()
-					})
-				})
+				200: z.object({ list: listSummarySchema }).describe("List that was archived."),
 			}
 		}
 	}, async (request) => {

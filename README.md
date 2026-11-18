@@ -492,6 +492,11 @@ TaskFlow exposes a versioned HTTP API under "/api/v1/" so that external tools ca
 - Versioning: "/api/v1/...". Future breaking changes will ship as "/api/v2/...".
 - Error shape: `{ "error": "<CODE>", "message": "<human readable>" }`, matching the rest of the backend.
 
+Interactive Swagger UI: "https://localhost/api/docs"
+OpenAPI spec: "https://localhost/api/docs/json"
+
+Use the "Authorize" button to enter an API key created via "POST /api-keys".
+
 ### Rate limiting
 
 Every "/api/v1/..." request is rate-limited per API key.
