@@ -1,5 +1,13 @@
 import { clearSessionCookie, setSessionCookie } from "../../shared/http/cookies.js";
 import { forbidden } from "../../shared/errors/httpErrors.js";
+import {
+	registerDocs,
+	loginDocs,
+	twoFactorLoginDocs,
+	logoutDocs,
+	reauthenticateDocs,
+	changePasswordDocs
+} from "./authentication.types.js";
 import { requireAuth } from "../authorization/requireAuth.js";
 import { securityConfig } from "../../config/security.js";
 import { z } from "zod";
@@ -8,43 +16,6 @@ import type { FastifyInstance } from "fastify";
 import type { LoginResult } from "./authentication.types.js";
 import type { SessionsService } from "../sessions/sessions.service.js";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
-
-const	registerSchema = z.object({
-
-	username: z.string().min(3).max(32),
-	email: z.string().email().max(254).optional(),
-	password: z.string().min(12).max(128)
-});
-
-const	loginSchema = z.object({
-
-	username: z.string().min(3).max(32),
-	password: z.string().min(1).max(128)
-});
-
-const	twoFactorLoginSchema = z.discriminatedUnion("method", [
-
-	z.object({
-		challengeToken: z.string().length(43),
-		code: z.string().regex(/^\d{6}$/),
-		method: z.literal("totp")
-	}),
-
-	z.object({
-		challengeToken: z.string().length(43),
-		code: z.string().trim().regex(/^[A-Za-z0-9_-]{12}$/),
-		method: z.literal("recovery_code")
-	})
-]);
-
-const	reauthenticateSchema = z.object({
-
-	password: z.string().min(1).max(128),
-	secondFactorCode: z.string().min(1).max(64).optional(),
-	secondFactorMethod: z.enum(["totp", "recovery_code"]).optional()
-});
-
-const	changePasswordSchema = z.object({ newPassword: z.string().min(12).max(128) });
 
 function	getUserAgent(header: string | string[] | undefined): string | null
 {
@@ -72,7 +43,16 @@ export	async	function	registerAuthenticationRoutes(fastifyInstance: FastifyInsta
 {
 	const	typedApp = fastifyInstance.withTypeProvider<ZodTypeProvider>();
 
-	typedApp.post("/api/v1/register", { schema: { body: registerSchema } }, async (request, reply) => {
+	typedApp.post("/api/v1/register", {
+				schema: {
+					tags: registerDocs.tags,
+					summary: registerDocs.summary,
+					description: registerDocs.description,
+					body: registerDocs.body,
+					response: registerDocs.response,
+					security: []
+				}
+	}, async (request, reply) => {
 
 		const	body = request.body;
 		const	result = await authenticationService.register({
@@ -88,7 +68,16 @@ export	async	function	registerAuthenticationRoutes(fastifyInstance: FastifyInsta
 		return toPublicLoginResult(result);
 	});
 
-	typedApp.post("/api/v1/login", { schema: { body: loginSchema } }, async (request, reply) => {
+	typedApp.post("/api/v1/login", { 
+				schema: { 
+					tags: loginDocs.tags,
+					summary: loginDocs.summary,
+					description: loginDocs.description,
+					body: loginDocs.body,
+					response: loginDocs.response,
+					security: []
+				} 
+	}, async (request, reply) => {
 
 		const	body = request.body;
 		const	result = await authenticationService.login({
@@ -105,7 +94,16 @@ export	async	function	registerAuthenticationRoutes(fastifyInstance: FastifyInsta
 		return toPublicLoginResult(result);
 	});
 
-	typedApp.post("/api/v1/two-factor/login", { schema: { body: twoFactorLoginSchema } }, async (request, reply) => {
+	typedApp.post("/api/v1/two-factor/login", { 
+				schema: { 
+					tags: twoFactorLoginDocs.tags,
+					summary: twoFactorLoginDocs.summary,
+					description: twoFactorLoginDocs.description,
+					body: twoFactorLoginDocs.body,
+					response: twoFactorLoginDocs.response,
+					security: []
+				} 
+	}, async (request, reply) => {
 
 		const	body = request.body;
 		const	result = await authenticationService.completeTwoFactorLogin({
@@ -122,20 +120,35 @@ export	async	function	registerAuthenticationRoutes(fastifyInstance: FastifyInsta
 		return toPublicLoginResult(result);
 	});
 
-	typedApp.post("/api/v1/logout", async (request, reply) => {
+	typedApp.post("/api/v1/logout", { 
+				schema: { 
+					tags: logoutDocs.tags,
+					summary: logoutDocs.summary,
+					description: logoutDocs.description,
+					response: logoutDocs.response,
+					security: []
+				} 
+	}, async (request, reply) => {
 
 		const	token = request.cookies[securityConfig.cookieName];
 
 		if (token)
 			await sessionsService.revokeSession(token);
 		clearSessionCookie(reply);
-		return { ok: true };
+		return { ok: true } as const;
 	});
 
 	typedApp.post("/api/v1/reauthenticate", {
 
 		preHandler: requireAuth(sessionsService),
-		schema: { body: reauthenticateSchema }
+		schema: { 
+			tags: reauthenticateDocs.tags,
+			summary: reauthenticateDocs.summary,
+			description: reauthenticateDocs.description,
+			body: reauthenticateDocs.body,
+			response: reauthenticateDocs.response,
+			security: []
+		} 
 	}, async (request) => {
 
 		const	body = request.body;
@@ -148,13 +161,20 @@ export	async	function	registerAuthenticationRoutes(fastifyInstance: FastifyInsta
 			secondFactorCode: body.secondFactorCode,
 			secondFactorMethod: body.secondFactorMethod
 		});
-		return { ok: true };
+		return { ok: true } as const;
 	});
 
 	typedApp.post("/api/v1/change-password", {
 
 		preHandler: requireAuth(sessionsService),
-		schema: { body: changePasswordSchema }
+		schema: { 
+			tags: changePasswordDocs.tags,
+			summary: changePasswordDocs.summary,
+			description: changePasswordDocs.description,
+			body: changePasswordDocs.body,
+			response: changePasswordDocs.response,
+			security: []
+		} 
 	}, async (request) => {
 
 		const	body = request.body;
@@ -166,6 +186,6 @@ export	async	function	registerAuthenticationRoutes(fastifyInstance: FastifyInsta
 		}
 		await authenticationService.changePassword(request.currentUser!.id, body.newPassword);
 		await sessionsService.revokeOtherUserSessions(request.currentUser!.id, request.currentSession!.id);
-		return { ok: true };
+		return { ok: true } as const;
 	});
 }
