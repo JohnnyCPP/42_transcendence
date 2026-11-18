@@ -1,5 +1,16 @@
+import {
+	boardParamsSchema,
+	boardDetailSchema,
+	createBoardApiSchema,
+	updateBoardApiSchema,
+	boardSummarySchema,
+	createCardApiSchema,
+	cardSummarySchema,
+	paginatedBoardsSchema
+} from "./publicApi.types.js";
 import { getRateLimitKey } from "../../shared/http/rateLimit.js";
 import { requireApiKey } from "../authorization/requireApiKey.js";
+import { z } from "zod";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { PublicApiDependencies } from "./publicApi.types.js";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
@@ -29,11 +40,171 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 		requireApiKey(dependencies.apiKeysService, dependencies.usersService),
 		rateLimit
 	];
-	// TODO: implement pulic api endpoints
-	/*
-	typedApp.get("/api/v1/boards", { preHandler: guards }, async (request) => {
 
-		return dependencies.boardsService.listForUser(request.currentUser!.id);
+	typedApp.get("/api/v1/boards", {
+
+		preHandler: guards,
+		schema: {
+			querystring: z.object({
+				organizationId: z.string().min(1).optional(),
+				limit: z.coerce.number().int().min(1).max(100).default(50),
+				offset: z.coerce.number().int().min(0).default(0)
+			}),
+			response: {
+				200: paginatedBoardsSchema
+			}
+		}
+	}, async (request) => {
+
+		let	organizationId;
+		let	limit;
+		let	offset;
+		let	pagination;
+		let	page;
+
+		({ organizationId, limit, offset } = request.query);
+		pagination = { limit, offset };
+		if (organizationId != null)
+		{
+			page = await dependencies.boardsService.listOrganizationBoards(organizationId, request.currentUser!.id, pagination);
+		}
+		else
+		{
+			page = await dependencies.boardsService.listByUser(request.currentUser!.id, pagination);
+		}
+		return {
+			boards: page.items,
+			pagination: {
+				limit,
+				offset,
+				total: page.total
+			}
+		};
 	});
-	*/
+
+	typedApp.get("/api/v1/boards/:boardId", {
+
+		preHandler: guards,
+		schema: {
+			params: boardParamsSchema,
+			response: {
+				200: z.object({
+					board: boardDetailSchema
+				})
+			}
+		}
+	}, async (request) => {
+
+		let	result;
+
+		result = await dependencies.publicApiService.getBoardWithContents(
+			request.params.boardId,
+			request.currentUser!.id
+		);
+		return {
+			board: {
+				...result.board,
+				lists: result.lists,
+				cards: result.cards
+			}
+		};
+	});
+
+	typedApp.post("/api/v1/boards", {
+
+		preHandler: guards,
+		schema: {
+			body: createBoardApiSchema,
+			response: {
+				201: z.object({
+					board: boardSummarySchema
+				})
+			}
+		}
+	}, async (request, reply) => {
+
+		let	board;
+
+		board = await dependencies.boardsService.createBoard({
+
+			organizationId: request.body.organizationId,
+			actorUserId: request.currentUser!.id,
+			name: request.body.name,
+			description: request.body.description
+		});
+		return reply.status(201).send({ board });
+	});
+
+	typedApp.put("/api/v1/boards/:boardId", {
+
+		preHandler: guards,
+		schema: {
+			params: boardParamsSchema,
+			body: updateBoardApiSchema,
+			response: {
+				200: z.object({
+					board: boardSummarySchema
+				})
+			}
+		}
+	}, async (request) => {
+
+		let	board;
+
+		board = await dependencies.boardsService.updateBoard({
+
+			boardId: request.params.boardId,
+			actorUserId: request.currentUser!.id,
+			...request.body
+		});
+		return { board };
+	});
+
+	typedApp.delete("/api/v1/boards/:boardId", {
+
+		preHandler: guards,
+		schema: {
+			params: boardParamsSchema,
+			response: {
+				200: z.object({
+					board: boardSummarySchema
+				})
+			}
+		}
+	}, async (request) => {
+
+		let	board;
+
+		board = await dependencies.boardsService.archiveBoard(
+
+			request.params.boardId,
+			request.currentUser!.id
+		);
+		return { board };
+	});
+
+	typedApp.post("/api/v1/cards", {
+
+		preHandler: guards,
+		schema: {
+			body: createCardApiSchema,
+			response: {
+				201: z.object({
+					card: cardSummarySchema
+				})
+			}
+		}
+	}, async (request, reply) => {
+
+		const card = await dependencies.cardsService.createCard({
+
+			listId: request.body.listId,
+			actorUserId: request.currentUser!.id,
+
+			title: request.body.title,
+			description: request.body.description,
+			dueDate: request.body.dueDate
+		});
+		return reply.status(201).send({ card });
+	});
 }

@@ -1,40 +1,51 @@
-import type { BoardRole } from '../authorization/roles.js';
-export type { BoardRole } from '../authorization/roles.js';
+import type { BoardRole } from "../authorization/roles.js";
 
-export type Board = {
+export	type	Board = {
+
   id: string;
+  createdByUserId: string;
   organizationId: string;
+
   name: string;
   description: string | null;
-  createdByUserId: string;
+
   createdAt: Date;
   updatedAt: Date;
   archivedAt: Date | null;
 };
 
-export type BoardMember = {
+export	type	BoardMember = {
+
   boardId: string;
   userId: string;
+
   role: BoardRole;
+
   joinedAt: Date;
 };
 
-export type CreateBoardInput = {
+export	type	CreateBoardInput = {
+
   organizationId: string;
   actorUserId: string;
+
   name: string;
   description?: string | null;
 };
 
-export type UpdateBoardInput = {
+export	type	UpdateBoardInput = {
+
   boardId: string;
   actorUserId: string;
+
   name?: string;
   description?: string | null;
 };
 
-export type SetBoardMemberInput = {
+export	type	SetBoardMemberInput = {
+
   boardId: string;
   userId: string;
+
   role: BoardRole;
 };

@@ -4,6 +4,7 @@ import { BoardsService } from "../modules/boards/boards.service.js";
 import { CardsService } from "../modules/cards/cards.service.js";
 import { ListsService } from "../modules/lists/lists.service.js";
 import { OrganizationsService } from "../modules/organizations/organizations.service.js";
+import { PublicApiService } from "../modules/publicApi/publicApi.service.js";
 import { RecoveryCodesService } from "../modules/twoFactor/recoveryCodes.service.js";
 import { ScryptPasswordHasher } from "../shared/crypto/passwordHasher.js";
 import { SecretBox } from "../shared/crypto/encryption.js";
@@ -22,6 +23,7 @@ export	type	Services =
 	cardsService: CardsService;
 	listsService: ListsService;
 	organizationsService: OrganizationsService;
+	publicApiService: PublicApiService;
 	recoveryCodesService: RecoveryCodesService;
 	sessionsService: SessionsService;
 	totpService: TotpService;
@@ -37,6 +39,7 @@ export	function	createServices(repositories: Repositories): Services
 	let	cardsService;
 	let	listsService;
 	let	organizationsService;
+	let	publicApiService;
 	let	recoveryCodesService;
 	let	sessionsService;
 	let	totpService;
@@ -62,6 +65,7 @@ export	function	createServices(repositories: Repositories): Services
 	boardsService = new BoardsService(repositories.boardsRepository, organizationsService);
 	listsService = new ListsService(repositories.listsRepository, boardsService);
 	cardsService = new CardsService(repositories.cardsRepository, listsService);
+	publicApiService = new PublicApiService(boardsService, listsService, cardsService);
 	return {
 
 		apiKeysService,
@@ -70,6 +74,7 @@ export	function	createServices(repositories: Repositories): Services
 		cardsService,
 		listsService,
 		organizationsService,
+		publicApiService,
 		recoveryCodesService,
 		sessionsService,
 		totpService,
