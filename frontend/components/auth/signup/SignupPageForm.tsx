@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { SignupPageFormProps } from './';
 import TextInput from '@/components/ui/TextInput';
-import { Button, buttonClassName, uiStyles } from '@/components/ui';
+import { Button, FormErrorBanner, buttonClassName, uiStyles } from '@/components/ui';
 
 /**
  * Formulario presentacional de registro.
@@ -51,11 +51,7 @@ export function SignupPageForm({
 
       {formMessage && <div className={uiStyles.infoCallout}>{formMessage}</div>}
 
-      {error && (
-        <div className="rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      <FormErrorBanner error={error} />
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button type="submit" variant="primary" size="lg" disabled={isLoading}>

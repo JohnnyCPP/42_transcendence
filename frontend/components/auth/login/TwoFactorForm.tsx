@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Button, Icon, uiStyles, cx } from '@/components/ui';
+import { Button, FormErrorBanner, Icon, uiStyles, cx } from '@/components/ui';
 
 export type TwoFactorMethod = 'totp' | 'recovery_code';
 
@@ -105,14 +105,7 @@ export default function TwoFactorForm({
         />
       </div>
 
-      {displayError && (
-        <div className="p-3 bg-error/10 border border-error/20 rounded-lg text-error text-sm">
-          <div className="flex items-start gap-2">
-            <Icon name="error" size="md" className="shrink-0 mt-0.5" />
-            <span>{displayError}</span>
-          </div>
-        </div>
-      )}
+      <FormErrorBanner error={displayError} />
 
       <Button
         type="submit"
