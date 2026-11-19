@@ -36,4 +36,14 @@ export	class	PrismaApiKeysRepository	implements	ApiKeysRepository
 			data: { revokedAt }
 		});
 	}
+
+	async	updateLastUsedAt(id: string, lastUsedAt: Date): Promise<void>
+	{
+		// updateMany doesn't throw if zero rows match
+		await this.prisma.apiKey.updateMany({
+
+			where: { id },
+			data: { lastUsedAt }
+		});
+	}
 }

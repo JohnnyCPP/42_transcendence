@@ -1,17 +1,17 @@
 import { badRequest, unauthorized } from "../../shared/errors/httpErrors.js";
 import { createRandomToken } from "../../shared/crypto/createRandomToken.js";
 import { hashToken } from "../../shared/crypto/hashToken.js";
-import { InMemoryRateLimiter, rateLimitKey } from "../../shared/http/rateLimit.js";
+import { InMemoryRateLimiter, getRateLimitKey } from "../../shared/http/rateLimit.js";
 import { securityConfig } from "../../config/security.js";
-import type { AuthenticationsRepository } from "./authentications.repository.js";
-import type { LoginResult } from "./authentications.types.js";
+import type { AuthenticationRepository } from "./authentication.repository.js";
+import type { LoginResult } from "./authentication.types.js";
 import type { PasswordHasher } from "../../shared/crypto/passwordHasher.js";
-import type { RegistrationsRepository } from "./registrations.repository.js";
+import type { RegistrationRepository } from "./registration.repository.js";
 import type { SessionsService } from "../sessions/sessions.service.js";
-import type { TwoFactorService } from "../two_factor/twoFactor.service.js";
+import type { TwoFactorService } from "../twoFactor/twoFactor.service.js";
 import type { UsersService } from "../users/users.service.js";
 
-export	class	AuthenticationsService
+export	class	AuthenticationService
 {
 	private	readonly	registrationLimiter = new InMemoryRateLimiter(5, 15 * 60 * 1000);
 	private	readonly	passwordIdentityLimiter = new InMemoryRateLimiter(5, 15 * 60 * 1000);
@@ -21,8 +21,8 @@ export	class	AuthenticationsService
 	private	readonly	reauthenticationLimiter = new InMemoryRateLimiter(5, 15 * 60 * 1000);
 
 	constructor(private readonly usersService: UsersService,
-				private readonly authenticationsRepository: AuthenticationsRepository,
-				private readonly registrationsRepository: RegistrationsRepository,
+				private readonly authenticationRepository: AuthenticationRepository,
+				private readonly registrationRepository: RegistrationRepository,
 				private readonly passwordHasher: PasswordHasher,
 				private readonly sessionsService: SessionsService,
 				private readonly twoFactorService: TwoFactorService) {}
@@ -37,9 +37,9 @@ export	class	AuthenticationsService
 	{
 		if (input.password.length < 12 || input.password.length > 128)
 			throw badRequest("Password must be between 12 and 128 characters");
-		this.registrationLimiter.consume(rateLimitKey("register-ip", input.ipAddress));
+		this.registrationLimiter.consume(getRateLimitKey("register-ip", input.ipAddress));
 		const	passwordHash = await this.passwordHasher.hash(input.password);
-		const	user = await this.registrationsRepository.createUserWithCredential({
+		const	user = await this.registrationRepository.createUserWithCredential({
 
 			username: input.username,
 			email: input.email ?? null,
@@ -67,8 +67,8 @@ export	class	AuthenticationsService
 		ipAddress?: string | null;
 		userAgent?: string | null; }): Promise<LoginResult>
 	{
-		const	identityKey = rateLimitKey("login-identity", input.ipAddress, input.username.trim().toLowerCase());
-		const	ipKey = rateLimitKey("login-ip", input.ipAddress);
+		const	identityKey = getRateLimitKey("login-identity", input.ipAddress, input.username.trim().toLowerCase());
+		const	ipKey = getRateLimitKey("login-ip", input.ipAddress);
 
 		this.passwordIdentityLimiter.assertAllowed(identityKey);
 		this.passwordIpLimiter.assertAllowed(ipKey);
@@ -79,7 +79,7 @@ export	class	AuthenticationsService
 			this.passwordIpLimiter.recordFailure(ipKey);
 			throw unauthorized("Invalid credentials");
 		}
-		const	credential = await this.authenticationsRepository.findPasswordCredential(user.id);
+		const	credential = await this.authenticationRepository.findPasswordCredential(user.id);
 		if (!credential || !(await this.passwordHasher.verify(credential.passwordHash, input.password)))
 		{
 			this.passwordIdentityLimiter.recordFailure(identityKey);
@@ -108,7 +108,7 @@ export	class	AuthenticationsService
 		if (await this.twoFactorService.isEnabled(user.id))
 		{
 			const	challengeToken = createRandomToken(32);
-			const	challenge = await this.authenticationsRepository.createLoginChallenge({
+			const	challenge = await this.authenticationRepository.createLoginChallenge({
 
 				userId: user.id,
 				tokenHash: hashToken(challengeToken),
@@ -144,12 +144,12 @@ export	class	AuthenticationsService
 		ipAddress?: string | null;
 		userAgent?: string | null; }): Promise<LoginResult>
 	{
-		const	challengeKey = rateLimitKey("2fa-challenge", input.challengeToken);
-		const	ipKey = rateLimitKey("2fa-ip", input.ipAddress);
+		const	challengeKey = getRateLimitKey("2fa-challenge", input.challengeToken);
+		const	ipKey = getRateLimitKey("2fa-ip", input.ipAddress);
 
 		this.secondFactorChallengeLimiter.assertAllowed(challengeKey);
 		this.secondFactorIpLimiter.assertAllowed(ipKey);
-		const	challenge = await this.authenticationsRepository.findLoginChallengeByTokenHash(hashToken(input.challengeToken));
+		const	challenge = await this.authenticationRepository.findLoginChallengeByTokenHash(hashToken(input.challengeToken));
 		if (!challenge || challenge.consumedAt || challenge.expiresAt <= new Date())
 		{
 			this.secondFactorChallengeLimiter.recordFailure(challengeKey);
@@ -165,7 +165,7 @@ export	class	AuthenticationsService
 			throw unauthorized("Invalid second factor");
 		}
 		// Compare-and-set: only one concurrent request can claim this challenge.
-		if (!(await this.authenticationsRepository.claimLoginChallenge(challenge.id, new Date())))
+		if (!(await this.authenticationRepository.claimLoginChallenge(challenge.id, new Date())))
 			throw unauthorized("Invalid or expired login challenge");
 		this.secondFactorChallengeLimiter.reset(challengeKey);
 		const	user = await this.usersService.findById(challenge.userId);
@@ -200,10 +200,10 @@ export	class	AuthenticationsService
 			secondFactorCode, 
 			secondFactorMethod 
 		} = input;
-		const	limiterKey = rateLimitKey("reauth-session", sessionId);
+		const	limiterKey = getRateLimitKey("reauth-session", sessionId);
 
 		this.reauthenticationLimiter.assertAllowed(limiterKey);
-		const	credential = await this.authenticationsRepository.findPasswordCredential(userId);
+		const	credential = await this.authenticationRepository.findPasswordCredential(userId);
 		if (!credential || !(await this.passwordHasher.verify(credential.passwordHash, password)))
 		{
 			this.reauthenticationLimiter.recordFailure(limiterKey);
@@ -232,7 +232,7 @@ export	class	AuthenticationsService
 	{
 		if (newPassword.length < 12 || newPassword.length > 128)
 			throw badRequest("Password must be between 12 and 128 characters");
-		await this.authenticationsRepository.updatePasswordCredential({
+		await this.authenticationRepository.updatePasswordCredential({
 
 			userId,
 			passwordHash: await this.passwordHasher.hash(newPassword),

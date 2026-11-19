@@ -1,11 +1,12 @@
 import { AppError } from "../shared/errors/AppError.js";
 import cookie from "@fastify/cookie";
-import { validatorCompiler } from "fastify-type-provider-zod";
+import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import type { FastifyInstance } from "fastify";
 
 export	async	function	configureHttpServer(fastifyInstance: FastifyInstance): Promise<void>
 {
 	fastifyInstance.setValidatorCompiler(validatorCompiler);
+	fastifyInstance.setSerializerCompiler(serializerCompiler);
 	/* Si un usuario envía una peticion HTTP con el cuerpo completamente vacio 
 	en lugar de que Fastify rechace la peticion de inmediato con
 	un error generico, lo transforma en un objeto vacio {} para que Zod sea el 
