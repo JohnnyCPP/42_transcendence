@@ -1,4 +1,13 @@
 import { BOARD_ROLES } from "../authorization/roles.js";
+import {
+	listMyBoardsDocs,
+	listOrganizationBoardsDocs,
+	createBoardDocs,
+	getBoardDocs,
+	updateBoardDocs,
+	archiveBoardDocs,
+	setBoardMemberRoleDocs
+} from "./boards.types.js";
 import { paginationMetadata } from "../../shared/pagination.js";
 import { paginationQuerySchema } from "../../shared/http/pagination.js";
 import { requireAuth } from "../authorization/requireAuth.js";
@@ -8,44 +17,22 @@ import type { FastifyInstance } from "fastify";
 import type { SessionsService } from "../sessions/sessions.service.js";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 
-const	createBoardSchema = z.object({
-	name: z.string().trim().min(2).max(100),
-	description: z.string().trim().max(500).optional().nullable()
-});
-
-const	updateBoardSchema = z.object({
-	name: z.string().trim().min(2).max(100).optional(),
-	description: z.string().trim().max(500).optional().nullable()
-});
-
-const	organizationParamsSchema = z.object({
-	organizationId: z.string().min(1)
-});
-
-const	boardParamsSchema = z.object({
-	boardId: z.string().min(1)
-});
-
-const	boardMemberParamsSchema = z.object({
-	boardId: z.string().min(1),
-	userId: z.string().min(1)
-});
-
-const	boardMemberSchema = z.object({
-	role: z.enum(BOARD_ROLES)
-});
-
 export	async	function	registerBoardRoutes(app: FastifyInstance,
 											    boardsService: BoardsService,
 											    sessionsService: SessionsService)
 {
 	const	typedApp = app.withTypeProvider<ZodTypeProvider>();
 
-	typedApp.get("/boards", {
+	typedApp.get("/api/v1/boards", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
-			querystring: paginationQuerySchema
+					tags: listMyBoardsDocs.tags,
+					summary: listMyBoardsDocs.summary,
+					description: listMyBoardsDocs.description,
+					querystring: listMyBoardsDocs.querystring,
+					response: listMyBoardsDocs.response,
+					security: []
 		}
 	}, async (request) => {
 
@@ -58,11 +45,16 @@ export	async	function	registerBoardRoutes(app: FastifyInstance,
 		};
 	});
 
-	typedApp.delete("/boards/:boardId", {
+	typedApp.delete("/api/v1/boards/:boardId", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
-			params: boardParamsSchema
+					tags: archiveBoardDocs.tags,
+					summary: archiveBoardDocs.summary,
+					description: archiveBoardDocs.description,
+					params: archiveBoardDocs.params,
+					response: archiveBoardDocs.response,
+					security: []
 		}
 	}, async (request) => {
 
@@ -72,12 +64,17 @@ export	async	function	registerBoardRoutes(app: FastifyInstance,
 		return { board };
 	});
 
-	typedApp.post("/organizations/:organizationId/boards", {
+	typedApp.post("/api/v1/organizations/:organizationId/boards", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
-			params: organizationParamsSchema,
-			body: createBoardSchema
+					tags: createBoardDocs.tags,
+					summary: createBoardDocs.summary,
+					description: createBoardDocs.description,
+					params: createBoardDocs.params,
+					body: createBoardDocs.body,
+					response: createBoardDocs.response,
+					security: []
 		}
 	}, async (request) => {
 
@@ -96,12 +93,17 @@ export	async	function	registerBoardRoutes(app: FastifyInstance,
 		return { board };
 	});
 
-	typedApp.get("/organizations/:organizationId/boards", {
+	typedApp.get("/api/v1/organizations/:organizationId/boards", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
-			params: organizationParamsSchema,
-			querystring: paginationQuerySchema
+					tags: listOrganizationBoardsDocs.tags,
+					summary: listOrganizationBoardsDocs.summary,
+					description: listOrganizationBoardsDocs.description,
+					params: listOrganizationBoardsDocs.params,
+					querystring: listOrganizationBoardsDocs.querystring,
+					response: listOrganizationBoardsDocs.response,
+					security: []
 		}
 	}, async (request) => {
 
@@ -116,11 +118,16 @@ export	async	function	registerBoardRoutes(app: FastifyInstance,
 		};
 	});
 
-	typedApp.get("/boards/:boardId", {
+	typedApp.get("/api/v1/boards/:boardId", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
-			params: boardParamsSchema
+					tags: getBoardDocs.tags,
+					summary: getBoardDocs.summary,
+					description: getBoardDocs.description,
+					params: getBoardDocs.params,
+					response: getBoardDocs.response,
+					security: []
 		}
 	}, async (request) => {
 
@@ -132,12 +139,17 @@ export	async	function	registerBoardRoutes(app: FastifyInstance,
 		return { board };
 	});
 
-	typedApp.patch("/boards/:boardId", {
+	typedApp.patch("/api/v1/boards/:boardId", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
-			params: boardParamsSchema,
-			body: updateBoardSchema
+					tags: updateBoardDocs.tags,
+					summary: updateBoardDocs.summary,
+					description: updateBoardDocs.description,
+					params: updateBoardDocs.params,
+					body: updateBoardDocs.body,
+					response: updateBoardDocs.response,
+					security: []
 		}
 	}, async (request) => {
 
@@ -156,12 +168,17 @@ export	async	function	registerBoardRoutes(app: FastifyInstance,
 		return { board };
 	});
 
-	typedApp.put("/boards/:boardId/members/:userId", {
+	typedApp.put("/api/v1/boards/:boardId/members/:userId", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
-			params: boardMemberParamsSchema,
-			body: boardMemberSchema
+					tags: setBoardMemberRoleDocs.tags,
+					summary: setBoardMemberRoleDocs.summary,
+					description: setBoardMemberRoleDocs.description,
+					params: setBoardMemberRoleDocs.params,
+					body: setBoardMemberRoleDocs.body,
+					response: setBoardMemberRoleDocs.response,
+					security: []
 		}
 	}, async (request) => ({
 

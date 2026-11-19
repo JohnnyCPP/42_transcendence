@@ -45,12 +45,12 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 		rateLimit
 	];
 
-	typedApp.get("/api/v1/boards", {
+	typedApp.get("/api/v1/public/boards", {
 
 		preHandler: guards,
 		schema: {
 
-			tags: ["Boards"],
+			tags: ["Public Boards"],
 
 			summary: "List accessible boards",
 
@@ -98,12 +98,12 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 		};
 	});
 
-	typedApp.get("/api/v1/boards/:boardId", {
+	typedApp.get("/api/v1/public/boards/:boardId", {
 
 		preHandler: guards,
 		schema: {
 
-			tags: ["Boards"],
+			tags: ["Public Boards"],
 
 			summary: "Get a board with its lists and cards",
 
@@ -135,12 +135,12 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 		};
 	});
 
-	typedApp.post("/api/v1/boards", {
+	typedApp.post("/api/v1/public/boards", {
 
 		preHandler: guards,
 		schema: {
 			
-			tags: ["Boards"],
+			tags: ["Public Boards"],
 
 			summary: "Create a board",
 
@@ -169,12 +169,12 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 		return reply.status(201).send({ board });
 	});
 
-	typedApp.put("/api/v1/boards/:boardId", {
+	typedApp.put("/api/v1/public/boards/:boardId", {
 
 		preHandler: guards,
 		schema: {
 
-			tags: ["Boards"],
+			tags: ["Public Boards"],
 
 			summary: "Update a board",
 
@@ -204,12 +204,12 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 		return { board };
 	});
 
-	typedApp.delete("/api/v1/boards/:boardId", {
+	typedApp.delete("/api/v1/public/boards/:boardId", {
 
 		preHandler: guards,
 		schema: {
 
-			tags: ["Boards"],
+			tags: ["Public Boards"],
 
 			summary: "Archive a board",
 
@@ -236,12 +236,12 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 		return { board };
 	});
 
-	typedApp.post("/api/v1/cards", {
+	typedApp.post("/api/v1/public/cards", {
 
 		preHandler: guards,
 		schema: {
 
-			tags: ["Cards"],
+			tags: ["Public Cards"],
 
 			summary: "Create a card",
 
@@ -270,12 +270,12 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 		return reply.status(201).send({ card });
 	});
 
-	typedApp.delete("/api/v1/lists/:listId", {
+	typedApp.delete("/api/v1/public/lists/:listId", {
 
 		preHandler: guards,
 		schema: {
 
-			tags: ["Lists"],
+			tags: ["Public Lists"],
 
 			summary: "Archive a list",
 

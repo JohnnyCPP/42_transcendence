@@ -47,10 +47,10 @@ export async function buildApp()
 	registerHealthCheck(fastifyInstance, prismaClient);
 	await registerSwagger(fastifyInstance);
 	await registerAppRoutes(fastifyInstance, services);
-
-	await fastifyInstance.ready();
-	console.log(fastifyInstance.printRoutes());
-
+	// uncomment this to print routes on the terminal
+	//
+	// await fastifyInstance.ready();
+	// console.log(fastifyInstance.printRoutes());
 	if (env.NODE_ENV === "test")
 	{
 		fastifyInstance.get("/__test/api-key-ping", {

@@ -1,3 +1,10 @@
+import {
+	archiveListDocs,
+	createListDocs,
+	listListsDocs,
+	reorderListsDocs,
+	updateListDocs
+} from "./lists.types.js";
 import { paginationMetadata } from "../../shared/pagination.js";
 import { paginationQuerySchema } from "../../shared/http/pagination.js";
 import { requireAuth } from "../authorization/requireAuth.js";
@@ -7,38 +14,23 @@ import type { ListsService } from "./lists.service.js";
 import type { SessionsService } from "../sessions/sessions.service.js";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 
-const	createListSchema = z.object({
-	name: z.string().trim().min(1).max(80)
-});
-
-const	updateListSchema = z.object({
-	name: z.string().trim().min(1).max(80).optional()
-});
-
-const	reorderListsSchema = z.object({
-	listIds: z.array(z.string().min(1)).min(1)
-});
-
-const	boardParamsSchema = z.object({
-	boardId: z.string().min(1)
-});
-
-const	listParamsSchema = z.object({
-	listId: z.string().min(1)
-});
-
 export	async	function	registerListRoutes(app: FastifyInstance,
 											   listsService: ListsService,
 											   sessionsService: SessionsService)
 {
 	const	typedApp = app.withTypeProvider<ZodTypeProvider>();
 
-	typedApp.post("/boards/:boardId/lists", {
+	typedApp.post("/api/v1/boards/:boardId/lists", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
-			params: boardParamsSchema,
-			body: createListSchema
+					tags: createListDocs.tags,
+					summary: createListDocs.summary,
+					description: createListDocs.description,
+					params: createListDocs.params,
+					body: createListDocs.body,
+					response: createListDocs.response,
+					security: []
 		}
 	}, async (request) => {
 
@@ -57,12 +49,17 @@ export	async	function	registerListRoutes(app: FastifyInstance,
 		return { list };
 	});
 
-	typedApp.get("/boards/:boardId/lists", {
+	typedApp.get("/api/v1/boards/:boardId/lists", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
-			params: boardParamsSchema,
-			querystring: paginationQuerySchema
+					tags: listListsDocs.tags,
+					summary: listListsDocs.summary,
+					description: listListsDocs.description,
+					params: listListsDocs.params,
+					querystring: listListsDocs.querystring,
+					response: listListsDocs.response,
+					security: []
 		}
 	}, async (request) => {
 
@@ -77,12 +74,17 @@ export	async	function	registerListRoutes(app: FastifyInstance,
 		};
 	});
 
-	typedApp.patch("/lists/:listId", {
+	typedApp.patch("/api/v1/lists/:listId", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
-			params: listParamsSchema,
-			body: updateListSchema
+					tags: updateListDocs.tags,
+					summary: updateListDocs.summary,
+					description: updateListDocs.description,
+					params: updateListDocs.params,
+					body: updateListDocs.body,
+					response: updateListDocs.response,
+					security: []
 		}
 	}, async (request) => {
 
@@ -101,12 +103,17 @@ export	async	function	registerListRoutes(app: FastifyInstance,
 		return { list };
 	});
 
-	typedApp.post("/boards/:boardId/lists/reorder", {
+	typedApp.post("/api/v1/boards/:boardId/lists/reorder", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
-			params: boardParamsSchema,
-			body: reorderListsSchema
+					tags: reorderListsDocs.tags,
+					summary: reorderListsDocs.summary,
+					description: reorderListsDocs.description,
+					params: reorderListsDocs.params,
+					body: reorderListsDocs.body,
+					response: reorderListsDocs.response,
+					security: []
 		}
 	}, async (request) => {
 
@@ -125,11 +132,16 @@ export	async	function	registerListRoutes(app: FastifyInstance,
 		return { lists };
 	});
 
-	typedApp.delete("/lists/:listId", {
+	typedApp.delete("/api/v1/lists/:listId", {
 
 		preHandler: requireAuth(sessionsService),
 		schema: {
-			params: listParamsSchema
+					tags: archiveListDocs.tags,
+					summary: archiveListDocs.summary,
+					description: archiveListDocs.description,
+					params: archiveListDocs.params,
+					response: archiveListDocs.response,
+					security: []
 		}
 	}, async (request) => {
 
