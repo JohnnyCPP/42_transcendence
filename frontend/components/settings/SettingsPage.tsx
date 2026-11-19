@@ -23,8 +23,7 @@ export function SettingsPage() {
             <h1 className={uiStyles.pageTitle}>Ajustes de seguridad</h1>
             <p className={`max-w-2xl ${uiStyles.pageLead}`}>
               Reautentica tu sesión, cambia la contraseña y gestiona el segundo
-              factor. Las llamadas a la API están preparadas en stubs para
-              cablearlas tú.
+              factor.
             </p>
           </section>
 

@@ -12,9 +12,8 @@ import {
 /**
  * Estado y handlers de la sección 2FA (setup, confirm, regenerar, desactivar).
  *
- * Las mutaciones pasan por stubs de `securityApi` hasta que se cableen con
- * `apiFetch`. `twoFactorEnabled` es solo estado de UI: `GET /me` aún no
- * expone ese flag.
+ * `twoFactorEnabled` es estado de sesión de UI hasta que `GET /me` exponga el flag.
+ * Tras confirm/regenerate se abren los recovery codes en un modal.
  */
 export function useTwoFactorForm() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
@@ -25,12 +24,15 @@ export function useTwoFactorForm() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [isDisableOpen, setIsDisableOpen] = useState(false);
+  const [isRecoveryCodesOpen, setIsRecoveryCodesOpen] = useState(false);
 
   /** Secreto TOTP extraído del `otpauth://` para copiar a mano. */
   const manualSecret = useMemo(
     () => (provisioningUri ? parseTotpSecretFromUri(provisioningUri) : null),
     [provisioningUri]
   );
+
+  const isSetupPending = Boolean(provisioningUri) && !twoFactorEnabled;
 
   /** Envuelve una acción async: limpia feedback, marca busy y captura errores. */
   const runAction = useCallback(async (action: () => Promise<void>) => {
@@ -67,6 +69,8 @@ export function useTwoFactorForm() {
       setRecoveryCodes(data.recoveryCodes);
       setTwoFactorEnabled(true);
       setConfirmCode('');
+      setProvisioningUri('');
+      setIsRecoveryCodesOpen(true);
       setInfo('2FA activado. Guarda los códigos de recuperación.');
     });
   };
@@ -77,6 +81,7 @@ export function useTwoFactorForm() {
       const data = await regenerateRecoveryCodes();
       setRecoveryCodes(data.recoveryCodes);
       setTwoFactorEnabled(true);
+      setIsRecoveryCodesOpen(true);
       setInfo('Nuevos códigos de recuperación generados. Guárdalos ahora.');
     });
 
@@ -89,12 +94,20 @@ export function useTwoFactorForm() {
       setProvisioningUri('');
       setRecoveryCodes([]);
       setConfirmCode('');
+      setIsRecoveryCodesOpen(false);
       setInfo('2FA desactivado.');
     });
   };
 
+  /** Cierra el modal de codes; no se vuelven a mostrar en esta sesión. */
+  const closeRecoveryCodes = useCallback(() => {
+    setIsRecoveryCodesOpen(false);
+    setRecoveryCodes([]);
+  }, []);
+
   return {
     twoFactorEnabled,
+    isSetupPending,
     provisioningUri,
     confirmCode,
     setConfirmCode,
@@ -104,6 +117,8 @@ export function useTwoFactorForm() {
     info,
     isDisableOpen,
     setIsDisableOpen,
+    isRecoveryCodesOpen,
+    closeRecoveryCodes,
     manualSecret,
     handleSetup,
     handleConfirm,

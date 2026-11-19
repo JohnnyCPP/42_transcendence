@@ -1,16 +1,27 @@
 'use client';
 
-import { ConfirmDialog, FormErrorBanner, uiStyles } from '@/components/ui';
+import {
+  Button,
+  ConfirmDialog,
+  Dialog,
+  FormErrorBanner,
+  uiStyles,
+} from '@/components/ui';
 import { SettingsSectionCard } from '../SettingsSectionCard';
-import { useTwoFactorForm, TwoFactorStatusBadge, TwoFactorActionButtons, 
-		TwoFactorSetupFields, TwoFactorConfirmForm, RecoveryCodes } from './';
-
+import {
+  useTwoFactorForm,
+  TwoFactorStatusBadge,
+  TwoFactorActionButtons,
+  TwoFactorSetupFields,
+  TwoFactorConfirmForm,
+  RecoveryCodes,
+} from './';
 
 /**
  * Paso 3 de seguridad: configurar, confirmar, regenerar o desactivar 2FA.
  *
  * Orquesta subcomponentes presentacionales + `useTwoFactorForm`.
- * El estado enabled es solo de UI (`GET /me` no expone `twoFactorEnabled`).
+ * Los recovery codes se muestran en un modal tras setup/regenerate.
  */
 export function TwoFactorSection() {
   const form = useTwoFactorForm();
@@ -28,24 +39,27 @@ export function TwoFactorSection() {
 
           <TwoFactorActionButtons
             isBusy={form.isBusy}
+            twoFactorEnabled={form.twoFactorEnabled}
             onSetup={form.handleSetup}
             onOpenDisable={() => form.setIsDisableOpen(true)}
             onRegenerate={form.handleRegenerate}
           />
 
-          <TwoFactorSetupFields
-            manualSecret={form.manualSecret}
-            provisioningUri={form.provisioningUri}
-          />
+          {form.isSetupPending && (
+            <>
+              <TwoFactorSetupFields
+                manualSecret={form.manualSecret}
+                provisioningUri={form.provisioningUri}
+              />
 
-          <TwoFactorConfirmForm
-            isBusy={form.isBusy}
-            confirmCode={form.confirmCode}
-            onConfirmCodeChange={form.setConfirmCode}
-            onSubmit={form.handleConfirm}
-          />
-
-          <RecoveryCodes recoveryCodes={form.recoveryCodes} />
+              <TwoFactorConfirmForm
+                isBusy={form.isBusy}
+                confirmCode={form.confirmCode}
+                onConfirmCodeChange={form.setConfirmCode}
+                onSubmit={form.handleConfirm}
+              />
+            </>
+          )}
 
           <FormErrorBanner error={form.error} />
 
@@ -53,10 +67,24 @@ export function TwoFactorSection() {
         </div>
       </SettingsSectionCard>
 
+      <Dialog
+        isOpen={form.isRecoveryCodesOpen}
+        title="Códigos de recuperación"
+        description="Guárdalos ahora — no se volverán a mostrar."
+        onClose={form.closeRecoveryCodes}
+        footer={
+          <Button variant="primary" onClick={form.closeRecoveryCodes}>
+            Listo
+          </Button>
+        }
+      >
+        <RecoveryCodes recoveryCodes={form.recoveryCodes} embedded />
+      </Dialog>
+
       <ConfirmDialog
         isOpen={form.isDisableOpen}
         title="Desactivar 2FA"
-        description="¿Seguro que quieres desactivar el segundo factor? Necesitarás reautenticación reciente cuando el endpoint esté cableado."
+        description="¿Seguro que quieres desactivar el segundo factor? Necesitas una reautenticación reciente."
         confirmLabel="Desactivar"
         tone="danger"
         onConfirm={form.handleDisableConfirm}
