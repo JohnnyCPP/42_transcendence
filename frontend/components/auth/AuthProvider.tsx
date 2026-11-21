@@ -140,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const data = await apiFetch<LoginApiResponse>('/auth/login', {
+      const data = await apiFetch<LoginApiResponse>('/login', {
         method: 'POST',
         body: JSON.stringify({ username, password }),
       });
@@ -174,7 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const complete2fa = useCallback(async (challengeToken: string, code: string, method: 'totp' | 'recovery_code'): Promise<LoginResponses> => {
 	setAuthState((prev) => ({ ...prev, isLoading: true, error: null }));
 	try {
-		const data = await apiFetch<LoginApiResponse>('/auth/login/2fa',
+		const data = await apiFetch<LoginApiResponse>('/two-factor/login',
 			{
 				method: 'POST',
 				body: JSON.stringify({
@@ -213,7 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthState((prev) => ({ ...prev, isLoading: true }));
 
     try {
-      await apiFetch<{ ok: boolean }>('/auth/logout', {
+      await apiFetch<{ ok: boolean }>('/logout', {
         method: 'POST',
       });
 
@@ -245,7 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        const data = await apiFetch<LoginApiResponse>('/auth/register', {
+        const data = await apiFetch<LoginApiResponse>('/register', {
           method: 'POST',
           body: JSON.stringify({
             username,

@@ -16,6 +16,7 @@ export interface OrganizationsRepository
 {
   createWithOwner(input: CreateOrganizationInput): Promise<OrganizationWithRole>;
   listForUser(userId: string, pagination: PaginationInput): Promise<Page<OrganizationWithRole>>;
+  listOrganizationIds(userId: string): Promise<string[]>;
   findForUser(organizationId: string, userId: string): Promise<OrganizationWithRole | null>;
   findMember(organizationId: string, userId: string): Promise<OrganizationMember | null>;
   listMembers(organizationId: string): Promise<OrganizationMember[]>;
@@ -80,6 +81,23 @@ export class InMemoryOrganizationsRepository implements OrganizationsRepository
     return paginateArray(organizations, pagination);
   }
 
+	async	listOrganizationIds(userId: string): Promise<string[]>
+	{
+		let	ids;
+		let	organization;
+
+		ids = [];
+		for (const member of this.members.values())
+		{
+			if (member.userId !== userId)
+				continue;
+			organization = this.organizations.get(member.organizationId);
+			if (organization && !organization.archivedAt)
+				ids.push(organization.id);
+		}
+		return ids;
+	}
+  
   async findForUser(organizationId: string, userId: string): Promise<OrganizationWithRole | null> 
   {
     const organization = this.organizations.get(organizationId);

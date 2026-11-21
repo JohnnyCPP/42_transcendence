@@ -11,6 +11,8 @@ export	interface	ApiKeysRepository
 	listByUser(userId: string): Promise<ApiKeyRecord[]>;
 
 	revoke(id: string, revokedAt: Date): Promise<ApiKeyRecord>;
+
+	updateLastUsedAt(id: string, lastUsedAt: Date): Promise<void>;
 }
 
 export	class	InMemoryApiKeysRepository	implements	ApiKeysRepository
@@ -63,5 +65,15 @@ export	class	InMemoryApiKeysRepository	implements	ApiKeysRepository
 			throw new Error("API_KEY_NOT_FOUND");
 		row.revokedAt = revokedAt;
 		return { ...row };
+	}
+
+	async	updateLastUsedAt(id: string, lastUsedAt: Date): Promise<void>
+	{
+		const	row = this.rows.get(id);
+
+		// in case the row was removed concurrently
+		if (!row)
+			return;
+		row.lastUsedAt = lastUsedAt;
 	}
 }

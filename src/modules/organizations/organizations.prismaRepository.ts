@@ -64,6 +64,20 @@ export class PrismaOrganizationsRepository implements OrganizationsRepository
     };
   }
 
+	async	listOrganizationIds(userId: string): Promise<string[]>
+	{
+		let	rows;
+
+		rows = await this.prisma.organizationMember.findMany({
+			where: {
+				userId,
+				organization: { archivedAt: null }
+			},
+			select: { organizationId: true }
+		});
+		return rows.map((row) => row.organizationId);
+	}
+
   async findForUser(organizationId: string, userId: string): Promise<OrganizationWithRole | null> 
   {
     const row = await this.prisma.organization.findFirst({

@@ -54,7 +54,7 @@ export default function LoginPage() {
         if (result.status === 'authenticated') {
           if (method === 'recovery_code') {
             try {
-              const { remaining } = await apiFetch<{ remaining: number }>('/auth/2fa/recovery-codes/remaining');
+              const { remaining } = await apiFetch<{ remaining: number }>('/two-factor/recovery-codes/remaining');
               if (remaining <= 1) {
                 router.push('/security');
                 return;

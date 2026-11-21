@@ -14,6 +14,7 @@
 - Features List
 - Modules
 - Individual Contributions
+- Public API
 - Testing
 
 ## Tree
@@ -556,6 +557,48 @@ Additional developer-only integration checks may run against a disposable Postgr
 **TODO:** Specific features, modules, or components implemented by each person.
 
 **TODO:** Any challenges faced and how they were overcome.
+
+## Public API
+
+TaskFlow exposes a versioned HTTP API under "/api/v1/" so that external tools can read and manage boards without a browser session.
+
+- Authentication: API keys, sent in the "X-API-Key" header. Keys are created from the authenticated UI or via "POST /api-keys", returned once in plaintext, and stored only as a SHA-256 hash. Revoking a key takes effect immediately.
+- Versioning: "/api/v1/...". Future breaking changes will ship as "/api/v2/...".
+- Error shape: `{ "error": "<CODE>", "message": "<human readable>" }`, matching the rest of the backend.
+
+Interactive Swagger UI:
+
+- Local development server: "http://localhost:3000/api/docs"
+- Docker container: "https://localhost/api/docs"
+
+OpenAPI spec:
+
+- Local development server: "http://localhost:3000/api/docs/json"
+- Docker container: "https://localhost/api/docs/json"
+
+Use the "Authorize" button to enter an API key created via "POST /api-keys".
+
+### Rate limiting
+
+Every "/api/v1/..." request is rate-limited per API key.
+
+- Default limit: 60 requests per minute per key.
+- The request window is fixed.
+- When exceeded, the API responds with:
+  - Status "429 Too Many Requests"
+  - Header "Retry-After: <seconds>" — seconds until the window resets
+  - Body: `{ "error": "RATE_LIMITED", "message": "..." }`
+- Session-authenticated routes ("/boards", "/cards", ...) are not rate-limited by this mechanism.
+- The limiter is in-memory, so limits apply per process. This is intentional for the single-instance deployment described in "docker-compose.yml".
+
+### Configuration
+
+Rate limiting is configured through environment variables:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| "PUBLIC_API_RATE_LIMIT_RPM" | "60" | Requests allowed per API key per window. |
+| "PUBLIC_API_RATE_LIMIT_WINDOW_MS" | "60000" | Window length in milliseconds. |
 
 ## Testing
 

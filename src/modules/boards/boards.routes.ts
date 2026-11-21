@@ -1,114 +1,201 @@
-import type { FastifyInstance } from 'fastify';
-import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { z } from 'zod';
-import { BOARD_ROLES } from '../authorization/roles.js';
-import { requireAuth } from '../authorization/requireAuth.js';
-import { requireBoardRole, requireOrgRole } from '../authorization/requireScopeRole.js';
-import { ORG_ROLE } from '../authorization/roles.js';
-import type { SessionsService } from '../sessions/sessions.service.js';
-import type { BoardsService } from './boards.service.js';
-import { paginationQuerySchema } from '../../shared/http/pagination.js';
-import { paginationMetadata } from '../../shared/pagination.js';
+import { BOARD_ROLES } from "../authorization/roles.js";
+import {
+	listMyBoardsDocs,
+	listOrganizationBoardsDocs,
+	createBoardDocs,
+	getBoardDocs,
+	updateBoardDocs,
+	archiveBoardDocs,
+	setBoardMemberRoleDocs
+} from "./boards.types.js";
+import { paginationMetadata } from "../../shared/pagination.js";
+import { paginationQuerySchema } from "../../shared/http/pagination.js";
+import { requireAuth } from "../authorization/requireAuth.js";
+import { z } from "zod";
+import type { BoardsService } from "./boards.service.js";
+import type { FastifyInstance } from "fastify";
+import type { SessionsService } from "../sessions/sessions.service.js";
+import type { ZodTypeProvider } from "fastify-type-provider-zod";
 
-const createBoardSchema = z.object({
-  name: z.string().trim().min(2).max(100),
-  description: z.string().trim().max(500).optional().nullable()
-});
+export	async	function	registerBoardRoutes(app: FastifyInstance,
+											    boardsService: BoardsService,
+											    sessionsService: SessionsService)
+{
+	const	typedApp = app.withTypeProvider<ZodTypeProvider>();
 
-const updateBoardSchema = z.object({
-  name: z.string().trim().min(2).max(100).optional(),
-  description: z.string().trim().max(500).optional().nullable()
-});
+	typedApp.get("/api/v1/boards", {
 
-const organizationParamsSchema = z.object({ organizationId: z.string().min(1) });
-const boardParamsSchema = z.object({ boardId: z.string().min(1) });
-const boardMemberParamsSchema = z.object({ boardId: z.string().min(1), userId: z.string().min(1) });
-const boardMemberSchema = z.object({ role: z.enum(BOARD_ROLES) });
+		preHandler: requireAuth(sessionsService),
+		schema: {
+					tags: listMyBoardsDocs.tags,
+					summary: listMyBoardsDocs.summary,
+					description: listMyBoardsDocs.description,
+					querystring: listMyBoardsDocs.querystring,
+					response: listMyBoardsDocs.response,
+					security: []
+		}
+	}, async (request) => {
 
-export async function registerBoardRoutes(
-  app: FastifyInstance,
-  boardsService: BoardsService,
-  sessionsService: SessionsService,
-  organizationsService: import('../organizations/organizations.service.js').OrganizationsService
-) {
-  const typedApp = app.withTypeProvider<ZodTypeProvider>();
+		let	page;
 
-  typedApp.post('/organizations/:organizationId/boards', {
-    preHandler: [requireAuth(sessionsService), requireOrgRole(organizationsService, ORG_ROLE.ADMIN)],
-    schema: { params: organizationParamsSchema, body: createBoardSchema }
-  }, async (request) => {
-    const params = request.params;
-    const body = request.body;
-    const board = await boardsService.createBoard({
-      organizationId: params.organizationId,
-      actorUserId: request.currentUser!.id,
-      ...body
-    });
-    return { board };
-  });
+		page = await boardsService.listByUser(request.currentUser!.id, request.query);
+		return {
+			boards: page.items,
+			pagination: paginationMetadata(page)
+		};
+	});
 
-  typedApp.get('/organizations/:organizationId/boards', {
-    preHandler: [requireAuth(sessionsService), requireOrgRole(organizationsService, ORG_ROLE.MEMBER)],
-    schema: { params: organizationParamsSchema, querystring: paginationQuerySchema }
-  }, async (request) => {
-    const params = request.params;
-    const page = await boardsService.listOrganizationBoards(params.organizationId, request.currentUser!.id, request.query);
-    return { boards: page.items, pagination: paginationMetadata(page) };
-  });
+	typedApp.delete("/api/v1/boards/:boardId", {
 
-  typedApp.get('/boards/:boardId', {
-    preHandler: [requireAuth(sessionsService), requireBoardRole(boardsService, 'read')],
-    schema: { params: boardParamsSchema }
-  }, async (request) => {
-    const params = request.params;
-    const board = await boardsService.getBoardForUser(params.boardId, request.currentUser!.id);
-    return { board };
-  });
+		preHandler: requireAuth(sessionsService),
+		schema: {
+					tags: archiveBoardDocs.tags,
+					summary: archiveBoardDocs.summary,
+					description: archiveBoardDocs.description,
+					params: archiveBoardDocs.params,
+					response: archiveBoardDocs.response,
+					security: []
+		}
+	}, async (request) => {
 
-  typedApp.get('/boards/:boardId/access', {
-    preHandler: [requireAuth(sessionsService), requireBoardRole(boardsService, 'read')],
-    schema: { params: boardParamsSchema }
-  }, async (request) => ({ access: await boardsService.getBoardAccess(request.params.boardId, request.currentUser!.id) }));
+		let	board;
 
-  typedApp.patch('/boards/:boardId', {
-    preHandler: [requireAuth(sessionsService), requireBoardRole(boardsService, 'admin')],
-    schema: { params: boardParamsSchema, body: updateBoardSchema }
-  }, async (request) => {
-    const params = request.params;
-    const body = request.body;
-    const board = await boardsService.updateBoard({
-      boardId: params.boardId,
-      actorUserId: request.currentUser!.id,
-      ...body
-    });
-    return { board };
-  });
+		board = await boardsService.archiveBoard(request.params.boardId, request.currentUser!.id);
+		return { board };
+	});
 
-  typedApp.put('/boards/:boardId/members/:userId', {
-    preHandler: [requireAuth(sessionsService), requireBoardRole(boardsService, 'admin')],
-    schema: { params: boardMemberParamsSchema, body: boardMemberSchema }
-  }, async (request) => ({
-    member: await boardsService.setBoardMemberRole({
-      boardId: request.params.boardId,
-      actorUserId: request.currentUser!.id,
-      userId: request.params.userId,
-      role: request.body.role
-    })
-  }));
+	typedApp.post("/api/v1/organizations/:organizationId/boards", {
 
-  typedApp.delete('/boards/:boardId/members/:userId', {
-    preHandler: [requireAuth(sessionsService), requireBoardRole(boardsService, 'admin')],
-    schema: { params: boardMemberParamsSchema }
-  }, async (request) => {
-    await boardsService.removeBoardMember(request.params.boardId, request.currentUser!.id, request.params.userId);
-    return { ok: true };
-  });
+		preHandler: requireAuth(sessionsService),
+		schema: {
+					tags: createBoardDocs.tags,
+					summary: createBoardDocs.summary,
+					description: createBoardDocs.description,
+					params: createBoardDocs.params,
+					body: createBoardDocs.body,
+					response: createBoardDocs.response,
+					security: []
+		}
+	}, async (request) => {
 
-  typedApp.delete('/boards/:boardId', {
-    preHandler: [requireAuth(sessionsService), requireBoardRole(boardsService, 'read')],
-    schema: { params: boardParamsSchema }
-  }, async (request) => {
-    await boardsService.archiveBoard(request.params.boardId, request.currentUser!.id);
-    return { ok: true };
-  });
+		let	params;
+		let	body;
+		let	board;
+
+		params = request.params;
+		body = request.body;
+		board = await boardsService.createBoard({
+
+			organizationId: params.organizationId,
+			actorUserId: request.currentUser!.id,
+			...body
+		});
+		return { board };
+	});
+
+	typedApp.get("/api/v1/organizations/:organizationId/boards", {
+
+		preHandler: requireAuth(sessionsService),
+		schema: {
+					tags: listOrganizationBoardsDocs.tags,
+					summary: listOrganizationBoardsDocs.summary,
+					description: listOrganizationBoardsDocs.description,
+					params: listOrganizationBoardsDocs.params,
+					querystring: listOrganizationBoardsDocs.querystring,
+					response: listOrganizationBoardsDocs.response,
+					security: []
+		}
+	}, async (request) => {
+
+		let	params;
+		let	page;
+
+		params = request.params;
+		page = await boardsService.listOrganizationBoards(params.organizationId, request.currentUser!.id, request.query);
+		return {
+			boards: page.items,
+			pagination: paginationMetadata(page)
+		};
+	});
+
+	typedApp.get("/api/v1/boards/:boardId", {
+
+		preHandler: requireAuth(sessionsService),
+		schema: {
+					tags: getBoardDocs.tags,
+					summary: getBoardDocs.summary,
+					description: getBoardDocs.description,
+					params: getBoardDocs.params,
+					response: getBoardDocs.response,
+					security: []
+		}
+	}, async (request) => {
+
+		let	params;
+		let	board;
+
+		params = request.params;
+		board = await boardsService.getByBoardIdAndUserId(params.boardId, request.currentUser!.id);
+		return { board };
+	});
+
+	typedApp.patch("/api/v1/boards/:boardId", {
+
+		preHandler: requireAuth(sessionsService),
+		schema: {
+					tags: updateBoardDocs.tags,
+					summary: updateBoardDocs.summary,
+					description: updateBoardDocs.description,
+					params: updateBoardDocs.params,
+					body: updateBoardDocs.body,
+					response: updateBoardDocs.response,
+					security: []
+		}
+	}, async (request) => {
+
+		let	params;
+		let	body;
+		let	board;
+
+		params = request.params;
+		body = request.body;
+		board = await boardsService.updateBoard({
+
+			boardId: params.boardId,
+			actorUserId: request.currentUser!.id,
+			...body
+		});
+		return { board };
+	});
+
+	typedApp.put("/api/v1/boards/:boardId/members/:userId", {
+
+		preHandler: requireAuth(sessionsService),
+		schema: {
+					tags: setBoardMemberRoleDocs.tags,
+					summary: setBoardMemberRoleDocs.summary,
+					description: setBoardMemberRoleDocs.description,
+					params: setBoardMemberRoleDocs.params,
+					body: setBoardMemberRoleDocs.body,
+					response: setBoardMemberRoleDocs.response,
+					security: []
+		}
+	}, async (request) => ({
+
+		member: await boardsService.setBoardMemberRole({
+
+			boardId: request.params.boardId,
+			actorUserId: request.currentUser!.id,
+			userId: request.params.userId,
+			role: request.body.role
+		})
+	}));
+
+	typedApp.delete("/api/v1/boards/:boardId/members/:userId", {
+		preHandler: requireAuth(sessionsService),
+		schema: { params: setBoardMemberRoleDocs.params }
+	}, async (request) => {
+		await boardsService.removeBoardMember(request.params.boardId, request.currentUser!.id, request.params.userId);
+		return { ok: true };
+	});
 }

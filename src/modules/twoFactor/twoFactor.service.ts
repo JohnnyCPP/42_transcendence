@@ -6,7 +6,7 @@ import type { TwoFactorRepository } from './twoFactor.repository.js';
 import type { TotpSetup } from './twoFactor.types.js';
 import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import { hashToken } from '../../shared/crypto/hashToken.js';
-import { InMemoryRateLimiter, rateLimitKey } from '../../shared/http/rateLimit.js';
+import { InMemoryRateLimiter, getRateLimitKey } from '../../shared/http/rateLimit.js';
 
 export class TwoFactorService 
 {
@@ -35,7 +35,7 @@ export class TwoFactorService
       throw badRequest('Two-factor authentication is already enabled');
 
     return {
-      otpauthUri: this.totpService.provisioningUri(user.username, secret),
+      provisioningUri: this.totpService.provisioningUri(user.username, secret),
       manualEntryKey: secret
     };
   }
@@ -43,7 +43,7 @@ export class TwoFactorService
   async confirmTotpSetup(userId: string, code: string): Promise<string[]> 
   {
     // Reserve before async work so concurrent attempts cannot bypass the limit.
-    this.setupLimiter.consume(rateLimitKey('2fa-setup-user', userId));
+    this.setupLimiter.consume(getRateLimitKey('2fa-setup-user', userId));
     const record = await this.twoFactorRepository.findTotpByUserId(userId);
     if (!record || record.enabledAt) 
       throw badRequest('No pending TOTP setup');
@@ -62,7 +62,7 @@ export class TwoFactorService
 
   resetSetupAttempts(userId: string): void
   {
-    this.setupLimiter.reset(rateLimitKey('2fa-setup-user', userId));
+    this.setupLimiter.reset(getRateLimitKey('2fa-setup-user', userId));
   }
 
   async verifyTotp(userId: string, code: string): Promise<boolean> 
@@ -97,12 +97,10 @@ export class TwoFactorService
     return this.twoFactorRepository.countRemainingRecoveryCodes(userId);
   }
 
-  async disableTwoFactor(userId: string, code: string, method: 'totp' | 'recovery_code'): Promise<void>
+  async disableTwoFactor(userId: string): Promise<void>
   {
     const record = await this.twoFactorRepository.findTotpByUserId(userId);
     if (!record?.enabledAt) throw badRequest('Two-factor authentication is not enabled');
-    const valid = method === 'totp' ? await this.verifyTotp(userId, code) : await this.consumeRecoveryCode(userId, code);
-    if (!valid) throw unauthorized('Invalid second factor');
     if (!(await this.twoFactorRepository.disableTotp(userId, record.secretEncrypted)))
       throw badRequest('Two-factor authentication has changed');
   }

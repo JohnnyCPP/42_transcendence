@@ -1,7 +1,7 @@
 import { cx } from '@/components/ui';
 
 /**
- * Pill de estado 2FA + nota de que el flag es solo local en la UI.
+ * Pill de estado 2FA (enabled / disabled) para la sección de settings.
  */
 export function TwoFactorStatusBadge({
   twoFactorEnabled,
@@ -18,11 +18,8 @@ export function TwoFactorStatusBadge({
             : 'bg-surface-container text-on-surface-variant'
         )}
       >
-        {twoFactorEnabled ? '2FA activo (UI)' : '2FA inactivo (UI)'}
+        {twoFactorEnabled ? '2FA activo' : '2FA inactivo'}
       </span>
-      <p className="text-xs text-on-surface-variant">
-        El estado es local hasta que `/me` exponga el flag real.
-      </p>
     </div>
   );
 }

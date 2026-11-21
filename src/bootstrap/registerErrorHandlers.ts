@@ -8,14 +8,7 @@ export	function	registerErrorHandlers(fastifyInstance: FastifyInstance): void
 
 		if (error instanceof AppError)
 		{
-			const route = request.routeOptions.url;
-			if (error.statusCode === 429 ||
-				((route === '/auth/login' || route === '/auth/login/2fa') && error.statusCode === 401) ||
-				((route === '/auth/2fa/verify-setup' || route === '/2fa/confirm') && [400, 401].includes(error.statusCode)))
-				request.log.warn({ event: 'authentication_attempt_failed', route, statusCode: error.statusCode, errorCode: error.code }, 'Authentication attempt failed');
-			if (error.statusCode === 429 && error.retryAfterSeconds !== undefined)
-				reply.header('Retry-After', String(error.retryAfterSeconds));
-			return reply.status(error.statusCode).send({
+			return reply.headers(error.headers).status(error.statusCode).send({
 
 				error: error.code, 
 				message: error.message 

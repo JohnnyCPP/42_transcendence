@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { InMemoryAuthenticationsRepository } from "./authentications.repository.js";
+import { InMemoryAuthenticationRepository } from "./authentication.repository.js";
 
 describe("InMemoryAuthenticationsRepository", () => {
   it("records expired and completed challenges and prevents reuse", async () => {
-    const repository = new InMemoryAuthenticationsRepository();
+    const repository = new InMemoryAuthenticationRepository();
     const now = new Date();
     const create = (tokenHash: string, expiresAt: Date) => repository.createLoginChallenge({ userId: "user", tokenHash, expiresAt, ipAddress: null, userAgent: null });
     // Create one expired challenge and one that can still be used.

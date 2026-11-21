@@ -1,97 +1,106 @@
-import { tooManyRequests } from '../errors/httpErrors.js';
-import { createHash } from 'node:crypto';
+import { createHash } from "node:crypto";
+import { env } from "../../config/env.js";
+import { tooManyRequests } from "../errors/httpErrors.js";
 
-type Bucket = {
-  attempts: number;
-  resetAt: number;
+type	Bucket = {
+	attempts: number;
+	resetAt: number;
 };
 
-export class InMemoryRateLimiter 
+export	class	InMemoryRateLimiter
 {
-  private readonly buckets = new Map<string, Bucket>();
-  private operationsSinceCleanup = 0;
+	private	readonly	buckets = new Map<string, Bucket>();
+	private	operationsSinceCleanup = 0;
 
-  constructor(
-    private readonly maxAttempts: number,
-    private readonly windowMs: number,
-    private readonly maxBuckets = 10_000
-  ) {}
+	constructor(private readonly maxAttempts: number,
+				private readonly windowMs: number,
+				private readonly maxBuckets = 10_000) {}
 
-  assertAllowed(key: string): void 
-  {
-    const now = Date.now();
-    this.cleanupIfNeeded(now);
-    const bucket = this.buckets.get(key);
-    if (!bucket || bucket.resetAt <= now)
-    {
-      if (bucket) this.buckets.delete(key);
-      return;
-    }
+	assertAllowed(key: string): void
+	{
+		const	now = Date.now();
+		let		bucket;
+		let		seconds;
 
-    if (bucket.attempts >= this.maxAttempts)
-    {
-      throw tooManyRequests(Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)));
-    }
-  }
+		this.cleanupIfNeeded(now);
+		bucket = this.buckets.get(key);
+		if (!bucket || bucket.resetAt <= now)
+		{
+			if (bucket)
+				this.buckets.delete(key);
+			return;
+		}
+		if (bucket.attempts >= this.maxAttempts)
+		{
+			seconds = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+			throw tooManyRequests("Too many requests", "RATE_LIMITED", seconds);
+		}
+	}
 
-  recordFailure(key: string): void
-  {
-    const now = Date.now();
-    this.cleanupIfNeeded(now);
-    const bucket = this.buckets.get(key);
-    if (bucket && bucket.resetAt > now)
-    {
-      bucket.attempts += 1;
-      return;
-    }
+	recordFailure(key: string): void
+	{
+		const	now = Date.now();
 
-    this.ensureCapacity(now);
-    this.buckets.set(key, { attempts: 1, resetAt: now + this.windowMs });
-  }
+		this.cleanupIfNeeded(now);
+		const	bucket = this.buckets.get(key);
 
-  consume(key: string): void
-  {
-    this.assertAllowed(key);
-    this.recordFailure(key);
-  }
+		if (bucket && bucket.resetAt > now)
+		{
+			bucket.attempts += 1;
+			return;
+		}
 
-  reset(key: string): void
-  {
-    this.buckets.delete(key);
-  }
+		this.ensureCapacity(now);
+		this.buckets.set(key, { attempts: 1, resetAt: now + this.windowMs });
+	}
 
-  private cleanupIfNeeded(now: number): void
-  {
-    this.operationsSinceCleanup += 1;
-    if (this.operationsSinceCleanup < 64 && this.buckets.size < this.maxBuckets) return;
-    this.operationsSinceCleanup = 0;
-    this.removeExpired(now);
-  }
+	consume(key: string): void
+	{
+		this.assertAllowed(key);
+		this.recordFailure(key);
+	}
 
-  private ensureCapacity(now: number): void
-  {
-    if (this.buckets.size < this.maxBuckets) return;
-    this.removeExpired(now);
-    if (this.buckets.size >= this.maxBuckets) {
-      const earliest = Math.min(...[...this.buckets.values()].map(bucket => bucket.resetAt));
-      throw tooManyRequests(Math.max(1, Math.ceil((earliest - now) / 1000)));
-    }
-  }
+	reset(key: string): void
+	{
+		this.buckets.delete(key);
+	}
 
-  private removeExpired(now: number): void
-  {
-    for (const [key, bucket] of this.buckets)
-    {
-      if (bucket.resetAt <= now) this.buckets.delete(key);
-    }
-  }
+	private	cleanupIfNeeded(now: number): void
+	{
+		this.operationsSinceCleanup += 1;
+		if (this.operationsSinceCleanup < 64 && this.buckets.size < this.maxBuckets)
+			return;
+		this.operationsSinceCleanup = 0;
+		this.removeExpired(now);
+	}
+
+	private	ensureCapacity(now: number): void
+	{
+		if (this.buckets.size < this.maxBuckets) return;
+		this.removeExpired(now);
+		if (this.buckets.size >= this.maxBuckets) throw tooManyRequests();
+	}
+
+	private	removeExpired(now: number): void
+	{
+		for (const [key, bucket] of this.buckets)
+		{
+			if (bucket.resetAt <= now) this.buckets.delete(key);
+		}
+	}
 }
 
-// Never retain raw usernames, 
-// session ids or challenge tokens in limiter memory.
-export function rateLimitKey(scope: string, ...parts: Array<string | null | undefined>): string
+/*
+ * hashes <scope>\0<parts> with SHA-256, 
+ * encodes the digest as hexadecimal and returns it
+ *
+ * the meaning of hashing <scope> and <parts> is to avoid 
+ * sensitive data from being present in memory
+ */
+export	function	getRateLimitKey(scope: string, 
+								 ...parts: Array<string | null | undefined>): string
 {
-  return createHash("sha256")
-    .update([scope, ...parts.map((part) => part ?? "unknown")].join('\0'))
-    .digest("hex");
+	return createHash("sha256").update([scope, 
+									    ...parts.map((part) => part ?? "unknown")].join("\0"))
+							   .digest("hex");
 }

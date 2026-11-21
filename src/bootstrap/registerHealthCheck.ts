@@ -1,6 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import type { PrismaClient } from "@prisma/client";
 
+/*
+ * Docker Compose healthcheck hits this endpoint directly at 
+ * "http://localhost/health" from inside the container 
+ *
+ * It doesn't need to be reachable from the client browser, 
+ * so nextjs does not redirect it
+ */
 export	function	registerHealthCheck(fastifyInstance: FastifyInstance, 
 										prismaClient: PrismaClient | null): void
 {

@@ -4,7 +4,7 @@
  * Cuando el backend active el versionado, cambia solo `API_BASE`
  * (p. ej. a `/api/v1`) y ajusta el rewrite de `next.config.ts`.
  */
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? '/api';
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? '/api/v1';
 
 /**
  * Construye la URL final anteponiendo `API_BASE` si hace falta.

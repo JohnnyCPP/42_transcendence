@@ -8,7 +8,7 @@ import { apiFetch, ApiError } from '@/lib/apiClient';
 import RecoveryCodesDialog from '@/components/auth/RecoveryCodesDialog';
 
 type Status = { enabled: boolean; confirmedAt?: string };
-type Setup = { otpauthUri: string; manualEntryKey: string };
+type Setup = { provisioningUri: string };
 
 function SecuritySettings() {
   const [status, setStatus] = useState<Status | null>(null);
@@ -24,10 +24,10 @@ function SecuritySettings() {
 
   useEffect(() => {
     let active = true;
-    apiFetch<Status>('/auth/2fa/status').then(async value => {
+    apiFetch<Status>('/two-factor/status').then(async value => {
       if (active) setStatus(value);
       if (value.enabled) {
-        const result = await apiFetch<{ remaining: number }>('/auth/2fa/recovery-codes/remaining');
+        const result = await apiFetch<{ remaining: number }>('/two-factor/recovery-codes/remaining');
         if (active) setRemaining(result.remaining);
       }
     })
@@ -38,9 +38,9 @@ function SecuritySettings() {
   async function begin(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError('');
     try {
-      await apiFetch('/auth/reauthenticate', { method: 'POST', body: JSON.stringify({ password }) });
+      await apiFetch('/reauthenticate', { method: 'POST', body: JSON.stringify({ password }) });
       setPassword('');
-      setSetup(await apiFetch<Setup>('/auth/2fa/setup', { method: 'POST' }));
+      setSetup(await apiFetch<Setup>('/two-factor/begin', { method: 'POST' }));
     } catch (err) { setError(err instanceof Error ? err.message : 'No se ha podido iniciar la configuración.'); }
     finally { setBusy(false); }
   }
@@ -48,7 +48,7 @@ function SecuritySettings() {
   async function confirm(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError('');
     try {
-      const result = await apiFetch<{ recoveryCodes: string[] }>('/auth/2fa/verify-setup', { method: 'POST', body: JSON.stringify({ code }) });
+      const result = await apiFetch<{ recoveryCodes: string[] }>('/two-factor/confirm', { method: 'POST', body: JSON.stringify({ code }) });
       setSetup(null); setCode(''); setCodes(result.recoveryCodes); setStatus({ enabled: true }); setRemaining(10);
     } catch (err) { setError(err instanceof ApiError && err.status === 400 ? 'El código no es válido o la configuración ya ha cambiado. Comprueba el código e inténtalo de nuevo.' : 'No se ha podido confirmar el código.'); }
     finally { setBusy(false); }
@@ -58,11 +58,12 @@ function SecuritySettings() {
     event.preventDefault(); setBusy(true); setError('');
     try {
       if (action === 'disable') {
-        await apiFetch('/auth/2fa/disable', { method: 'POST', body: JSON.stringify({ password, code, method }) });
+        await apiFetch('/reauthenticate', { method: 'POST', body: JSON.stringify({ password, secondFactorCode: code, secondFactorMethod: method }) });
+        await apiFetch('/two-factor', { method: 'DELETE' });
         setStatus({ enabled: false }); setRemaining(0); setAction(null);
       } else {
-        await apiFetch('/auth/reauthenticate', { method: 'POST', body: JSON.stringify({ password, secondFactorCode: code, secondFactorMethod: method }) });
-        const result = await apiFetch<{ recoveryCodes: string[] }>('/auth/2fa/recovery-codes/regenerate', { method: 'POST' });
+        await apiFetch('/reauthenticate', { method: 'POST', body: JSON.stringify({ password, secondFactorCode: code, secondFactorMethod: method }) });
+        const result = await apiFetch<{ recoveryCodes: string[] }>('/two-factor/regenerate', { method: 'POST' });
         setCodes(result.recoveryCodes); setRemaining(10); setAction(null);
       }
       setPassword(''); setCode('');
@@ -126,8 +127,8 @@ function SecuritySettings() {
     </form>}
     {setup && <form onSubmit={confirm} className="space-y-4">
       <p>Escanea este código con tu aplicación de autenticación o introduce la clave manualmente.</p>
-      <div className="inline-block bg-white p-3"><QRCodeSVG value={setup.otpauthUri} size={200} title="Código QR para configurar 2FA" /></div>
-      <p>Clave manual: <code className="break-all select-all">{setup.manualEntryKey}</code></p>
+      <div className="inline-block bg-white p-3"><QRCodeSVG value={setup.provisioningUri} size={200} title="Código QR para configurar 2FA" /></div>
+      <p>Clave manual: <code className="break-all select-all">{new URL(setup.provisioningUri).searchParams.get('secret')}</code></p>
       <label className="block">Código de 6 dígitos
         <input className="block w-full rounded border p-2" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={e => setCode(e.target.value)} />
       </label>

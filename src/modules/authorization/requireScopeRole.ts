@@ -22,6 +22,6 @@ export function requireBoardRole(service: BoardsService, permission: 'read' | 'w
   return async (request: FastifyRequest) => {
     if (!request.currentUser) throw unauthorized();
     const { boardId } = request.params as { boardId: string };
-    await service.getBoardForUser(boardId, request.currentUser.id, permission);
+    await service.getByBoardIdAndUserId(boardId, request.currentUser.id, permission);
   };
 }

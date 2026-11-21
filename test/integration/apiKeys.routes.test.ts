@@ -30,7 +30,7 @@ describe("POST /api-keys", () => {
 		const	res = await app.inject({
 
 			method: "POST",
-			url: "/api-keys",
+			url: "/api/v1/api-keys",
 			payload: { name: "x" },
 		});
 
