@@ -17,7 +17,7 @@ services:
     image: taskflow-rbac-integration-backend
     build:
       context: ..
-      dockerfile: Dockerfile.backend
+      dockerfile: test/Dockerfile.rbac
     environment:
       DATABASE_URL: postgresql://rbac_test:rbac_test_only@postgres:5432/rbac_integration
       TOTP_ENCRYPTION_KEY_BASE64: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=

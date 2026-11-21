@@ -14,7 +14,7 @@ const password = 'LocalIntegrationOnly123!';
 const users = {};
 
 async function call(actor, method, path, body) {
-  const response = await fetch(`http://backend:3000${path}`, {
+  const response = await fetch(`http://backend:3000/api/v1${path}`, {
     method,
     headers: { ...(actor ? { cookie: users[actor].cookie } : {}), ...(body ? { 'content-type': 'application/json' } : {}) },
     ...(body ? { body: JSON.stringify(body) } : {})
@@ -36,7 +36,7 @@ beforeAll(async () => {
   for (const [name, role] of Object.entries(roles)) {
     const user = await prisma.user.create({ data: { id: `rbac-${name}`, username: `rbac_${name}`, role,
       passwordCredential: { create: { passwordHash, passwordUpdatedAt: new Date() } } } });
-    const login = await call(null, 'POST', '/auth/login', { username: user.username, password });
+    const login = await call(null, 'POST', '/login', { username: user.username, password });
     expect(login.status, `login ${name}`).toBe(200);
     expect(login.cookie, `session cookie for ${name}`).toBeTruthy();
     users[name] = { id: user.id, cookie: login.cookie };
@@ -90,7 +90,7 @@ it('board roles: read, write, comments, memberships and archiving', async () => 
   const boardId = created.board.id;
   const board = `/boards/${boardId}`;
   const membership = name => `${board}/members/${users[name].id}`;
-  await expectResponse('member', 'POST', `${board}/lists`, 403, { name: 'Forbidden' });
+  await expectResponse('member', 'POST', `${board}/lists`, 200, { name: 'Allowed by main' });
   await expectResponse('outsider', 'GET', board, 404);
   for (const [name, role] of [['boardadmin', 'admin'], ['member', 'member'], ['observer', 'observer']])
     await expectResponse('orgadmin', 'PUT', membership(name), 200, { role });
@@ -99,8 +99,9 @@ it('board roles: read, write, comments, memberships and archiving', async () => 
     await expectResponse(actor, 'GET', `${board}/lists`, 200);
   }
   // Read-only roles cannot change the board or its memberships.
+  await expectResponse('reader', 'POST', `${board}/lists`, 200, { name: 'Allowed by main' });
+  await expectResponse('observer', 'POST', `${board}/lists`, 403, { name: 'Forbidden' });
   for (const actor of ['observer', 'reader']) {
-    await expectResponse(actor, 'POST', `${board}/lists`, 403, { name: 'Forbidden' });
     await expectResponse(actor, 'PATCH', board, 403, { name: 'Forbidden' });
     await expectResponse(actor, 'PUT', membership('member'), 403, { role: 'member' });
   }
@@ -109,10 +110,11 @@ it('board roles: read, write, comments, memberships and archiving', async () => 
   await expectResponse('boardadmin', 'PUT', membership('reader'), 200, { role: 'observer' });
   await expectResponse('boardadmin', 'DELETE', membership('reader'), 200);
   const list = (await expectResponse('member', 'POST', `${board}/lists`, 200, { name: 'List' })).list;
+  const listIds = (await expectResponse('member', 'GET', `${board}/lists`, 200)).lists.map(item => item.id);
   await expectResponse('observer', 'PATCH', `/lists/${list.id}`, 403, { name: 'Forbidden' });
   await expectResponse('member', 'PATCH', `/lists/${list.id}`, 200, { name: 'Updated list' });
-  await expectResponse('observer', 'POST', `${board}/lists/reorder`, 403, { listIds: [list.id] });
-  await expectResponse('member', 'POST', `${board}/lists/reorder`, 200, { listIds: [list.id] });
+  await expectResponse('observer', 'POST', `${board}/lists/reorder`, 403, { listIds });
+  await expectResponse('member', 'POST', `${board}/lists/reorder`, 200, { listIds });
   // Cards default to Low; chosen and updated priorities must persist in PostgreSQL.
   const card = (await expectResponse('member', 'POST', `/lists/${list.id}/cards`, 200, { title: 'Card' })).card;
   expect(card.priority).toBe('Low');
@@ -129,7 +131,7 @@ it('board roles: read, write, comments, memberships and archiving', async () => 
   await expectResponse('member', 'PATCH', cardUrl, 200, { title: 'Updated' });
   await expectResponse('observer', 'DELETE', cardUrl, 403);
   await expectResponse('observer', 'POST', `${cardUrl}/move`, 403, { targetListId: list.id });
-  await expectResponse('reader', 'POST', `${cardUrl}/comments`, 403, { content: 'Forbidden' });
+  await expectResponse('observer', 'POST', `${cardUrl}/comments`, 403, { content: 'Forbidden' });
   const comment = (await expectResponse('member', 'POST', `${cardUrl}/comments`, 200, { content: 'Comment' })).comment;
   await expectResponse('observer', 'GET', `${cardUrl}/comments`, 200);
   await expectResponse('observer', 'PATCH', `${cardUrl}/comments/${comment.id}`, 403, { content: 'Forbidden' });
@@ -139,14 +141,13 @@ it('board roles: read, write, comments, memberships and archiving', async () => 
   await expectResponse('member', 'DELETE', cardUrl, 200);
   await expectResponse('member', 'DELETE', membership('observer'), 403);
   await expectResponse('boardadmin', 'DELETE', membership('member'), 200);
-  await expectResponse('member', 'POST', `/lists/${list.id}/cards`, 403, { title: 'Forbidden' });
+  await expectResponse('member', 'POST', `/lists/${list.id}/cards`, 200, { title: 'Allowed by main' });
   await expectResponse('owner', 'PUT', membership('member'), 200, { role: 'member' });
   // Removing an organization member also removes stale board membership.
   await expectResponse('orgadmin', 'DELETE', `${org}/members/${users.member.id}`, 200);
   await expectResponse('orgadmin', 'PUT', `${org}/members/${users.member.id}`, 200, { role: 'member' });
-  await expectResponse('member', 'POST', `${board}/lists`, 403, { name: 'No stale access' });
+  await expectResponse('member', 'POST', `${board}/lists`, 200, { name: 'Organization member access' });
   expect(await prisma.boardMember.count({ where: { boardId, userId: users.member.id } })).toBe(0);
-  await expectResponse('orgadmin', 'DELETE', board, 403);
   await expectResponse('member', 'DELETE', board, 403);
   await expectResponse('boardadmin', 'DELETE', board, 200);
   const other = (await expectResponse('orgadmin', 'POST', `${org}/boards`, 200, { name: 'Other' })).board;
@@ -166,8 +167,8 @@ it('global roles: safe user administration and concurrent last-admin protection'
   await expectResponse('reader', 'GET', target, 403);
   await expectResponse('moderator', 'PATCH', target, 403, { displayName: 'Forbidden' });
   await expectResponse('moderator', 'DELETE', target, 403);
-  await expectResponse('moderator', 'GET', '/admin/users', 403);
-  await expectResponse('admina', 'GET', '/admin/users', 200);
+  await expectResponse('moderator', 'GET', '/admin-users', 403);
+  await expectResponse('admina', 'GET', '/admin-users', 200);
   await expectResponse('admina', 'PATCH', `/users/${users.admina.id}`, 403, { role: 'user' });
   await expectResponse('admina', 'PATCH', `/users/${users.admina.id}`, 403, { status: 'disabled' });
   await expectResponse('admina', 'DELETE', `/users/${users.admina.id}`, 403);

@@ -142,7 +142,7 @@ export	class	PrismaBoardsRepository	implements	BoardsRepository
 					userId: input.userId
 				}
 			},
-			create: input,
+			create: { boardId: input.boardId, userId: input.userId, role: input.role },
 			update: { role: input.role }
 		});
 		return {
