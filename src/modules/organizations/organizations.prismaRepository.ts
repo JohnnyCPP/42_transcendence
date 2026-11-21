@@ -32,7 +32,7 @@ export class PrismaOrganizationsRepository implements OrganizationsRepository
     try {
       const organization = await this.prisma.$transaction(async (tx) => {
         const created = await tx.organization.create({
-          data: { id, name: input.name.trim(), slug, createdByUserId: input.createdByUserId }
+          data: { id, name: input.name.trim(), slug, description: input.description?.trim() || null, createdByUserId: input.createdByUserId }
         });
         await tx.organizationMember.create({ data: { organizationId: id, userId: input.createdByUserId, role: 'owner' } });
         return created;
@@ -108,7 +108,7 @@ export class PrismaOrganizationsRepository implements OrganizationsRepository
     try {
       const row = await this.prisma.organization.update({
         where: { id: input.organizationId },
-        data: { name: input.name?.trim(), slug: input.slug === undefined ? undefined : normalizeSlug(input.slug) }
+        data: { name: input.name?.trim(), slug: input.slug === undefined ? undefined : normalizeSlug(input.slug), description: input.description === undefined ? undefined : input.description?.trim() || null }
       });
       return mapOrganization(row);
     } catch (error) {
@@ -118,9 +118,9 @@ export class PrismaOrganizationsRepository implements OrganizationsRepository
   }
 }
 
-function mapOrganization(row: { id: string; name: string; slug: string; createdByUserId: string; createdAt: Date; updatedAt: Date; archivedAt: Date | null }): Organization 
+function mapOrganization(row: { id: string; name: string; slug: string; description: string | null; createdByUserId: string; createdAt: Date; updatedAt: Date; archivedAt: Date | null }): Organization
 {
-  return { id: row.id, name: row.name, slug: row.slug, createdByUserId: row.createdByUserId, createdAt: row.createdAt, updatedAt: row.updatedAt, archivedAt: row.archivedAt };
+  return { id: row.id, name: row.name, slug: row.slug, description: row.description, createdByUserId: row.createdByUserId, createdAt: row.createdAt, updatedAt: row.updatedAt, archivedAt: row.archivedAt };
 }
 
 function isUniqueViolation(error: unknown): boolean 

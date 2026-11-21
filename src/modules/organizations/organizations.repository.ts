@@ -50,6 +50,7 @@ export class InMemoryOrganizationsRepository implements OrganizationsRepository
       id: createRandomToken(16),
       name: input.name.trim(),
       slug,
+      description: input.description?.trim() || null,
       createdByUserId: input.createdByUserId,
       createdAt: now,
       updatedAt: now,
@@ -143,6 +144,7 @@ export class InMemoryOrganizationsRepository implements OrganizationsRepository
 
     organization.name = input.name?.trim() ?? organization.name;
     organization.slug = nextSlug;
+    organization.description = input.description === undefined ? organization.description : input.description?.trim() || null;
     organization.updatedAt = new Date();
     return organization;
   }

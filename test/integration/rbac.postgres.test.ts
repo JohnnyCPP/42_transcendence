@@ -46,7 +46,9 @@ afterAll(async () => { await prisma.$disconnect(); });
 
 // Exercise organization membership and access through HTTP and real persistence.
 it('organization roles: reading, invitations, management and archiving', async () => {
-  const created = await expectResponse('owner', 'POST', '/organizations', 200, { name: 'RBAC organization' });
+  const created = await expectResponse('owner', 'POST', '/organizations', 200, { name: 'RBAC organization', description: 'Initial' });
+  expect(created.organization.description).toBe('Initial');
+  expect((await prisma.organizationMember.findUniqueOrThrow({ where: { organizationId_userId: { organizationId: created.organization.id, userId: users.owner.id } } })).role).toBe('owner');
   const org = `/organizations/${created.organization.id}`;
   const membership = name => `${org}/members/${users[name].id}`;
   await expectResponse('owner', 'PUT', membership('orgadmin'), 200, { role: 'admin' });
@@ -61,7 +63,8 @@ it('organization roles: reading, invitations, management and archiving', async (
   await expectResponse('outsider', 'GET', org, 404);
   await expectResponse('outsider', 'GET', `${org}/members`, 404);
   await expectResponse('member', 'PATCH', org, 403, { name: 'Forbidden' });
-  await expectResponse('orgadmin', 'PATCH', org, 200, { name: 'Updated' });
+  await expectResponse('orgadmin', 'PATCH', org, 200, { name: 'Updated', description: 'Updated description' });
+  expect((await prisma.organization.findUniqueOrThrow({ where: { id: created.organization.id } })).description).toBe('Updated description');
   await expectResponse('member', 'POST', `${org}/boards`, 403, { name: 'Forbidden' });
   await expectResponse('orgadmin', 'POST', `${org}/boards`, 200, { name: 'Allowed' });
   // Check membership management and prevent demotion or removal of the owner.

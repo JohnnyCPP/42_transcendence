@@ -324,6 +324,7 @@ model Organization {
 
   name            String
   slug            String               @unique
+  description     String?
 
   members         OrganizationMember[]
   boards          Board[]

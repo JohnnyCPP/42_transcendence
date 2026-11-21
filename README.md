@@ -474,6 +474,8 @@ Administrators cannot change their own role, disable their own account, or delet
 
 Any authenticated user can create an organization and becomes its `owner`. The following permissions apply within an organization to which the user belongs:
 
+`POST /api/v1/organizations` and `PATCH /api/v1/organizations/:organizationId` accept an optional `description` (up to 5,000 characters). PATCH accepts `null` to clear it. Existing organizations have a null description until one is set.
+
 | Action | `member` | `admin` | `owner` |
 | --- | --- | --- | --- |
 | Read the organization and list its boards | Yes | Yes | Yes |

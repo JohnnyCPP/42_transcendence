@@ -7,6 +7,7 @@ export type Organization = {
   id: string;
   name: string;
   slug: string;
+  description: string | null;
   createdByUserId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -27,6 +28,7 @@ export type OrganizationWithRole = Organization & {
 export type CreateOrganizationInput = {
   name: string;
   slug?: string;
+  description?: string | null;
   createdByUserId: string;
 };
 
@@ -35,6 +37,7 @@ export type UpdateOrganizationInput = {
   actorUserId: string;
   name?: string;
   slug?: string;
+  description?: string | null;
 };
 
 export type SetOrganizationMemberInput = {
@@ -50,6 +53,7 @@ export const organizationSchema = z.object({
 	id: z.string(),
 	name: z.string(),
 	slug: z.string(),
+	description: z.string().nullable(),
 	createdByUserId: z.string(),
 	createdAt: z.date(),
 	updatedAt: z.date(),
@@ -88,11 +92,12 @@ export	const	createOrganizationDocs = {
 
 	body: z.object({
 		name: z.string().trim().min(2).max(80),
-		slug: z.string().trim().min(2).max(80).optional()
+		slug: z.string().trim().min(2).max(80).optional(),
+		description: z.string().trim().max(5000).nullable().optional()
 	}),
 
 	response: {
-		201: z.object({ organization: organizationWithRoleSchema }).describe("The created organization, with the caller's role."),
+		200: z.object({ organization: organizationWithRoleSchema }).describe("The created organization, with the caller's role."),
 		400: organizationErrorSchema.describe("Validation error."),
 		401: organizationErrorSchema.describe("Authentication required."),
 		409: organizationErrorSchema.describe("Organization slug already exists.")
@@ -162,7 +167,7 @@ export	const	updateOrganizationDocs = {
 	summary: "Update an organization",
 
 	description:
-		"Updates the name and/or slug of an organization. Requires owner or admin role. " +
+		"Updates the name, slug and/or description of an organization. Requires owner or admin role. " +
 		"An empty body is a successful no-op. " +
 		"Returns 409 `ORGANIZATION_SLUG_EXISTS` if the new slug is taken by another organization.",
 
@@ -172,7 +177,8 @@ export	const	updateOrganizationDocs = {
 
 	body: z.object({
 		name: z.string().trim().min(2).max(80).optional(),
-		slug: z.string().trim().min(2).max(80).optional()
+		slug: z.string().trim().min(2).max(80).optional(),
+		description: z.string().trim().max(5000).nullable().optional()
 	}),
 
 	response: {
