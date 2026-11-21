@@ -1,4 +1,4 @@
-import { BOARD_ROLES } from "../authorization/roles.js";
+import { BOARD_ROLES, ORG_ROLES } from "../authorization/roles.js";
 import {
 	listMyBoardsDocs,
 	listOrganizationBoardsDocs,
@@ -138,6 +138,24 @@ export	async	function	registerBoardRoutes(app: FastifyInstance,
 		board = await boardsService.getByBoardIdAndUserId(params.boardId, request.currentUser!.id);
 		return { board };
 	});
+
+	typedApp.get("/api/v1/boards/:boardId/access", {
+		preHandler: requireAuth(sessionsService),
+		schema: {
+			tags: ["Boards"],
+			summary: "Get the current user's board permissions",
+			params: z.object({ boardId: z.string().min(1) }),
+			response: { 200: z.object({ access: z.object({
+				organizationRole: z.enum(ORG_ROLES),
+				boardRole: z.enum(BOARD_ROLES),
+				canWrite: z.boolean(),
+				canArchive: z.boolean()
+			}) }) },
+			security: []
+		}
+	}, async (request) => ({
+		access: await boardsService.getBoardAccess(request.params.boardId, request.currentUser!.id)
+	}));
 
 	typedApp.patch("/api/v1/boards/:boardId", {
 

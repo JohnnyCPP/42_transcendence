@@ -113,6 +113,19 @@ it('board roles: read, writes, membership and archive', async () => {
   // Assign board roles separately from organization roles and compare access.
   for (const [name, role] of [['boardadmin', 'admin'], ['member', 'member'], ['observer', 'observer']])
     await expect('orgadmin', 'PUT', membership(name), 200, { role });
+  for (const [who, organizationRole, boardRole, canWrite, canArchive] of [
+    ['owner', 'owner', 'admin', true, true],
+    ['orgadmin', 'admin', 'admin', true, true],
+    ['boardadmin', 'member', 'admin', true, true],
+    ['member', 'member', 'member', true, false],
+    ['reader', 'member', 'member', true, false],
+    ['observer', 'member', 'observer', false, false]
+  ]) {
+    const result = await expect(who, 'GET', `${base}/access`, 200);
+    vitestExpect(result.access).toEqual({ organizationRole, boardRole, canWrite, canArchive });
+  }
+  await expect('outsider', 'GET', `${base}/access`, 404);
+  vitestExpect((await app.inject({ method: 'GET', url: `/api/v1${base}/access` })).statusCode).toBe(401);
   for (const who of ['owner', 'orgadmin', 'boardadmin', 'member', 'observer', 'reader']) {
     await expect(who, 'GET', base, 200);
     await expect(who, 'GET', `${base}/lists`, 200);

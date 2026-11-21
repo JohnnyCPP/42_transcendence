@@ -94,6 +94,11 @@ it('board roles: read, write, comments, memberships and archiving', async () => 
   await expectResponse('outsider', 'GET', board, 404);
   for (const [name, role] of [['boardadmin', 'admin'], ['member', 'member'], ['observer', 'observer']])
     await expectResponse('orgadmin', 'PUT', membership(name), 200, { role });
+  expect((await expectResponse('owner', 'GET', `${board}/access`, 200)).access)
+    .toEqual({ organizationRole: 'owner', boardRole: 'admin', canWrite: true, canArchive: true });
+  expect((await expectResponse('observer', 'GET', `${board}/access`, 200)).access)
+    .toEqual({ organizationRole: 'member', boardRole: 'observer', canWrite: false, canArchive: false });
+  await expectResponse('outsider', 'GET', `${board}/access`, 404);
   for (const actor of ['owner', 'orgadmin', 'boardadmin', 'member', 'observer', 'reader']) {
     await expectResponse(actor, 'GET', board, 200);
     await expectResponse(actor, 'GET', `${board}/lists`, 200);
