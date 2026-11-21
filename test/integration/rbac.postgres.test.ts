@@ -51,6 +51,22 @@ it('organization roles: reading, invitations, management and archiving', async (
   expect((await prisma.organizationMember.findUniqueOrThrow({ where: { organizationId_userId: { organizationId: created.organization.id, userId: users.owner.id } } })).role).toBe('owner');
   const org = `/organizations/${created.organization.id}`;
   const membership = name => `${org}/members/${users[name].id}`;
+  for (const [method, path, body] of [
+    ['GET', org], ['PATCH', org, { name: 'Denied' }], ['DELETE', org],
+    ['GET', `${org}/members`], ['POST', `${org}/members`, { userId: users.target.id }],
+    ['PUT', membership('target'), { role: 'member' }], ['DELETE', membership('target')],
+    ['GET', `${org}/boards`], ['POST', `${org}/boards`, { name: 'Denied' }]
+  ]) {
+    expect((await call(null, method, path, body)).status, `${method} ${path} without session`).toBe(401);
+    await expectResponse('outsider', method, path, 404, body);
+  }
+  const concurrent = await Promise.all([
+    call('owner', 'POST', `${org}/members`, { userId: users.outsider.id }),
+    call('owner', 'POST', `${org}/members`, { userId: users.outsider.id })
+  ]);
+  expect(concurrent.map(result => result.status).sort()).toEqual([200, 409]);
+  expect(concurrent.find(result => result.status === 409).body.error).toBe('ORGANIZATION_MEMBER_EXISTS');
+  await expectResponse('owner', 'DELETE', membership('outsider'), 200);
   await expectResponse('owner', 'PUT', membership('orgadmin'), 200, { role: 'admin' });
   await expectResponse('owner', 'PUT', membership('member'), 200, { role: 'member' });
   await expectResponse('orgadmin', 'PUT', membership('target'), 200, { role: 'member' });

@@ -1,4 +1,4 @@
-import { BOARD_ROLES, ORG_ROLES } from "../authorization/roles.js";
+import { BOARD_ROLES, ORG_ROLE, ORG_ROLES } from "../authorization/roles.js";
 import {
 	listMyBoardsDocs,
 	listOrganizationBoardsDocs,
@@ -11,15 +11,18 @@ import {
 import { paginationMetadata } from "../../shared/pagination.js";
 import { paginationQuerySchema } from "../../shared/http/pagination.js";
 import { requireAuth } from "../authorization/requireAuth.js";
+import { requireOrgRole } from "../authorization/requireScopeRole.js";
 import { z } from "zod";
 import type { BoardsService } from "./boards.service.js";
+import type { OrganizationsService } from "../organizations/organizations.service.js";
 import type { FastifyInstance } from "fastify";
 import type { SessionsService } from "../sessions/sessions.service.js";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 
 export	async	function	registerBoardRoutes(app: FastifyInstance,
 											    boardsService: BoardsService,
-											    sessionsService: SessionsService)
+											    sessionsService: SessionsService,
+											    organizationsService: OrganizationsService)
 {
 	const	typedApp = app.withTypeProvider<ZodTypeProvider>();
 
@@ -66,7 +69,7 @@ export	async	function	registerBoardRoutes(app: FastifyInstance,
 
 	typedApp.post("/api/v1/organizations/:organizationId/boards", {
 
-		preHandler: requireAuth(sessionsService),
+		preHandler: [requireAuth(sessionsService), requireOrgRole(organizationsService, ORG_ROLE.ADMIN)],
 		schema: {
 					tags: createBoardDocs.tags,
 					summary: createBoardDocs.summary,
@@ -95,7 +98,7 @@ export	async	function	registerBoardRoutes(app: FastifyInstance,
 
 	typedApp.get("/api/v1/organizations/:organizationId/boards", {
 
-		preHandler: requireAuth(sessionsService),
+		preHandler: [requireAuth(sessionsService), requireOrgRole(organizationsService, ORG_ROLE.MEMBER)],
 		schema: {
 					tags: listOrganizationBoardsDocs.tags,
 					summary: listOrganizationBoardsDocs.summary,

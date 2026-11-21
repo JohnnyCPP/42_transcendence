@@ -2,6 +2,8 @@ import {
 	createOrganizationDocs,
 	getOrganizationDocs,
 	listOrganizationsDocs,
+	organizationMemberSchema as memberResponseSchema,
+	organizationErrorSchema,
 	setOrganizationMemberRoleDocs,
 	updateOrganizationDocs
 } from "./organizations.types.js";
@@ -77,7 +79,7 @@ export async function registerOrganizationRoutes(
   });
 
   typedApp.get('/api/v1/organizations/:organizationId', {
-    preHandler: requireAuth(sessionsService),
+    preHandler: [requireAuth(sessionsService), requireOrgRole(organizationsService, ORG_ROLE.MEMBER)],
     schema: {
 			tags: getOrganizationDocs.tags,
 			summary: getOrganizationDocs.summary,
@@ -96,7 +98,7 @@ export async function registerOrganizationRoutes(
   });
 
   typedApp.patch('/api/v1/organizations/:organizationId', {
-    preHandler: requireAuth(sessionsService),
+    preHandler: [requireAuth(sessionsService), requireOrgRole(organizationsService, ORG_ROLE.ADMIN)],
     schema: {
 			tags: updateOrganizationDocs.tags,
 			summary: updateOrganizationDocs.summary,
@@ -117,8 +119,33 @@ export async function registerOrganizationRoutes(
     return { organization };
   });
 
+  typedApp.post('/api/v1/organizations/:organizationId/members', {
+    preHandler: [requireAuth(sessionsService), requireOrgRole(organizationsService, ORG_ROLE.ADMIN)],
+    schema: {
+      tags: ['Organizations'],
+      summary: 'Add an existing user to an organization',
+      params: organizationParamsSchema,
+      body: z.object({ userId: z.string().trim().min(1), role: z.enum([ORG_ROLE.MEMBER, ORG_ROLE.ADMIN]).default(ORG_ROLE.MEMBER) }),
+      response: {
+        200: z.object({ member: memberResponseSchema }),
+        400: organizationErrorSchema,
+        401: organizationErrorSchema,
+        403: organizationErrorSchema,
+        404: organizationErrorSchema,
+        409: organizationErrorSchema
+      },
+      security: []
+    }
+  }, async (request) => ({
+    member: await organizationsService.addOrganizationMember({
+      organizationId: request.params.organizationId,
+      actorUserId: request.currentUser!.id,
+      ...request.body
+    })
+  }));
+
   typedApp.put('/api/v1/organizations/:organizationId/members/:userId', {
-    preHandler: requireAuth(sessionsService),
+    preHandler: [requireAuth(sessionsService), requireOrgRole(organizationsService, ORG_ROLE.ADMIN)],
     schema: {
 			tags: setOrganizationMemberRoleDocs.tags,
 			summary: setOrganizationMemberRoleDocs.summary,

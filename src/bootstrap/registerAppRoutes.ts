@@ -20,7 +20,7 @@ export	async	function	registerAppRoutes(fastifyInstance: FastifyInstance,
 
 	await registerApiKeyRoutes(fastifyInstance, services.apiKeysService, services.sessionsService);
 	await registerAuthenticationRoutes(fastifyInstance, services.authenticationService, services.sessionsService);
-	await registerBoardRoutes(fastifyInstance, services.boardsService, services.sessionsService);
+	await registerBoardRoutes(fastifyInstance, services.boardsService, services.sessionsService, services.organizationsService);
 	await registerCardRoutes(fastifyInstance, services.cardsService, services.sessionsService);
 	await registerCommentRoutes(fastifyInstance, services.commentsService, services.sessionsService);
 	await registerListRoutes(fastifyInstance, services.listsService, services.sessionsService);

@@ -100,6 +100,61 @@ it('organization roles: membership, settings, boards and archive', async () => {
   await expect('owner', 'GET', base, 404);
 });
 
+it('adds organization members explicitly and protects membership operations', async () => {
+  const { app, accounts: a, expect, call } = await fixture(['owner', 'admin', 'member', 'target', 'outsider']);
+  onTestFinished(() => app.close());
+  const org = await app.testContext.organizationsService.createOrganization({ name: 'Member API', createdByUserId: a.owner.user.id });
+  const base = `/organizations/${org.id}/members`;
+  await expect('owner', 'POST', base, 200, { userId: a.admin.user.id, role: 'admin' });
+  const added = await expect('admin', 'POST', base, 200, { userId: a.member.user.id });
+  vitestExpect(added.member.role).toBe('member');
+  await expect('member', 'POST', base, 403, { userId: a.target.user.id });
+  await expect('outsider', 'POST', base, 404, { userId: a.target.user.id });
+  await expect('admin', 'POST', base, 403, { userId: a.target.user.id, role: 'admin' });
+  await expect('owner', 'POST', base, 404, { userId: 'missing-user' });
+  const duplicate = await expect('owner', 'POST', base, 409, { userId: a.member.user.id });
+  vitestExpect(duplicate.error).toBe('ORGANIZATION_MEMBER_EXISTS');
+  const results = await Promise.all([call('owner', 'POST', base, { userId: a.target.user.id }), call('owner', 'POST', base, { userId: a.target.user.id })]);
+  vitestExpect(results.map(result => result.status).sort()).toEqual([200, 409]);
+  const list = await expect('member', 'GET', base, 200);
+  vitestExpect(list.members.map(member => member.userId)).toContain(a.target.user.id);
+  const ownerRemoval = await expect('owner', 'DELETE', `${base}/${a.owner.user.id}`, 403);
+  vitestExpect(ownerRemoval.error).toBe('ORGANIZATION_OWNER_IMMUTABLE');
+  await expect('owner', 'PUT', `${base}/${a.owner.user.id}`, 403, { role: 'member' });
+  await expect('owner', 'DELETE', `${base}/${a.target.user.id}`, 200);
+  const missing = await expect('owner', 'DELETE', `${base}/${a.target.user.id}`, 404);
+  vitestExpect(missing.error).toBe('ORGANIZATION_MEMBER_NOT_FOUND');
+  vitestExpect((await app.inject({ method: 'POST', url: `/api/v1${base}`, payload: { userId: a.target.user.id } })).statusCode).toBe(401);
+});
+
+it('requires authentication and organization membership for every scoped route', async () => {
+  const { app, accounts: a, expect } = await fixture(['owner', 'member', 'outsider', 'target']);
+  onTestFinished(() => app.close());
+  const org = await app.testContext.organizationsService.createOrganization({ name: 'Scope guard', createdByUserId: a.owner.user.id });
+  const base = `/organizations/${org.id}`;
+  await expect('owner', 'POST', `${base}/members`, 200, { userId: a.member.user.id });
+  const cases = [
+    ['GET', base],
+    ['PATCH', base, { name: 'Changed' }],
+    ['DELETE', base],
+    ['GET', `${base}/members`],
+    ['POST', `${base}/members`, { userId: a.target.user.id }],
+    ['PUT', `${base}/members/${a.target.user.id}`, { role: 'member' }],
+    ['DELETE', `${base}/members/${a.target.user.id}`],
+    ['GET', `${base}/boards`],
+    ['POST', `${base}/boards`, { name: 'Board' }]
+  ];
+  for (const [method, path, payload] of cases) {
+    const unauthenticated = await app.inject({ method, url: `/api/v1${path}`, ...(payload ? { payload } : {}) });
+    vitestExpect(unauthenticated.statusCode, `${method} ${path}`).toBe(401);
+    await expect('outsider', method, path, 404, payload);
+  }
+  for (const [method, path, payload] of cases.filter(([method]) => method !== 'GET'))
+    await expect('member', method, path, 403, payload);
+  for (const [method, path] of cases.filter(([method]) => method === 'GET'))
+    await expect('member', method, path, 200);
+});
+
 it('board roles: read, writes, membership and archive', async () => {
   const { app, accounts: a, expect } = await fixture(['owner', 'orgadmin', 'boardadmin', 'member', 'observer', 'reader', 'outsider']);
   onTestFinished(() => app.close());

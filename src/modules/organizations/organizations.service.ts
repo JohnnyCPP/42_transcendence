@@ -72,6 +72,18 @@ export class OrganizationsService
     return this.organizationsRepository.upsertMember(input);
   }
 
+  async addOrganizationMember(input: { organizationId: string; actorUserId: string; userId: string; role: 'member' | 'admin' }): Promise<OrganizationMember>
+  {
+    const actor = await this.getOrganizationForUser(input.organizationId, input.actorUserId);
+    if (!canManageOrganization(actor.role))
+      throw forbidden('Organization admin role required', 'ORGANIZATION_ADMIN_REQUIRED');
+    if (input.role === ORG_ROLE.ADMIN && actor.role !== ORG_ROLE.OWNER)
+      throw forbidden('Only an organization owner can manage admins', 'ORGANIZATION_OWNER_REQUIRED');
+    const target = await this.usersService.findById(input.userId);
+    if (!target || target.status !== 'active') throw notFound('User not found', 'USER_NOT_FOUND');
+    return this.organizationsRepository.createMember(input);
+  }
+
   async archiveOrganization(organizationId: string, actorUserId: string): Promise<void> {
     const organization = await this.getOrganizationForUser(organizationId, actorUserId);
     if (organization.role !== ORG_ROLE.OWNER)
@@ -93,8 +105,10 @@ export class OrganizationsService
     if (!canManageOrganization(actor.role)) throw forbidden('Organization admin role required', 'INSUFFICIENT_ORG_ROLE');
     const target = await this.organizationsRepository.findMember(organizationId, userId);
     if (!target) throw notFound('Organization member not found', 'ORGANIZATION_MEMBER_NOT_FOUND');
-    if (target.role === ORG_ROLE.OWNER || (target.role === ORG_ROLE.ADMIN && actor.role !== ORG_ROLE.OWNER))
-      throw forbidden('Only the owner can remove an admin; owners cannot be removed', 'INSUFFICIENT_ORG_ROLE');
+    if (target.role === ORG_ROLE.OWNER)
+      throw forbidden('Organization owners cannot be removed', 'ORGANIZATION_OWNER_IMMUTABLE');
+    if (target.role === ORG_ROLE.ADMIN && actor.role !== ORG_ROLE.OWNER)
+      throw forbidden('Only the owner can remove an admin', 'ORGANIZATION_OWNER_REQUIRED');
     await this.organizationsRepository.removeMember(organizationId, userId);
   }
 }

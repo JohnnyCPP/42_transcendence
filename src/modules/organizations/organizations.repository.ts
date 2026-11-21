@@ -20,6 +20,7 @@ export interface OrganizationsRepository
   findForUser(organizationId: string, userId: string): Promise<OrganizationWithRole | null>;
   findMember(organizationId: string, userId: string): Promise<OrganizationMember | null>;
   listMembers(organizationId: string): Promise<OrganizationMember[]>;
+  createMember(input: SetOrganizationMemberInput): Promise<OrganizationMember>;
   upsertMember(input: SetOrganizationMemberInput): Promise<OrganizationMember>;
   update(input: UpdateOrganizationInput): Promise<Organization>;
   archive(organizationId: string): Promise<void>;
@@ -123,6 +124,15 @@ export class InMemoryOrganizationsRepository implements OrganizationsRepository
       role: input.role,
       joinedAt: current?.joinedAt ?? new Date()
     };
+    this.members.set(key, member);
+    return member;
+  }
+
+  async createMember(input: SetOrganizationMemberInput): Promise<OrganizationMember>
+  {
+    const key = memberKey(input.organizationId, input.userId);
+    if (this.members.has(key)) throw conflict('User is already a member', 'ORGANIZATION_MEMBER_EXISTS');
+    const member = { organizationId: input.organizationId, userId: input.userId, role: input.role, joinedAt: new Date() };
     this.members.set(key, member);
     return member;
   }

@@ -103,6 +103,19 @@ export class PrismaOrganizationsRepository implements OrganizationsRepository
     return { organizationId: row.organizationId, userId: row.userId, role: row.role as OrganizationMember['role'], joinedAt: row.joinedAt };
   }
 
+  async createMember(input: SetOrganizationMemberInput): Promise<OrganizationMember>
+  {
+    try {
+      const row = await this.prisma.organizationMember.create({
+        data: { organizationId: input.organizationId, userId: input.userId, role: input.role }
+      });
+      return { organizationId: row.organizationId, userId: row.userId, role: row.role as OrganizationMember['role'], joinedAt: row.joinedAt };
+    } catch (error) {
+      if (isUniqueViolation(error)) throw conflict('User is already a member', 'ORGANIZATION_MEMBER_EXISTS');
+      throw error;
+    }
+  }
+
   async update(input: UpdateOrganizationInput): Promise<Organization> 
   {
     try {
