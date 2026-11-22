@@ -12,6 +12,7 @@ import {
 	paginatedBoardsSchema,
 	updateBoardApiSchema
 } from "./publicApi.types.js";
+import { env } from "../../config/env.js";
 import { getRateLimitKey } from "../../shared/http/rateLimit.js";
 import { requireApiKey } from "../authorization/requireApiKey.js";
 import { z } from "zod";
@@ -300,4 +301,15 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 		);
 		return { list };
 	});
+	if (env.NODE_ENV === "test")
+	{
+		fastifyInstance.get("/api/v1/test/require-api-key", {
+
+		preHandler: requireApiKey(dependencies.apiKeysService, dependencies.usersService)
+		}, async (request) => ({
+
+			userId: request.currentUser!.id,
+			keyId: request.currentApiKey!.id
+		}));
+	}
 }
