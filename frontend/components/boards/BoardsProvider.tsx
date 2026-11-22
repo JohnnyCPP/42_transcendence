@@ -27,8 +27,8 @@ type BoardsContextValue = BoardsState & {
    */
   updateBoard: (boardId: string, input: UpdateBoardInput) => Promise<Board>;
   /**
-   * Eliminar board — endpoint aún no existe en el BE.
-   * No-op para que la UI no rompa; conectar cuando exista `DELETE`.
+   * Archiva el tablero.
+   * `DELETE /boards/:boardId` → lo quita de `boards` en state.
    */
   deleteBoard: (boardId: string) => Promise<void>;
   clearError: () => void;
@@ -39,7 +39,7 @@ export const BoardsContext = createContext<BoardsContextValue | null>(null);
 /**
  * Estado compartido de tableros del workspace (org) activo.
  *
- * - API: `GET/POST /organizations/:id/boards`, `PATCH /boards/:boardId`
+ * - API: `GET/POST /organizations/:id/boards`, `PATCH`/`DELETE /boards/:boardId`
  * - Depende de `OrgProvider` (`useOrg`); montar debajo de él en el layout.
  */
 export const BoardsProvider = ({ children }: { children: ReactNode }) => {
@@ -142,15 +142,21 @@ export const BoardsProvider = ({ children }: { children: ReactNode }) => {
   );
 
   /**
-   * Eliminar tablero — sin endpoint aún.
-   * No llama a la red; la UI muestra feedback “pendiente de API”.
+   * Archiva el tablero.
    *
-   * Cuando exista: `DELETE /boards/:boardId`
-   * y quitar el board de `boards` / redirigir a `/boards`.
+   * `DELETE /boards/:boardId` → `{ board }`
+   * Tras éxito, lo elimina de la lista local.
    */
   const deleteBoard = useCallback(async (boardId: string) => {
-    void boardId;
-    // No-op a propósito (UI funcional, sin conectar).
+    await apiFetch<{ board: Board }>(`/boards/${boardId}`, {
+      method: 'DELETE',
+    });
+
+    setBoardsState((prev) => ({
+      ...prev,
+      boards: prev.boards.filter((board) => board.id !== boardId),
+      error: null,
+    }));
   }, []);
 
   const clearError = useCallback(() => {
