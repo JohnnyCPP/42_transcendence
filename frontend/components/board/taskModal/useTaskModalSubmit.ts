@@ -18,6 +18,8 @@ interface TaskFormData {
 interface UseTaskModalSubmitReturn {
   titleError: string | null;
   clearTitleError: () => void;
+  saveError: string | null;
+  isSaving: boolean;
   handleSubmit: (event: React.FormEvent) => void;
 }
 
@@ -29,18 +31,22 @@ export function useTaskModalSubmit(
   task: TaskItem,
   formData: TaskFormData,
   users: User[],
-  onSave: (updatedTask: TaskItem, newColumnId: string) => void,
+  onSave: (updatedTask: TaskItem, newColumnId: string) => Promise<void>,
   onClose: () => void
 ): UseTaskModalSubmitReturn {
   const [titleError, setTitleError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const clearTitleError = useCallback(() => {
     setTitleError(null);
   }, []);
 
   const handleSubmit = useCallback(
-    (event: React.FormEvent) => {
+    async (event: React.FormEvent) => {
       event.preventDefault();
+
+      if (isSaving) return;
 
       // Validación
       if (!formData.title.trim()) {
@@ -62,12 +68,19 @@ export function useTaskModalSubmit(
         users,
       });
 
-      // Persistencia
-      onSave(updatedTask, formData.columnId);
-      onClose();
+      setSaveError(null);
+      setIsSaving(true);
+      try {
+        await onSave(updatedTask, formData.columnId);
+        onClose();
+      } catch {
+        setSaveError('No se pudieron guardar los cambios. Inténtalo de nuevo.');
+      } finally {
+        setIsSaving(false);
+      }
     },
-    [task, formData, users, onSave, onClose]
+    [task, formData, users, onSave, onClose, isSaving]
   );
 
-  return { titleError, clearTitleError, handleSubmit };
+  return { titleError, clearTitleError, saveError, isSaving, handleSubmit };
 }

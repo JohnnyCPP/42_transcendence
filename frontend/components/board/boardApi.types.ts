@@ -26,10 +26,13 @@ export type ApiList = {
   archivedAt: string | null;
 };
 
+import type { TaskPriority } from '@/types/board';
+
 export type ApiCard = {
   id: string;
   listId: string;
   title: string;
+  priority: TaskPriority;
   description: string | null;
   position: number;
   dueDate: string | null;

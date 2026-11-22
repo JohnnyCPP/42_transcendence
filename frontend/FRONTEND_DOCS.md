@@ -377,6 +377,8 @@ No hay librerías extra de clases: solo el helper `cx`.
 
 ### Aún local / limitado
 - **Assignees / priority**: UI; el BE no los persiste (`priority` default en el mapper).
+- **Borrar columna**: no hay `DELETE /lists` en el BE (pendiente de equipo).
+- **Priority**: persistida por el backend; **assignees** siguen siendo solo UI.
 - **`mockUsers`**: solo para el selector del modal.
 - **Reorder de listas**: BE tiene `POST .../lists/reorder`; la UI aún no hace drag de columnas.
 

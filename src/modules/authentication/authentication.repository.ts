@@ -8,6 +8,7 @@ export	type	LoginChallenge = {
 	createdAt: Date;
 	expiresAt: Date;
 	consumedAt: Date | null;
+	failedAttempts: number;
 	ipAddress: string | null;
 	userAgent: string | null;
 };
@@ -20,11 +21,13 @@ export	interface	AuthenticationRepository
 
 	updatePasswordCredential(input: PasswordCredential): Promise<void>;
 
-	createLoginChallenge(input: Omit<LoginChallenge, "id" | "createdAt" | "consumedAt">): Promise<LoginChallenge>;
+	createLoginChallenge(input: Omit<LoginChallenge, "id" | "createdAt" | "consumedAt" | "failedAttempts">): Promise<LoginChallenge>;
 
 	findLoginChallengeByTokenHash(tokenHash: string): Promise<LoginChallenge | null>;
 
 	claimLoginChallenge(id: string, now: Date): Promise<boolean>;
+	recordChallengeFailure(id: string, now: Date): Promise<void>;
+	expireLoginChallenges(now: Date): Promise<void>;
 }
 
 export	class	InMemoryAuthenticationRepository	implements	AuthenticationRepository
@@ -47,31 +50,44 @@ export	class	InMemoryAuthenticationRepository	implements	AuthenticationRepositor
 		this.credentials.set(input.userId, input);
 	}
 
-	async	createLoginChallenge(input: Omit<LoginChallenge, "id" | "createdAt" | "consumedAt">): Promise<LoginChallenge>
-	{
-		const	challenge: LoginChallenge = {
-			...input,
-			id: createRandomToken(16),
-			createdAt: new Date(),
-			consumedAt: null
-		};
-
-		this.challenges.set(challenge.id, challenge);
-		return challenge;
-	}
+	async createLoginChallenge(input: Omit<LoginChallenge, 'id' | 'createdAt' | 'consumedAt' | 'failedAttempts'>): Promise<LoginChallenge>
+  {
+    const challenge: LoginChallenge = {
+      ...input,
+      id: createRandomToken(16),
+      createdAt: new Date(),
+      consumedAt: null,
+      failedAttempts: 0
+    };
+    this.challenges.set(challenge.id, challenge);
+    return challenge;
+  }
 
 	async	findLoginChallengeByTokenHash(tokenHash: string): Promise<LoginChallenge | null>
 	{
 		return [...this.challenges.values()].find((challenge) => challenge.tokenHash === tokenHash) ?? null;
 	}
 
-	async	claimLoginChallenge(id: string, now: Date): Promise<boolean>
-	{
-		const	challenge = this.challenges.get(id);
+	async claimLoginChallenge(id: string, now: Date): Promise<boolean>
+  {
+    const challenge = this.challenges.get(id);
+    if (!challenge || challenge.consumedAt || challenge.expiresAt <= now || challenge.failedAttempts >= 5) return false;
+    challenge.consumedAt = now;
+    return true;
+  }
 
-		if (!challenge || challenge.consumedAt || challenge.expiresAt <= now)
-			return false;
-		challenge.consumedAt = now;
-		return true;
-	}
+async recordChallengeFailure(id: string, now: Date): Promise<void>
+  {
+    const challenge = this.challenges.get(id);
+    if (!challenge || challenge.consumedAt || challenge.expiresAt <= now || challenge.failedAttempts >= 5) return;
+    challenge.failedAttempts++;
+    if (challenge.failedAttempts >= 5) challenge.consumedAt = now;
+  }
+
+async expireLoginChallenges(now: Date): Promise<void>
+  {
+    for (const challenge of this.challenges.values())
+      if (!challenge.consumedAt && challenge.expiresAt <= now) challenge.consumedAt = now;
+  }
+
 }

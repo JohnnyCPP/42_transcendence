@@ -10,6 +10,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { ORG_ROLE } from '../authorization/roles.js';
 import { requireAuth } from '../authorization/requireAuth.js';
+import { requireOrgRole } from '../authorization/requireScopeRole.js';
 import type { SessionsService } from '../sessions/sessions.service.js';
 import type { OrganizationsService } from './organizations.service.js';
 import { paginationQuerySchema } from '../../shared/http/pagination.js';
@@ -135,4 +136,25 @@ export async function registerOrganizationRoutes(
       role: request.body.role
     })
   }));
+
+  typedApp.get('/api/v1/organizations/:organizationId/members', {
+    preHandler: [requireAuth(sessionsService), requireOrgRole(organizationsService, ORG_ROLE.MEMBER)],
+    schema: { params: organizationParamsSchema }
+  }, async (request) => ({ members: await organizationsService.listMembers(request.params.organizationId, request.currentUser!.id) }));
+
+  typedApp.delete('/api/v1/organizations/:organizationId/members/:userId', {
+    preHandler: [requireAuth(sessionsService), requireOrgRole(organizationsService, ORG_ROLE.ADMIN)],
+    schema: { params: organizationMemberParamsSchema }
+  }, async (request) => {
+    await organizationsService.removeOrganizationMember(request.params.organizationId, request.currentUser!.id, request.params.userId);
+    return { ok: true };
+  });
+
+  typedApp.delete('/api/v1/organizations/:organizationId', {
+    preHandler: [requireAuth(sessionsService), requireOrgRole(organizationsService, ORG_ROLE.OWNER)],
+    schema: { params: organizationParamsSchema }
+  }, async (request) => {
+    await organizationsService.archiveOrganization(request.params.organizationId, request.currentUser!.id);
+    return { ok: true };
+  });
 }

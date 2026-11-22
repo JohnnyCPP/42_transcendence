@@ -45,21 +45,20 @@ export	class	PrismaAuthenticationRepository	implements	AuthenticationRepository
 		});
 	}
 
-	async	createLoginChallenge(input: Omit<LoginChallenge, "id" | "createdAt" | "consumedAt">): Promise<LoginChallenge>
-	{
-		const	row = await this.prisma.loginChallenge.create({
-
-			data: {
-				id: createRandomToken(16),
-				userId: input.userId,
-				tokenHash: input.tokenHash,
-				expiresAt: input.expiresAt,
-				ipAddress: input.ipAddress,
-				userAgent: input.userAgent
-			}
-		});
-		return mapChallenge(row);
-	}
+	async createLoginChallenge(input: Omit<LoginChallenge, 'id' | 'createdAt' | 'consumedAt' | 'failedAttempts'>): Promise<LoginChallenge>
+  {
+    const row = await this.prisma.loginChallenge.create({
+      data: {
+        id: createRandomToken(16),
+        userId: input.userId,
+        tokenHash: input.tokenHash,
+        expiresAt: input.expiresAt,
+        ipAddress: input.ipAddress,
+        userAgent: input.userAgent
+      }
+    });
+    return mapChallenge(row);
+  }
 
 	async	findLoginChallengeByTokenHash(tokenHash: string): Promise<LoginChallenge | null>
 	{
@@ -68,21 +67,37 @@ export	class	PrismaAuthenticationRepository	implements	AuthenticationRepository
 		return row ? mapChallenge(row) : null;
 	}
 
-	async	claimLoginChallenge(id: string, now: Date): Promise<boolean>
-	{
-		const	result = await this.prisma.loginChallenge.updateMany({
+	async claimLoginChallenge(id: string, now: Date): Promise<boolean>
+  {
+    const result = await this.prisma.loginChallenge.updateMany({
+      where: { id, consumedAt: null, expiresAt: { gt: now }, failedAttempts: { lt: 5 } },
+      data: { consumedAt: now }
+    });
+    return result.count === 1;
+  }
 
-			where: { 
-				id, 
-				consumedAt: null, 
-				expiresAt: { 
-					gt: now 
-				} 
-			},
-			data: { consumedAt: now }
-		});
-		return result.count === 1;
-	}
+async recordChallengeFailure(id: string, now: Date): Promise<void>
+  {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.loginChallenge.updateMany({
+        where: { id, consumedAt: null, expiresAt: { gt: now }, failedAttempts: { lt: 5 } },
+        data: { failedAttempts: { increment: 1 } }
+      });
+      await tx.loginChallenge.updateMany({
+        where: { id, consumedAt: null, failedAttempts: { gte: 5 } },
+        data: { consumedAt: now }
+      });
+    });
+  }
+
+async expireLoginChallenges(now: Date): Promise<void>
+  {
+    await this.prisma.loginChallenge.updateMany({
+      where: { consumedAt: null, expiresAt: { lte: now } },
+      data: { consumedAt: now }
+    });
+  }
+
 }
 
 function	mapChallenge(row: Awaited<ReturnType<PrismaClient["loginChallenge"]["findUnique"]>> & object): LoginChallenge
@@ -95,6 +110,7 @@ function	mapChallenge(row: Awaited<ReturnType<PrismaClient["loginChallenge"]["fi
 		createdAt: row.createdAt,
 		expiresAt: row.expiresAt,
 		consumedAt: row.consumedAt,
+		failedAttempts: row.failedAttempts,
 		ipAddress: row.ipAddress,
 		userAgent: row.userAgent
 	};

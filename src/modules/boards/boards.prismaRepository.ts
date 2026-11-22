@@ -8,6 +8,11 @@ export	class	PrismaBoardsRepository	implements	BoardsRepository
 {
 	constructor(private readonly prisma: PrismaClient) {}
 
+	async removeMember(boardId: string, userId: string): Promise<void>
+	{
+		await this.prisma.boardMember.deleteMany({ where: { boardId, userId } });
+	}
+
 	async	create(input: CreateBoardInput): Promise<Board>
 	{
 		let	id;
@@ -137,7 +142,7 @@ export	class	PrismaBoardsRepository	implements	BoardsRepository
 					userId: input.userId
 				}
 			},
-			create: input,
+			create: { boardId: input.boardId, userId: input.userId, role: input.role },
 			update: { role: input.role }
 		});
 		return {

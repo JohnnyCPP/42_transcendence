@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { AuthState, AuthUser, LoginResponses } from './auth.types';
-import { apiFetch } from '@/lib/apiClient';
+import { apiFetch, ApiError } from '@/lib/apiClient';
 
 /**
  * Forma del usuario tal y como llega desde el backend.
@@ -193,8 +193,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		}
 		
 	} catch (err) {
-		const errorMessage =
-			err instanceof Error ? err.message : 'No se pudo completar el 2FA';
+		const errorMessage = err instanceof ApiError && err.error === 'CHALLENGE_EXPIRED'
+			? 'La verificación ha caducado. Vuelve e introduce tu contraseña de nuevo.'
+			: err instanceof ApiError && err.status === 401
+				? 'Código incorrecto o verificación no válida. Si has agotado los intentos, vuelve a iniciar sesión.'
+				: err instanceof Error ? err.message : 'No se pudo completar el 2FA';
 		setAuthState((prev) => ({ ...prev, isLoading: false, error: errorMessage }));
 		throw err;
 	}

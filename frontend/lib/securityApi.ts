@@ -64,7 +64,7 @@ export function parseTotpSecretFromUri(
 /**
  * Confirma la identidad del usuario en la sesión actual.
  *
- * `POST /reauthenticate` → `/api/v1/reauthenticate`
+ * `POST /reauthenticate`
  * Body: `{ password, secondFactorCode?, secondFactorMethod? }`
  * Response: `{ ok: true }`
  *
@@ -82,7 +82,7 @@ export async function reauthenticate(
 /**
  * Cambia la contraseña del usuario autenticado.
  *
- * `POST /change-password` → `/api/v1/change-password`
+ * `POST /change-password`
  * Body: `{ newPassword }` (min 12)
  * Response: `{ ok: true }`
  *

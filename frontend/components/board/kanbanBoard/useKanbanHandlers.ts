@@ -56,16 +56,15 @@ export function useKanbanHandlers({
   /**
    * Crea una card en el API y la añade a la columna.
    *
-   * `columnId` es el id de la list. `priority` lo sigue enviando la UI
-   * pero el backend no lo persiste; el mapper pone un default.
+   * `columnId` es el id de la list; la prioridad se guarda en el backend.
    */
   const handleAddTask = useCallback(
     async (
       columnId: string,
       title: string,
-      _priority: TaskPriority
+      priority: TaskPriority
     ): Promise<void> => {
-      const card = await createCard(columnId, title.trim());
+      const card = await createCard(columnId, title.trim(), null, null, priority);
       const newTask = mapApiCardToTask(card);
 
       onColumnsChange(
@@ -106,7 +105,8 @@ export function useKanbanHandlers({
         columnId,
         `${source.title} (Copy)`,
         source.description ?? null,
-        source.dueDate ?? null
+        source.dueDate ?? null,
+        source.priority
       );
       const newTask = mapApiCardToTask(card);
 
@@ -133,7 +133,7 @@ export function useKanbanHandlers({
       updatedTask: TaskItem,
       newColumnId: string
     ): Promise<void> => {
-      const card = await updateCard( updatedTask.id, updatedTask.title, updatedTask.description, updatedTask.dueDate);
+      const card = await updateCard( updatedTask.id, updatedTask.title, updatedTask.description, updatedTask.dueDate, updatedTask.priority);
       let newTask = mapApiCardToTask(card);
 
       if (newColumnId !== selectedColumnId) {

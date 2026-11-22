@@ -1,5 +1,5 @@
 import { apiFetch } from '@/lib/apiClient';
-import type { BoardColumn } from '@/types/board';
+import type { BoardColumn, TaskPriority } from '@/types/board';
 import type { ApiCard, ApiList } from './boardApi.types';
 import { buildBoardColumns } from './mapBoardApi';
 import type { Board } from '../boards/board.types';
@@ -82,7 +82,8 @@ export async function createCard(
   listId: string,
   title: string,
   description?: string | null,
-  dueDate?: string | null
+  dueDate?: string | null,
+  priority?: TaskPriority
 ): Promise<ApiCard> {
   const data = await apiFetch<{ card: ApiCard }>(`/lists/${listId}/cards`, {
     method: 'POST',
@@ -90,6 +91,7 @@ export async function createCard(
       title,
       description: description ?? null,
       dueDate: dueDate ?? null,
+      priority,
     }),
   });
   return data.card;
@@ -121,7 +123,8 @@ export async function updateCard(
   cardId: string,
   title: string,
   description?: string | null,
-  dueDate?: string | null
+  dueDate?: string | null,
+  priority?: TaskPriority
 ): Promise<ApiCard> {
   const data = await apiFetch<{ card: ApiCard }>(`/cards/${cardId}`, {
     method: 'PATCH',
@@ -129,6 +132,7 @@ export async function updateCard(
       title,
       description: description ?? null,
       dueDate: dueDate ?? null,
+      priority,
     }),
   });
   return data.card;

@@ -19,14 +19,22 @@ export interface OrganizationsRepository
   listOrganizationIds(userId: string): Promise<string[]>;
   findForUser(organizationId: string, userId: string): Promise<OrganizationWithRole | null>;
   findMember(organizationId: string, userId: string): Promise<OrganizationMember | null>;
+  listMembers(organizationId: string): Promise<OrganizationMember[]>;
   upsertMember(input: SetOrganizationMemberInput): Promise<OrganizationMember>;
   update(input: UpdateOrganizationInput): Promise<Organization>;
+  archive(organizationId: string): Promise<void>;
+  removeMember(organizationId: string, userId: string): Promise<void>;
 }
 
 export class InMemoryOrganizationsRepository implements OrganizationsRepository 
 {
+  constructor(private readonly removeBoardMemberships?: (organizationId: string, userId: string) => Promise<void>) {}
   private readonly organizations = new Map<string, Organization>();
   private readonly members = new Map<string, OrganizationMember>();
+
+  async listMembers(organizationId: string): Promise<OrganizationMember[]> {
+    return [...this.members.values()].filter((member) => member.organizationId === organizationId);
+  }
 
   async createWithOwner(input: CreateOrganizationInput): Promise<OrganizationWithRole> 
   {
@@ -137,6 +145,16 @@ export class InMemoryOrganizationsRepository implements OrganizationsRepository
     organization.slug = nextSlug;
     organization.updatedAt = new Date();
     return organization;
+  }
+
+  async archive(organizationId: string): Promise<void> {
+    const organization = this.organizations.get(organizationId);
+    if (organization) organization.archivedAt = new Date();
+  }
+
+  async removeMember(organizationId: string, userId: string): Promise<void> {
+    await this.removeBoardMemberships?.(organizationId, userId);
+    this.members.delete(memberKey(organizationId, userId));
   }
 }
 

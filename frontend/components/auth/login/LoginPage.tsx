@@ -7,6 +7,7 @@ import { useAuth } from '../useAuth';
 import { LoginPageView } from '.';
 import type { LoginStep } from './login.types';
 import type { TwoFactorMethod } from './TwoFactorForm';
+import { apiFetch } from '@/lib/apiClient';
 
 /**
  * Contenedor del flujo de login (credenciales → opcional 2FA → dashboard).
@@ -51,6 +52,17 @@ export default function LoginPage() {
         clearError();
         const result = await complete2fa(challengeToken, code, method);
         if (result.status === 'authenticated') {
+          if (method === 'recovery_code') {
+            try {
+              const { remaining } = await apiFetch<{ remaining: number }>('/two-factor/recovery-codes/remaining');
+              if (remaining <= 1) {
+                router.push('/security');
+                return;
+              }
+            } catch {
+              // El acceso ha terminado correctamente aunque falle la consulta del contador.
+            }
+          }
           router.push('/dashboard');
         }
       } catch {

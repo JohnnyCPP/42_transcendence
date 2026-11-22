@@ -6,14 +6,11 @@ import {
 } from './twoFactor.types.js';
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { z } from 'zod';
 import { securityConfig } from '../../config/security.js';
 import { forbidden } from '../../shared/errors/httpErrors.js';
 import { requireAuth } from '../authorization/requireAuth.js';
 import type { SessionsService } from '../sessions/sessions.service.js';
 import type { TwoFactorService } from './twoFactor.service.js';
-
-const confirmTotpSchema = z.object({ code: z.string().regex(/^\d{6}$/) });
 
 function assertRecentReauthentication(reauthenticatedAt: Date | null): void 
 {
@@ -30,6 +27,16 @@ export async function registerTwoFactorRoutes(
 ) {
   const typedApp = app.withTypeProvider<ZodTypeProvider>();
 
+  app.get('/api/v1/two-factor/status', { preHandler: requireAuth(sessionsService) }, async (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    return twoFactorService.status(request.currentUser!.id);
+  });
+
+  app.get('/api/v1/two-factor/recovery-codes/remaining', { preHandler: requireAuth(sessionsService) }, async (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    return { remaining: await twoFactorService.remainingRecoveryCodes(request.currentUser!.id) };
+  });
+
   typedApp.post('/api/v1/two-factor/begin', { preHandler: requireAuth(sessionsService), 
 		schema: {
 			tags: beginTotpDocs.tags,
@@ -38,8 +45,9 @@ export async function registerTwoFactorRoutes(
 			response: beginTotpDocs.response,
 			security: beginTotpDocs.security
 		}
-  }, async (request) => {
+  }, async (request, reply) => {
     assertRecentReauthentication(request.currentSession!.reauthenticatedAt);
+    reply.header('Cache-Control', 'no-store');
     return twoFactorService.beginTotpSetup(request.currentUser!.id);
   });
 
@@ -53,8 +61,9 @@ export async function registerTwoFactorRoutes(
 			response: confirmTotpDocs.response,
 			security: confirmTotpDocs.security
 		}
-  }, async (request) => {
+  }, async (request, reply) => {
     assertRecentReauthentication(request.currentSession!.reauthenticatedAt);
+    reply.header('Cache-Control', 'no-store');
     const body = request.body;
     const recoveryCodes = await twoFactorService.confirmTotpSetup(request.currentUser!.id, body.code);
     return { recoveryCodes };
@@ -68,8 +77,9 @@ export async function registerTwoFactorRoutes(
 			response: regenerateRecoveryCodesDocs.response,
 			security: regenerateRecoveryCodesDocs.security
 		}
-  }, async (request) => {
+  }, async (request, reply) => {
     assertRecentReauthentication(request.currentSession!.reauthenticatedAt);
+    reply.header('Cache-Control', 'no-store');
     const recoveryCodes = await twoFactorService.regenerateRecoveryCodes(request.currentUser!.id);
     return { recoveryCodes };
   });

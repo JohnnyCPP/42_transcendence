@@ -39,14 +39,14 @@
 │   ├── config
 │   ├── db
 │   ├── modules
-│   │   ├── auth
+│   │   ├── authentication
 │   │   ├── authorization
 │   │   ├── boards
 │   │   ├── cards
 │   │   ├── lists
 │   │   ├── organizations
 │   │   ├── sessions
-│   │   ├── two_factor
+│   │   ├── twoFactor
 │   │   └── users
 │   ├── server.ts
 │   └── shared
@@ -158,9 +158,21 @@ The root `.env.example` is the single template. Copy it to `.env`, replace the e
 
 **Fastify (runtime):** `NODE_ENV` is `production` in Docker (`development`, `test`, or `production` elsewhere); `HOST` and `PORT` are `0.0.0.0` and `3000` in Docker. `DATABASE_URL` is a PostgreSQL URL required outside test: Compose constructs it for the container, while the template's value is for running the backend on the host. `TOTP_ENCRYPTION_KEY_BASE64` must decode to 32 random bytes and is required outside test; tests use a fixed non-secret key if omitted. `COOKIE_SECURE` is `true` in Compose and accepts `true` or `false`; `SESSION_COOKIE_NAME` defaults to `sid`, `SESSION_TTL_DAYS` to `14` positive whole days, and `TOTP_ISSUER` to `Transcendence`.
 
+### Enable two-factor authentication
+
+Apply the Prisma migrations before starting the server. Sign in and open **Seguridad de la cuenta** from the profile menu. Confirm the password, scan the locally generated QR code or enter the manual key in an authenticator app, then enter its six-digit code. Save the ten recovery codes securely; they are shown only once.
+
+The session API uses versioned routes. `GET /api/v1/two-factor/status` reports whether 2FA is enabled. After `POST /api/v1/reauthenticate` with `{ "password": "..." }`, call `POST /api/v1/two-factor/begin` to receive a `provisioningUri`. `POST /api/v1/two-factor/confirm` with a six-digit `code` activates 2FA and returns `recoveryCodes`. Invalid setup codes return 400. TOTP accepts one 30-second step of clock drift and an accepted time step cannot be reused. Keep the provisioning URI and recovery codes private.
+
+When 2FA is enabled, `POST /api/v1/login` returns `requires_2fa` and a challenge instead of a session cookie. Complete it with `POST /api/v1/two-factor/login`, passing `challengeToken`, `code`, and `method` (`totp` or `recovery_code`). Expired or consumed challenges return 401. Successful challenges and recovery codes cannot be reused.
+
+Password login is limited to five failures per IP-and-username combination and 30 per IP in 15 minutes. Second-factor login is limited to five failures per challenge and 30 per IP in five minutes; setup confirmation allows five attempts per user in ten minutes. Registration and reauthentication are also limited. Limits are held in memory per backend process, reset on restart, and return `429` with a `Retry-After` header. A shared store is needed for consistent limits across multiple instances.
+
+`GET /api/v1/two-factor/recovery-codes/remaining` returns the remaining count. To regenerate or disable 2FA, first reauthenticate at `POST /api/v1/reauthenticate` with the password, `secondFactorMethod` and `secondFactorCode`. Then use `POST /api/v1/two-factor/regenerate` or `DELETE /api/v1/two-factor`. Regeneration returns ten new codes and invalidates the old ones. Disabling invalidates recovery codes, revokes other sessions and keeps the current session active.
+
 **Next.js (build and runtime):** `INTERNAL_API_URL` is the server-side backend URL, set to `http://fastify:3000` by Compose both at build time and runtime. Rewrites are generated at build time, so changing only its runtime value does not update them: rebuild the image when changing it. At runtime `HOST` and `PORT` default to `0.0.0.0` and `3000`; `HTTPS_CERT_PATH` and `HTTPS_KEY_PATH` point to the generated certificate and private key. `server.mjs` requires those paths and `INTERNAL_API_URL` and exits if they are missing. The image sets `NODE_ENV=production` and `NEXT_TELEMETRY_DISABLED=1`; Compose also passes `COOKIE_SECURE=true`, although the current frontend code does not use it.
 
-No application `NEXT_PUBLIC_*` variables are currently used or deliberately exposed to the browser. If introduced, their values are public and Next.js embeds them during the frontend build: pass them as Docker build arguments and rebuild the image. Setting them only when the container starts will not update the client bundle. Never put secrets in them.
+`NEXT_PUBLIC_API_BASE` optionally overrides the frontend API base path, which defaults to `/api/v1`. Next.js embeds public variables at build time; rebuild the frontend when changing them and never put secrets in them.
 
 ### HTTPS and the self-signed certificate
 
@@ -271,7 +283,6 @@ AI was not used for any task or any part of the project.
 | Test doubles | In-memory repositories | Fast tests without a database; never used outside `NODE_ENV=test` |
 | Authentication | Cookies, `scrypt`, TOTP | Stateful sessions and optional second-factor protection |
 | Local infrastructure | Docker Compose | Reproducible PostgreSQL service for development |
-| Manual UI | HTML, CSS, and browser JavaScript | Development-only API testing without a separate client build |
 
 ## Database
 
@@ -311,7 +322,7 @@ Roles are scoped at three levels, which allows a user to have different permissi
 | --- | --- | --- | --- |
 | Application | "User.role" | "user", "moderator", "admin" | Application roles define how much authority users have over the platform as a whole, independent of any organization |
 | Organization | "OrganizationMember.role" | "owner", "admin", "member" | Organization roles define how much authority users have over one organization: Its members, its boards, its settings, and its lifecycle |
-| Board | "BoardMember.role" | "admin", "member" | Board roles define how much authority users have over one board and its contents: The lists, cards, comments, labels, and board-level membership |
+| Board | "BoardMember.role" | "admin", "member", "observer" | Board roles define how much authority users have over one board and its contents, including lists, cards, comments, and board-level membership |
 
 ### Deletion strategies
 
@@ -436,7 +447,18 @@ A misconfigured production container therefore exits immediately rather than ser
 | Organization | `member`, `admin`, `owner` | Membership roles used by organization operations. |
 | Board | `observer`, `member`, `admin` | Observers have read-only access; members and admins have broader board permissions. |
 
-Roles are defined in `src/modules/authorization/roles.ts` and constrained by Prisma enums. The role migration preserves existing values and fails on unknown values; inspect and correct any such records before applying it. Role assignments outside the user administration endpoints remain governed by their existing organization and board rules.
+Roles are defined in `src/modules/authorization/roles.ts` and constrained by Prisma enums. The role migration preserves existing values and fails on unknown values; inspect and correct any such records before applying it. Global roles apply to user administration; organization and board membership roles apply to their respective resources. A global administrator does not automatically become an organization or board administrator.
+
+The tables below describe the current **backend API**, not frontend visibility. All listed operations require an authenticated session. A missing or invalid session returns `401`; insufficient roles normally return `403` with a machine-readable error code. Missing, archived, or inaccessible organizations and boards can return `404` rather than disclose their existence. Prefix the relative paths below with `/api/v1` for both browser and direct backend requests.
+
+#### Global roles
+
+| Action | `user` | `moderator` | `admin` |
+| --- | --- | --- | --- |
+| Read own account (`GET /me`) | Yes | Yes | Yes |
+| List and read other users | No | Yes | Yes |
+| Edit or soft-delete other users | No | No | Yes |
+| Use `GET /admin-users` | No | No | Yes |
 
 | Endpoint | Required global role | Purpose |
 | --- | --- | --- |
@@ -444,19 +466,66 @@ Roles are defined in `src/modules/authorization/roles.ts` and constrained by Pri
 | `GET /users/:id` | moderator or admin | Read a user's public account fields. |
 | `PATCH /users/:id` | admin | Update display name, email, role, or active/disabled status. |
 | `DELETE /users/:id` | admin | Soft-delete another user, preserving related records. |
-| `GET /admin/users` | admin | Existing legacy listing endpoint. |
+| `GET /admin-users` | admin | Administrator-only listing endpoint. |
 
 Administrators cannot change their own role, disable their own account, or delete themselves. A database transaction serializes changes that could remove the last active administrator. Disabled and deleted accounts cannot authenticate. User responses do not contain password hashes, TOTP secrets or recovery codes.
 
-To verify user administration against PostgreSQL, start a **fresh disposable** Compose project named `taskflow-rbac-check` on an available HTTPS port. The integration test creates and changes real users, including administrators; never point it at a shared or production database. With its frontend on port 8443, run in PowerShell:
+#### Organization roles
 
-```powershell
-$env:RBAC_TEST_URL = 'https://localhost:8443'
-$env:RBAC_TEST_POSTGRES_CONTAINER = 'taskflow-rbac-check-postgres-1'
-npm run test:users:integration
-```
+Any authenticated user can create an organization and becomes its `owner`. The following permissions apply within an organization to which the user belongs:
 
-The test expects an empty disposable database and a locally accessible Docker CLI. Administrative accounts need to be provisioned securely by the team; the demo seed is a separate backlog story.
+| Action | `member` | `admin` | `owner` |
+| --- | --- | --- | --- |
+| Read the organization and list its boards | Yes | Yes | Yes |
+| Update organization settings | No | Yes | Yes |
+| Create a board | No | Yes | Yes |
+| Add an active user as `member` | No | Yes | Yes |
+| Add an active user as `admin` | No | No | Yes |
+| Change an existing member's role | No | No | Yes, except an `owner` role |
+| Remove a `member` | No | Yes | Yes |
+| Remove an `admin` | No | No | Yes |
+| Remove an `owner` or change their role | No | No | No |
+| Archive the organization | No | No | Yes |
+
+`PUT /organizations/:organizationId/members/:userId` adds a user or sets their role; its body contains `role: "member"` or `role: "admin"`. An organization admin may repeat an unchanged `member` assignment, but cannot assign an admin role or change an existing role. `DELETE /organizations/:organizationId/members/:userId` removes a membership and its board memberships in that organization. `DELETE /organizations/:organizationId` archives the organization. These are soft archives of the organization itself; membership removal deletes the relevant membership records.
+
+#### Board roles
+
+The user must belong to the board's organization. Organization `owner` and `admin` roles grant implicit board administration. An organization `member` without an explicit board membership has the effective board `member` role and can write; an explicit `observer` is read-only. An explicit board `member` can write, and an explicit board `admin` can manage the board.
+
+| Action | Board `observer` | Org member without board membership or board `member` | Board `admin` | Org `admin` | Org `owner` |
+| --- | --- | --- | --- | --- | --- |
+| Read board, lists, cards and comments | Yes | Yes | Yes | Yes | Yes |
+| Create or edit lists, cards and comments; archive cards | No | Yes | Yes | Yes | Yes |
+| Edit board settings | No | No | Yes | Yes | Yes |
+| Add, change or remove board members | No | No | Yes | Yes | Yes |
+| Archive board | No | No | Yes | Yes | Yes |
+
+Board members being added must already belong to the organization. The current API lets a board administrator assign any of the three board roles and remove board memberships; organization owners and admins retain their implicit access even if an explicit board membership is removed. A member with write access may edit or soft-delete any comment on an accessible card, regardless of its author.
+
+| Endpoint | Required scope |
+| --- | --- |
+| `GET /organizations/:organizationId/boards` | Organization member |
+| `POST /organizations/:organizationId/boards` | Organization admin or owner |
+| `GET /boards/:boardId` | Organization member |
+| `PATCH /boards/:boardId` | Board admin, organization admin or owner |
+| `PUT /boards/:boardId/members/:userId` | Board admin, organization admin or owner; body `role` is `observer`, `member` or `admin` |
+| `DELETE /boards/:boardId/members/:userId` | Board admin, organization admin or owner |
+| `DELETE /boards/:boardId` | Board admin, organization admin or owner; archives the board |
+| `GET /boards/:boardId/lists`, `GET /lists/:listId/cards`, `GET /cards/:cardId`, `GET /cards/:cardId/comments` | Organization member with read access |
+| `POST /boards/:boardId/lists`, `PATCH /lists/:listId`, `POST /boards/:boardId/lists/reorder` | Board member or admin, organization admin or owner |
+| `POST /lists/:listId/cards`, `PATCH /cards/:cardId`, `POST /cards/:cardId/move`, `DELETE /cards/:cardId` | Board member or admin, organization admin or owner; moving a card requires write access to both lists |
+| `POST /cards/:cardId/comments`, `PATCH /cards/:cardId/comments/:commentId`, `DELETE /cards/:cardId/comments/:commentId` | Board member or admin, organization admin or owner |
+
+Scoped route guards are implemented in `src/modules/authorization/requireScopeRole.ts`; organization, board, list, card and comment services also check the applicable permissions. User-administration routes use `requireRole` and the user service. Global user mutations use an advisory transaction lock to protect the last active administrator. These backend checks remain authoritative even when a future frontend hides actions.
+
+Real administrative accounts need to be provisioned securely by the team. Run `npm run test:rbac:integration` to exercise the 11.7 global, organization and board role matrices against the real API and PostgreSQL. It requires Node.js, Docker and Docker Compose. The command builds the backend, creates a uniquely named isolated Compose project, applies migrations, runs `test/integration/rbac.postgres.test.ts`, and removes its containers and network afterward. The database uses ephemeral storage and no host ports; it does not connect to the application's existing database. The fixed credentials in `test/compose.rbac.yml` are only for that isolated test project.
+
+For a faster check, `npm run test:rbac` runs `test/integration/rbac.routes.test.ts` using in-memory test repositories. Both suites include allowed and forbidden cases; the PostgreSQL suite also checks persistent membership removal and concurrent protection of the last active administrator.
+
+For an isolated example of the three roles, see [the RBAC demo](document/md/rbac-demo.md). Its explicit development-only `npm run seed:demo` command requires a disposable database whose name ends in `_demo` and the confirmation variable `DEMO_SEED_CONFIRM=yes`. The example accounts are `demo_admin` (`admin@example.com`), `demo_moderator` (`moderator@example.com`), and `demo_user` (`user@example.com`); their example-only password is `ChangeMe123456!`. Sign in with the username. Never use these credentials on shared or production data.
+
+`GET /api/v1/organizations/:organizationId/members` provides an organization's member names and roles to its members. Backend authorization remains authoritative.
 
 **TODO:** Complete list of implemented features.
 
@@ -486,9 +555,9 @@ The test expects an empty disposable database and a locally accessible Docker CL
 
 ## Public API
 
-TaskFlow exposes a versioned HTTP API under "/api/v1/" so that external tools can read and manage boards without a browser session.
+TaskFlow exposes an API-key-authenticated public API under "/api/v1/public/" so that external tools can read and manage boards without a browser session.
 
-- Authentication: API keys, sent in the "X-API-Key" header. Keys are created from the authenticated UI or via "POST /api-keys", returned once in plaintext, and stored only as a SHA-256 hash. Revoking a key takes effect immediately.
+- Authentication: API keys, sent in the "X-API-Key" header. Keys are created from the authenticated UI or via "POST /api/v1/api-keys", returned once in plaintext, and stored only as a SHA-256 hash. Revoking a key takes effect immediately.
 - Versioning: "/api/v1/...". Future breaking changes will ship as "/api/v2/...".
 - Error shape: `{ "error": "<CODE>", "message": "<human readable>" }`, matching the rest of the backend.
 
@@ -502,11 +571,11 @@ OpenAPI spec:
 - Local development server: "http://localhost:3000/api/docs/json"
 - Docker container: "https://localhost/api/docs/json"
 
-Use the "Authorize" button to enter an API key created via "POST /api-keys".
+Use the "Authorize" button to enter an API key created via "POST /api/v1/api-keys".
 
 ### Rate limiting
 
-Every "/api/v1/..." request is rate-limited per API key.
+Requests to "/api/v1/public/..." are rate-limited per API key.
 
 - Default limit: 60 requests per minute per key.
 - The request window is fixed.
@@ -536,7 +605,7 @@ This application is covered by multiple layers of automated tests.
 
 - End-to-end tests simulate a real user going through the entire system. They are the slowest, most fragile, and most expensive to maintain. They should only be used for critical user flows and high-risk areas.
 
-Dependencies are mocked in unit tests, but in integration tests they are real.
+Unit tests may use mocks or in-memory repositories. The default HTTP integration suite uses in-memory repositories; the PostgreSQL suites exercise real persistence.
 
 ### Testing Pyramid
 
@@ -570,10 +639,11 @@ This is why they are located in a top-level "test" directory.
 
 ```text
 test/
-├── integration/
-│   └── apiKeys.routes.test.ts     ← HTTP-level tests for /api-keys
-└── setup/
-    └── testApp.ts                 ← shared app factory for integration tests
+├── integration/                  # HTTP tests and PostgreSQL suites
+├── compose.rbac.yml              # isolated RBAC test stack
+├── Dockerfile.rbac               # Node 22 test image
+├── run-rbac.integration.mjs
+└── run-2fa.integration.mjs
 ```
 
 The app.ts from the main application exports the buildApp() function, allowing tests to build an application for each test suite without affecting the main application sources.
@@ -581,3 +651,19 @@ The app.ts from the main application exports the buildApp() function, allowing t
 Integration tests have a different setup needs (DB lifecycle, teardown) and different runtime characteristics than the main application, so they work separately.
 
 The benefit of placing integration tests in a separate directory is that allows to differentiate unit tests from integration tests easily.
+
+### Running tests
+
+Install backend dependencies with `npm ci`. Use a Node.js version supported by Vitest (Node 22.12 or newer in the Node 22 series). Docker must be running for the PostgreSQL suites; the RBAC suite also needs Docker Compose. Run these commands from the repository root:
+
+| Command | What it runs |
+| --- | --- |
+| `npm test` | Unit tests in `src/**/*.test.ts`. |
+| `npm run test:integration` | HTTP integration tests using in-memory repositories; PostgreSQL tests are excluded. |
+| `npm run test:rbac` | The in-memory RBAC route suite. |
+| `npm run test:2fa:integration` | 2FA lifecycle with a temporary PostgreSQL container on a randomly assigned localhost port. |
+| `npm run test:rbac:integration` | RBAC with a temporary Compose stack and PostgreSQL; the test image uses Node 22 and does not download a browser. |
+| `npm run test:coverage` | Unit coverage. |
+| `npm run test:integration:coverage` | Coverage for the in-memory HTTP integration suite. |
+
+The PostgreSQL runners apply migrations to disposable databases with test-only credentials and remove their containers afterward. They do not use the application database. There is no single command that runs all four suites: run `npm test`, `npm run test:integration`, and both PostgreSQL commands for the full set. One API-key integration case is currently marked `skip` in `test/integration/apiKeys.routes.test.ts` and will not run automatically.

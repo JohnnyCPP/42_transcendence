@@ -1,4 +1,6 @@
 import { env } from "../config/env.js";
+import { InMemoryCommentsRepository, type CommentsRepository } from "../modules/comments/comments.repository.js";
+import { PrismaCommentsRepository } from "../modules/comments/comments.prismaRepository.js";
 import { InMemoryApiKeysRepository } from "../modules/apiKeys/apiKeys.repository.js";
 import { InMemoryAuthenticationRepository } from "../modules/authentication/authentication.repository.js";
 import { InMemoryBoardsRepository } from "../modules/boards/boards.repository.js";
@@ -37,6 +39,7 @@ export	type	Repositories =
 	authenticationRepository: AuthenticationRepository;
 	boardsRepository: BoardsRepository;
 	cardsRepository: CardsRepository;
+	commentsRepository: CommentsRepository;
 	listsRepository: ListsRepository;
 	organizationsRepository: OrganizationsRepository;
 	registrationRepository: RegistrationRepository;
@@ -51,6 +54,7 @@ export	function	createRepositories(prismaClient: PrismaClient | null): Repositor
 	let		authenticationRepository: AuthenticationRepository;
 	let		boardsRepository: BoardsRepository;
 	let		cardsRepository: CardsRepository;
+	let		commentsRepository: CommentsRepository;
 	let		listsRepository: ListsRepository;
 	let		organizationsRepository: OrganizationsRepository;
 	let		registrationRepository: RegistrationRepository;
@@ -62,10 +66,12 @@ export	function	createRepositories(prismaClient: PrismaClient | null): Repositor
 	{
 		apiKeysRepository = new InMemoryApiKeysRepository();
 		authenticationRepository = new InMemoryAuthenticationRepository();
-		boardsRepository = new InMemoryBoardsRepository();
+		const inMemoryBoardsRepository = new InMemoryBoardsRepository();
+		boardsRepository = inMemoryBoardsRepository;
 		cardsRepository = new InMemoryCardsRepository();
+		commentsRepository = new InMemoryCommentsRepository();
 		listsRepository = new InMemoryListsRepository();
-		organizationsRepository = new InMemoryOrganizationsRepository();
+		organizationsRepository = new InMemoryOrganizationsRepository((organizationId, userId) => inMemoryBoardsRepository.removeUserFromOrganization(organizationId, userId));
 		sessionsRepository = new InMemorySessionsRepository();
 		twoFactorRepository = new InMemoryTwoFactorRepository();
 		usersRepository = new InMemoryUsersRepository();
@@ -85,6 +91,7 @@ export	function	createRepositories(prismaClient: PrismaClient | null): Repositor
 		authenticationRepository = new PrismaAuthenticationRepository(prismaClient);
 		boardsRepository = new PrismaBoardsRepository(prismaClient);
 		cardsRepository = new PrismaCardsRepository(prismaClient);
+		commentsRepository = new PrismaCommentsRepository(prismaClient);
 		listsRepository = new PrismaListsRepository(prismaClient);
 		organizationsRepository = new PrismaOrganizationsRepository(prismaClient);
 		registrationRepository = new PrismaRegistrationRepository(prismaClient);
@@ -98,6 +105,7 @@ export	function	createRepositories(prismaClient: PrismaClient | null): Repositor
 		authenticationRepository,
 		boardsRepository,
 		cardsRepository,
+		commentsRepository,
 		listsRepository,
 		organizationsRepository,
 		registrationRepository,

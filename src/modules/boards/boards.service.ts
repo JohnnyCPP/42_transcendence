@@ -66,6 +66,19 @@ export	class	BoardsService
 		return this.boardsRepository.update({ ...input, boardId: board.id });
 	}
 
+	async getBoardAccess(boardId: string, actorUserId: string)
+	{
+		const board = await this.getByBoardIdAndUserId(boardId, actorUserId);
+		const organization = await this.organizationsService.getOrganizationForUser(board.organizationId, actorUserId);
+		const boardRole = await this.resolveBoardRole(board, actorUserId);
+		return {
+			organizationRole: organization.role,
+			boardRole,
+			canWrite: boardRole !== BOARD_ROLE.OBSERVER,
+			canArchive: boardRole === BOARD_ROLE.ADMIN
+		};
+	}
+
 	async	setBoardMemberRole(input: {
 
 		boardId: string;
@@ -81,6 +94,14 @@ export	class	BoardsService
 		board = await this.getByBoardIdAndUserId(input.boardId, input.actorUserId, "admin");
 		await this.organizationsService.getOrganizationForUser(board.organizationId, input.userId);
 		return this.boardsRepository.upsertMember(input);
+	}
+
+	async removeBoardMember(boardId: string, actorUserId: string, userId: string): Promise<void>
+	{
+		await this.getByBoardIdAndUserId(boardId, actorUserId, "admin");
+		if (!(await this.boardsRepository.findMember(boardId, userId)))
+			throw notFound("Board member not found", "BOARD_MEMBER_NOT_FOUND");
+		await this.boardsRepository.removeMember(boardId, userId);
 	}
 
 	private	async	resolveBoardRole(board: Board, userId: string): Promise<BoardRole>
