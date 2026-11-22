@@ -45,8 +45,9 @@ function formatUpdatedText(updatedAt: string): string {
  *
  * Convierte un `Board` del backend en las props que espera `BoardCard`.
  */
-export function mapBoardToCard(board: Board): BoardCardProps {
+export function mapBoardToCard(board: Board): BoardCardProps & { id: string } {
   return {
+    id: board.id,
     title: board.name,
     updatedText: formatUpdatedText(board.updatedAt),
     label: board.description?.trim() ? 'Activo' : 'Tablero',

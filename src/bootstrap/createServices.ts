@@ -2,6 +2,7 @@ import { ApiKeysService } from "../modules/apiKeys/apiKeys.service.js";
 import { AuthenticationService } from "../modules/authentication/authentication.service.js";
 import { BoardsService } from "../modules/boards/boards.service.js";
 import { CardsService } from "../modules/cards/cards.service.js";
+import { CommentsService } from "../modules/comments/comments.service.js";
 import { ListsService } from "../modules/lists/lists.service.js";
 import { OrganizationsService } from "../modules/organizations/organizations.service.js";
 import { PublicApiService } from "../modules/publicApi/publicApi.service.js";
@@ -21,6 +22,7 @@ export	type	Services =
 	authenticationService: AuthenticationService;
 	boardsService: BoardsService;
 	cardsService: CardsService;
+	commentsService: CommentsService;
 	listsService: ListsService;
 	organizationsService: OrganizationsService;
 	publicApiService: PublicApiService;
@@ -65,6 +67,7 @@ export	function	createServices(repositories: Repositories): Services
 	boardsService = new BoardsService(repositories.boardsRepository, organizationsService);
 	listsService = new ListsService(repositories.listsRepository, boardsService);
 	cardsService = new CardsService(repositories.cardsRepository, listsService);
+	const commentsService = new CommentsService(repositories.commentsRepository, cardsService);
 	publicApiService = new PublicApiService(boardsService, listsService, cardsService);
 	return {
 
@@ -72,6 +75,7 @@ export	function	createServices(repositories: Repositories): Services
 		authenticationService,
 		boardsService,
 		cardsService,
+		commentsService,
 		listsService,
 		organizationsService,
 		publicApiService,

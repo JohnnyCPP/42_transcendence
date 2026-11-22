@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Icon, uiStyles } from '@/components/ui';
 
 interface ColumnHeaderProps {
+  canWrite?: boolean;
   title: string;
   taskCount: number;
   onRename: () => void;
@@ -15,6 +16,7 @@ interface ColumnHeaderProps {
  * Muestra el título, la cantidad de tareas y acciones rápidas.
  */
 export default function ColumnHeader({
+  canWrite = true,
   title,
   taskCount,
   onRename,
@@ -31,7 +33,7 @@ export default function ColumnHeader({
         </span>
       </div>
 
-      <div className="relative">
+      {canWrite && <div className="relative">
         <button
           type="button"
           onClick={() => setIsMenuOpen((prev) => !prev)}
@@ -68,7 +70,7 @@ export default function ColumnHeader({
             </button>
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

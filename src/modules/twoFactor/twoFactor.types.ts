@@ -6,6 +6,7 @@ export type TotpRecord = {
   secretEncrypted: string;
   enabledAt: Date | null;
   confirmedAt: Date | null;
+  lastUsedTimeStep: number | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -21,6 +22,7 @@ export type RecoveryCodeRecord = {
 
 export type TotpSetup = {
   provisioningUri: string;
+  manualEntryKey: string;
 };
 
 //            SWAGGER UI             //

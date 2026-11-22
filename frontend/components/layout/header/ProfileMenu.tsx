@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth';
 
@@ -12,12 +13,13 @@ interface ProfileMenuContentProps {
   username?: string;
   handleLogout: () => Promise<void>;
   isLoggingOut: boolean;
+  onNavigate: () => void;
 }
 
 /**
  * Contenido del menú emergente del avatar.
  *
- * Solo presenta datos y la acción de cerrar sesión;
+ * Presenta datos, enlace a ajustes y la acción de cerrar sesión;
  * el estado lo controla `ProfileMenu`.
  */
 function ProfileMenuContent({
@@ -25,6 +27,7 @@ function ProfileMenuContent({
   username,
   handleLogout,
   isLoggingOut,
+  onNavigate,
 }: ProfileMenuContentProps) {
   return (
     <div
@@ -42,12 +45,22 @@ function ProfileMenuContent({
         )}
       </div>
 
+      <Link
+        href="/settings"
+        role="menuitem"
+        onClick={onNavigate}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-on-surface transition-colors hover:bg-surface-container"
+      >
+        <span className="material-symbols-outlined text-[18px]">settings</span>
+        Ajustes
+      </Link>
+
       <button
         type="button"
         role="menuitem"
         onClick={handleLogout}
         disabled={isLoggingOut}
-        className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-error transition-colors hover:bg-error/5 disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex w-full items-center gap-2 border-t border-outline-variant px-4 py-3 text-left text-sm text-error transition-colors hover:bg-error/5 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span className="material-symbols-outlined text-[18px]">logout</span>
         {isLoggingOut ? 'Cerrando sesión...' : 'Cerrar sesión'}
@@ -130,6 +143,7 @@ export function ProfileMenu() {
           username={username}
           handleLogout={handleLogout}
           isLoggingOut={isLoggingOut}
+          onNavigate={() => setIsOpen(false)}
         />
       )}
     </div>

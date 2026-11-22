@@ -89,6 +89,14 @@ enum BoardRole {
   observer
 }
 
+enum CardPriority {
+  Low
+  Medium
+  Urgent
+  Enhancement
+  Complete
+}
+
 enum GlobalRole {
   admin
   moderator
@@ -203,6 +211,7 @@ model Card {
   createdById String         @map("created_by_id")
 
   title       String
+  priority    CardPriority @default(Low)
   description String?
   position    Int
   dueDate     DateTime?      @map("due_date")
@@ -292,6 +301,7 @@ model LoginChallenge {
   id         String    @id
   userId     String    @map("user_id")
 
+  failedAttempts Int @default(0) @map("failed_attempts")
   tokenHash  String    @unique @map("challenge_token_hash")
   ipAddress  String?   @map("ip_address")
   userAgent  String?   @map("user_agent")
@@ -407,6 +417,7 @@ model TwoFactorTotp {
   id              String    @id
   userId          String    @unique @map("user_id")
 
+  lastUsedTimeStep Int? @map("last_used_time_step")
   secretEncrypted String    @map("secret_encrypted")
 
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)

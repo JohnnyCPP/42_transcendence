@@ -16,6 +16,7 @@ export	default	defineConfig({
 		environment: "node",
 		// glob pattern that decides which files Vitest treats as test files
 		include: ["test/integration/**/*.test.ts"],
+		exclude: ["test/integration/**/*.postgres.test.ts"],
 		// explicit imports: import { describe, it, expect } from "vitest"
 		globals: false,
 		// undo vi.spyOn between tests

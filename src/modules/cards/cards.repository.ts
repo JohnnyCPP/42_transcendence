@@ -38,6 +38,7 @@ export	class	InMemoryCardsRepository	implements	CardsRepository
 			createdById: input.actorUserId,
 
 			title: input.title.trim(),
+			priority: input.priority ?? 'Low',
 			description: input.description?.trim() || null,
 			position: cards.length ? Math.max(...cards.map((item) => item.position)) + 1000 : 1000,
 			dueDate: input.dueDate ?? null,
@@ -78,6 +79,7 @@ export	class	InMemoryCardsRepository	implements	CardsRepository
 		if (!card || card.archivedAt)
 			throw new Error("Card not found");
 		card.title = input.title?.trim() ?? card.title;
+		card.priority = input.priority ?? card.priority;
 		card.description = input.description === undefined ? card.description : input.description?.trim() || null;
 		card.dueDate = input.dueDate === undefined ? card.dueDate : input.dueDate;
 		card.updatedAt = new Date();

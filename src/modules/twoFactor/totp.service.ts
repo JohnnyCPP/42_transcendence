@@ -25,9 +25,13 @@ export class TotpService {
     return authenticator.keyuri(username, securityConfig.totpIssuer, secret);
   }
 
-  verify(code: string, secret: string): boolean 
+  matchingTimeStep(code: string, secret: string): number | null
   {
-    return authenticator.check(code, secret);
+    const now = Date.now();
+    const verifier = authenticator.clone();
+    verifier.options = { step: 30, window: 1, epoch: now };
+    const delta = verifier.checkDelta(code, secret);
+    return delta === null ? null : Math.floor(now / 30_000) + delta;
   }
 }
 

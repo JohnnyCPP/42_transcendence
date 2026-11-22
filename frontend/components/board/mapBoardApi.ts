@@ -4,8 +4,8 @@ import type { ApiCard, ApiList } from './boardApi.types';
 /**
  * Adaptador API → UI para una tarjeta.
  *
- * El backend no envía `priority` ni campos de UI (assignees, checklist…);
- * solo mapeamos lo real y damos un default a `priority`.
+ * Los campos persistidos se obtienen del backend; otros datos de UI
+ * como assignees o checklist todavía no forman parte de esta respuesta.
  */
 export function mapApiCardToTask(apiCard: ApiCard): TaskItem {
   return {
@@ -13,7 +13,7 @@ export function mapApiCardToTask(apiCard: ApiCard): TaskItem {
     title: apiCard.title,
     description: apiCard.description ?? undefined,
     dueDate: apiCard.dueDate ?? undefined,
-    priority: 'Low',
+    priority: apiCard.priority,
   };
 }
 

@@ -1,4 +1,6 @@
 import { z } from "zod";
+export const cardPriorities = ['Low', 'Medium', 'Urgent', 'Enhancement', 'Complete'] as const;
+export type CardPriority = typeof cardPriorities[number];
 
 export	type	Card = {
 
@@ -7,6 +9,7 @@ export	type	Card = {
 	createdById: string;
 
 	title: string;
+	priority: CardPriority;
 	description: string | null;
 	position: number;
 	dueDate: Date | null;
@@ -22,6 +25,7 @@ export	type	CreateCardInput = {
 	actorUserId: string;
 
 	title: string;
+	priority?: CardPriority;
 	description?: string | null;
 	dueDate?: Date | null;
 };
@@ -32,6 +36,7 @@ export	type	UpdateCardInput = {
 	actorUserId: string;
 
 	title?: string;
+	priority?: CardPriority;
 	description?: string | null;
 	dueDate?: Date | null;
 };
@@ -56,6 +61,7 @@ export	const	cardSchema = z.object({
 	createdById: z.string(),
 
 	title: z.string(),
+	priority: z.enum(cardPriorities),
 	description: z.string().nullable(),
 	position: z.number().int(),
 	dueDate: z.date().nullable(),
@@ -92,6 +98,7 @@ export	const	createCardDocs = {
 
 	body: z.object({
 		title: z.string().trim().min(1).max(200),
+		priority: z.enum(cardPriorities).optional(),
 		description: z.string().trim().max(5000).optional().nullable(),
 		dueDate: z.coerce.date().nullable().optional()
 	}),
@@ -164,6 +171,7 @@ export	const	updateCardDocs = {
 
 	body: z.object({
 		title: z.string().trim().min(1).max(200).optional(),
+		priority: z.enum(cardPriorities).optional(),
 		description: z.string().trim().max(5000).optional().nullable(),
 		dueDate: z.coerce.date().nullable().optional()
 	}),

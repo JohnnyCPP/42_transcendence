@@ -21,8 +21,12 @@ export class SecretBox {
 
   decrypt(payload: string): string 
   {
-    const [ivRaw, tagRaw, ciphertextRaw] = payload.split('.');
-    if (!ivRaw || !tagRaw || !ciphertextRaw) 
+    const parts = payload.split('.');
+    const [ivRaw, tagRaw, ciphertextRaw] = parts;
+    if (parts.length !== 3 || !ivRaw || !tagRaw || ciphertextRaw === undefined ||
+        !parts.every((part) => /^[A-Za-z0-9_-]*$/.test(part)) ||
+        Buffer.from(ivRaw, 'base64url').length !== 12 || Buffer.from(tagRaw, 'base64url').length !== 16 ||
+        !parts.every((part) => Buffer.from(part, 'base64url').toString('base64url') === part))
       throw new Error('Invalid encrypted payload');
 
     const decipher = createDecipheriv('aes-256-gcm', this.key, Buffer.from(ivRaw, 'base64url'));

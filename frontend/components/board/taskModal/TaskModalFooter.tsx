@@ -3,6 +3,7 @@ import { ConfirmDialog } from '@/components/ui';
 
 interface TaskModalFooterProps {
   taskId: string;
+  isSaving: boolean;
   currentColumnId: string;
   onClose: () => void;
   onDelete: (taskId: string, columnId: string) => void;
@@ -10,6 +11,7 @@ interface TaskModalFooterProps {
 
 export default function TaskModalFooter({
   taskId,
+  isSaving,
   currentColumnId,
   onClose,
   onDelete,
@@ -44,9 +46,10 @@ export default function TaskModalFooter({
           </button>
           <button
             type="submit"
+            disabled={isSaving}
             className="px-5 py-2 bg-primary hover:bg-primary-container text-white rounded-md text-[14px] font-semibold transition-colors shadow-xs cursor-pointer"
           >
-            Guardar cambios
+            {isSaving ? 'Guardando...' : 'Guardar cambios'}
           </button>
         </div>
       </div>

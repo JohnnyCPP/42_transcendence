@@ -1,0 +1,33 @@
+import { it, onTestFinished } from 'vitest';
+import { expect } from 'vitest';
+import { authenticator } from 'otplib';
+import { buildApp } from '../../src/app.js';
+
+it('2FA endpoint responses do not expose stored fields', async () => {
+  const app = await buildApp();
+  onTestFinished(() => app.close());
+  // Register and reauthenticate before configuring a second factor.
+  const registration = await app.inject({ method: 'POST', url: '/api/v1/register', payload: { username: 'schema-user', password: 'a secure password' } });
+  expect(registration.statusCode).toBe(200);
+  const cookie = registration.headers['set-cookie'].split(';')[0];
+  const reauth = await app.inject({ method: 'POST', url: '/api/v1/reauthenticate', headers: { cookie }, payload: { password: 'a secure password' } });
+  expect(reauth.statusCode).toBe(200);
+  const setup = await app.inject({ method: 'POST', url: '/api/v1/two-factor/begin', headers: { cookie } });
+  expect(setup.statusCode).toBe(200);
+  expect(Object.keys(setup.json())).toEqual(['provisioningUri']);
+  // Confirm setup with a TOTP generated from the provisioning URI.
+  const secret = new URL(setup.json().provisioningUri).searchParams.get('secret');
+  const confirm = await app.inject({ method: 'POST', url: '/api/v1/two-factor/confirm', headers: { cookie }, payload: { code: authenticator.generate(secret) } });
+  expect(confirm.statusCode).toBe(200);
+  expect(confirm.json().recoveryCodes.length).toBe(10);
+  const status = await app.inject({ method: 'GET', url: '/api/v1/two-factor/status', headers: { cookie } });
+  expect(status.json().enabled).toBe(true);
+  const remaining = await app.inject({ method: 'GET', url: '/api/v1/two-factor/recovery-codes/remaining', headers: { cookie } });
+  expect(remaining.json().remaining).toBe(10);
+  const regenerate = await app.inject({ method: 'POST', url: '/api/v1/two-factor/regenerate', headers: { cookie } });
+  expect(regenerate.statusCode).toBe(200);
+  // Internal encrypted secrets and stored hashes must never appear in responses.
+  for (const response of [registration, reauth, setup, confirm, regenerate]) {
+    expect(response.body).not.toMatch(/secretEncrypted|codeHash/);
+  }
+});

@@ -11,6 +11,7 @@ import { useKanbanHandlers } from './useKanbanHandlers';
 
 // Props del tablero Kanban.
 interface KanbanBoardProps {
+  canWrite?: boolean;
   /** Id del board en el API; se reenvía a los handlers de create list. */
   boardId: string;
   initialColumns: BoardColumn[];
@@ -27,6 +28,7 @@ interface KanbanBoardProps {
  * `boardId` llega desde `BoardPageClient` para persistir listas nuevas.
  */
 export default function KanbanBoard({
+  canWrite = true,
   boardId,
   initialColumns,
   searchQuery,
@@ -105,6 +107,7 @@ export default function KanbanBoard({
       {/* Una columna por cada estado visible después del filtrado. */}
       {filteredColumns.map((column) => (
         <KanbanColumn
+          canWrite={canWrite}
           key={column.id}
           column={column}
           onAddTask={handleAddTask}
@@ -117,13 +120,13 @@ export default function KanbanBoard({
       ))}
 
       {/* Acción para crear una nueva lista/columna. */}
-      <button
+      {canWrite && <button
         onClick={handleOpenAddColumnDialog}
         className="w-70 min-w-70 flex items-center gap-2 p-3 text-on-surface bg-surface-container hover:bg-surface-container-high rounded-lg hover:text-on-surface transition-colors h-fit text-[14px] font-medium cursor-pointer shrink-0"
       >
         <Icon name="add" size="lg" />
         Añadir otra columna
-      </button>
+      </button>}
 
       {/* Modal de detalle y edición de tarea. */}
       {selectedTask && (

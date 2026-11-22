@@ -4,7 +4,7 @@ import type { FastifyInstance } from "fastify";
 
 export	function	registerErrorHandlers(fastifyInstance: FastifyInstance): void
 {
-	fastifyInstance.setErrorHandler((error, _request, reply) => {
+	fastifyInstance.setErrorHandler((error, request, reply) => {
 
 		if (error instanceof AppError)
 		{
@@ -16,6 +16,8 @@ export	function	registerErrorHandlers(fastifyInstance: FastifyInstance): void
 		}
 		if (hasZodFastifySchemaValidationErrors(error))
 		{
+			if (['/auth/login', '/auth/login/2fa', '/auth/2fa/verify-setup', '/2fa/confirm'].includes(request.routeOptions.url ?? ''))
+				request.log.warn({ event: 'authentication_attempt_failed', route: request.routeOptions.url, statusCode: 400, errorCode: 'VALIDATION_ERROR' }, 'Authentication attempt failed');
 			return reply.status(400).send({
 
 				error: "VALIDATION_ERROR", 

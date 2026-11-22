@@ -26,6 +26,8 @@ interface TaskModalFormProps {
   users: User[];
   formData: TaskFormData;
   titleError?: string | null;
+  saveError?: string | null;
+  isSaving: boolean;
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onColumnChange: (value: string) => void;
@@ -49,6 +51,8 @@ export default function TaskModalForm({
   users,
   formData,
   titleError,
+  saveError,
+  isSaving,
   onTitleChange,
   onDescriptionChange,
   onColumnChange,
@@ -88,7 +92,10 @@ export default function TaskModalForm({
         onToggleUser={onToggleUser}
       />
 
+      {saveError && <p role="alert" className="text-sm text-error">{saveError}</p>}
+
       <TaskModalFooter
+        isSaving={isSaving}
         taskId={task.id}
         currentColumnId={currentColumnId}
         onClose={onClose}

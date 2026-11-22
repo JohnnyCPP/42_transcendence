@@ -16,6 +16,7 @@ export	interface	BoardsRepository
 	findMember(boardId: string, userId: string): Promise<BoardMember | null>;
 
 	upsertMember(input: SetBoardMemberInput): Promise<BoardMember>;
+	removeMember(boardId: string, userId: string): Promise<void>;
 
 	update(input: UpdateBoardInput): Promise<Board>;
 
@@ -26,6 +27,17 @@ export	class	InMemoryBoardsRepository	implements	BoardsRepository
 {
 	private	readonly	boards = new Map<string, Board>();
 	private	readonly	members = new Map<string, BoardMember>();
+
+	async removeMember(boardId: string, userId: string): Promise<void>
+	{
+		this.members.delete(memberKey(boardId, userId));
+	}
+
+	async removeUserFromOrganization(organizationId: string, userId: string): Promise<void>
+	{
+		for (const board of this.boards.values())
+			if (board.organizationId === organizationId) this.members.delete(memberKey(board.id, userId));
+	}
 
 	async	create(input: CreateBoardInput): Promise<Board>
 	{

@@ -1,6 +1,7 @@
 import { hashToken } from '../../shared/crypto/hashToken.js';
 import { createRandomToken } from '../../shared/crypto/createRandomToken.js';
 import type { TwoFactorRepository } from './twoFactor.repository.js';
+import { badRequest } from '../../shared/errors/httpErrors.js';
 
 export class RecoveryCodesService 
 {
@@ -9,7 +10,8 @@ export class RecoveryCodesService
   async generateForUser(userId: string): Promise<string[]> 
   {
     const codes = Array.from({ length: 10 }, () => createRandomToken(9));
-    await this.twoFactorRepository.replaceRecoveryCodes(userId, codes.map(hashToken));
+    if (!(await this.twoFactorRepository.replaceRecoveryCodes(userId, codes.map(hashToken))))
+      throw badRequest('Two-factor authentication is not enabled');
     return codes;
   }
 
