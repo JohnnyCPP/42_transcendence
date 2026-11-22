@@ -5,7 +5,7 @@ import {
 } from '@/lib/securityApi';
 
 /**
- * Estado y submit de reautenticación (`POST /auth/reauthenticate` vía stub).
+ * Estado y submit de reautenticación (`POST /reauthenticate`).
  */
 export function useReauthForm(onSuccess?: () => void) {
   const [password, setPassword] = useState('');

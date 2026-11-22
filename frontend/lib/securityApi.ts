@@ -4,36 +4,37 @@ import { apiFetch } from '@/lib/apiClient';
  * Cliente tipado de seguridad de cuenta: reauth, cambio de contraseña y 2FA.
  *
  * Usa `apiFetch` (cookies de sesión, JSON, `ApiError` en fallos HTTP).
- * Los errores se propagan sin capturarlos aquí; los hooks de settings
- * (`useReauthForm`, `usePasswordForm`, `useTwoFactorForm`) los muestran en UI.
+ * Paths relativos al `API_BASE` (`/api/v1`). Los errores se propagan;
+ * los hooks de settings (`useReauthForm`, `usePasswordForm`, `useTwoFactorForm`)
+ * los muestran en UI.
  *
  * Mutaciones sensibles (todo excepto `reauthenticate`) exigen un
- * `POST /auth/reauthenticate` reciente en la misma sesión. Si no, el
+ * `POST /reauthenticate` reciente en la misma sesión. Si no, el
  * backend responde con `REAUTHENTICATION_REQUIRED`.
  */
 
 /** Segundo factor admitido en reauth / login. */
 export type SecondFactorMethod = 'totp' | 'recovery_code';
 
-/** Body de `POST /auth/reauthenticate`. */
+/** Body de `POST /reauthenticate`. */
 export type ReauthenticateInput = {
   password: string;
   secondFactorCode?: string;
   secondFactorMethod?: SecondFactorMethod;
 };
 
-/** Body de `POST /auth/password/change` (mín. 12 caracteres). */
+/** Body de `POST /change-password` (mín. 12 caracteres). */
 export type ChangePasswordInput = {
   newPassword: string;
 };
 
-/** Body de `POST /2fa/confirm`. */
+/** Body de `POST /two-factor/confirm`. */
 export type Confirm2faInput = {
   /** Código TOTP de 6 dígitos. */
   code: string;
 };
 
-/** Respuesta de `POST /2fa/setup`. */
+/** Respuesta de `POST /two-factor/begin`. */
 export type Setup2faResult = {
   /** URI `otpauth://…` para escanear o copiar el secreto. */
   provisioningUri: string;
@@ -63,7 +64,7 @@ export function parseTotpSecretFromUri(
 /**
  * Confirma la identidad del usuario en la sesión actual.
  *
- * `POST /auth/reauthenticate`
+ * `POST /reauthenticate` → `/api/v1/reauthenticate`
  * Body: `{ password, secondFactorCode?, secondFactorMethod? }`
  * Response: `{ ok: true }`
  *
@@ -72,7 +73,7 @@ export function parseTotpSecretFromUri(
 export async function reauthenticate(
   input: ReauthenticateInput
 ): Promise<{ ok: true }> {
-  return apiFetch<{ ok: true }>('/auth/reauthenticate', {
+  return apiFetch<{ ok: true }>('/reauthenticate', {
     method: 'POST',
     body: JSON.stringify(input),
   });
@@ -81,7 +82,7 @@ export async function reauthenticate(
 /**
  * Cambia la contraseña del usuario autenticado.
  *
- * `POST /auth/password/change`
+ * `POST /change-password` → `/api/v1/change-password`
  * Body: `{ newPassword }` (min 12)
  * Response: `{ ok: true }`
  *
@@ -90,7 +91,7 @@ export async function reauthenticate(
 export async function changePassword(
   input: ChangePasswordInput
 ): Promise<{ ok: true }> {
-  return apiFetch<{ ok: true }>('/auth/password/change', {
+  return apiFetch<{ ok: true }>('/change-password', {
     method: 'POST',
     body: JSON.stringify(input),
   });
@@ -99,25 +100,25 @@ export async function changePassword(
 /**
  * Inicia el alta de TOTP y devuelve el URI de aprovisionamiento.
  *
- * `POST /2fa/setup` → `{ provisioningUri }`
+ * `POST /two-factor/begin` → `{ provisioningUri }`
  *
  * Requiere reauth reciente. El 2FA no queda activo hasta `confirm2fa`.
  */
 export async function setup2fa(): Promise<Setup2faResult> {
-  return apiFetch<Setup2faResult>('/2fa/setup', { method: 'POST' });
+  return apiFetch<Setup2faResult>('/two-factor/begin', { method: 'POST' });
 }
 
 /**
  * Confirma el setup TOTP con un código de 6 dígitos.
  *
- * `POST /2fa/confirm` → `{ recoveryCodes }`
+ * `POST /two-factor/confirm` → `{ recoveryCodes }`
  *
  * Requiere reauth reciente. Guarda los códigos: se muestran una sola vez.
  */
 export async function confirm2fa(
   input: Confirm2faInput
 ): Promise<RecoveryCodesResult> {
-  return apiFetch<RecoveryCodesResult>('/2fa/confirm', {
+  return apiFetch<RecoveryCodesResult>('/two-factor/confirm', {
     method: 'POST',
     body: JSON.stringify(input),
   });
@@ -126,12 +127,12 @@ export async function confirm2fa(
 /**
  * Invalida los códigos de recuperación actuales y genera unos nuevos.
  *
- * `POST /2fa/recovery-codes/regenerate` → `{ recoveryCodes }`
+ * `POST /two-factor/regenerate` → `{ recoveryCodes }`
  *
  * Requiere reauth reciente y 2FA ya activado.
  */
 export async function regenerateRecoveryCodes(): Promise<RecoveryCodesResult> {
-  return apiFetch<RecoveryCodesResult>('/2fa/recovery-codes/regenerate', {
+  return apiFetch<RecoveryCodesResult>('/two-factor/regenerate', {
     method: 'POST',
   });
 }
@@ -139,10 +140,10 @@ export async function regenerateRecoveryCodes(): Promise<RecoveryCodesResult> {
 /**
  * Desactiva el 2FA del usuario.
  *
- * `DELETE /2fa` → `{ ok: true }`
+ * `DELETE /two-factor` → `{ ok: true }`
  *
  * Requiere reauth reciente. Otras sesiones se revocan en backend.
  */
 export async function disable2fa(): Promise<{ ok: true }> {
-  return apiFetch<{ ok: true }>('/2fa', { method: 'DELETE' });
+  return apiFetch<{ ok: true }>('/two-factor', { method: 'DELETE' });
 }

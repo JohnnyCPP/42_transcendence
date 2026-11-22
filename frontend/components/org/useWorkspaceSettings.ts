@@ -6,8 +6,8 @@ import { useOrg } from './useOrg';
 /**
  * Estado y handlers de `/workspace/settings`: editar name/slug y eliminar (UI).
  *
- * `updateOrganization` usa stub PATCH; `deleteOrganization` es no-op hasta
- * que exista el endpoint DELETE en el BE.
+ * `updateOrganization` usa `PATCH /organizations/:id`; `deleteOrganization`
+ * es no-op hasta que exista el endpoint DELETE en el BE.
  */
 export function useWorkspaceSettings() {
   const {

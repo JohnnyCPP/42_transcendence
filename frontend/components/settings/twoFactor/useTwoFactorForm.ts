@@ -48,7 +48,7 @@ export function useTwoFactorForm() {
     }
   }, []);
 
-  /** `POST /2fa/setup` → guarda el provisioning URI. */
+  /** `POST /two-factor/begin` → guarda el provisioning URI. */
   const handleSetup = () =>
     runAction(async () => {
       const data = await setup2fa();
@@ -56,7 +56,7 @@ export function useTwoFactorForm() {
       setInfo('Escanea o copia el URI y confirma con un código TOTP.');
     });
 
-  /** Valida TOTP de 6 dígitos y llama `POST /2fa/confirm`. */
+  /** Valida TOTP de 6 dígitos y llama `POST /two-factor/confirm`. */
   const handleConfirm = (event: React.FormEvent) => {
     event.preventDefault();
     const trimmed = confirmCode.trim();
@@ -75,7 +75,7 @@ export function useTwoFactorForm() {
     });
   };
 
-  /** `POST /2fa/recovery-codes/regenerate`. */
+  /** `POST /two-factor/regenerate`. */
   const handleRegenerate = () =>
     runAction(async () => {
       const data = await regenerateRecoveryCodes();
@@ -85,7 +85,7 @@ export function useTwoFactorForm() {
       setInfo('Nuevos códigos de recuperación generados. Guárdalos ahora.');
     });
 
-  /** Cierra el dialog y ejecuta `DELETE /2fa`. */
+  /** Cierra el dialog y ejecuta `DELETE /two-factor`. */
   const handleDisableConfirm = () => {
     setIsDisableOpen(false);
     void runAction(async () => {
