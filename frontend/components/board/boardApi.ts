@@ -154,10 +154,21 @@ export async function moveCard(
  * Archiva una tarjeta (soft delete en el backend).
  *
  * `DELETE /cards/:cardId` → `{ ok: true }`.
- * No hay `DELETE /lists/:id` en el API.
  */
 export async function deleteCard(cardId: string): Promise<void> {
   await apiFetch<{ ok: true }>(`/cards/${cardId}`, {
+    method: 'DELETE',
+  });
+}
+
+
+/**
+ * Archiva una lista/columna (soft delete en el backend).
+ *
+ * `DELETE /lists/:listId` → `{ list }`.
+ */
+export async function deleteList(listId: string): Promise<void> {
+  await apiFetch<{ list: ApiList }>(`/lists/${listId}`, {
     method: 'DELETE',
   });
 }

@@ -4,6 +4,7 @@
  * Endpoints:
  * - `GET/POST /boards/:boardId/lists`
  * - `PATCH /lists/:listId`
+ * - `DELETE /lists/:listId` (archive)
  * - `POST /boards/:boardId/lists/reorder`
  * - `GET/POST /lists/:listId/cards`
  * - `GET/PATCH /cards/:cardId`

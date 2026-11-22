@@ -8,8 +8,9 @@ import {
   renameColumn,
   deleteColumn,
 } from './kanbanBoard.utils';
-import { createCard, createList, updateList, updateCard, moveCard, deleteCard } from '../boardApi';
+import { createCard, createList, updateList, updateCard, moveCard, deleteCard, deleteList } from '../boardApi';
 import { mapApiCardToTask } from '../mapBoardApi';
+
 
 interface UseKanbanHandlersProps {
   /** Id del board (necesario para `POST /boards/:boardId/lists`). */
@@ -29,7 +30,7 @@ interface UseKanbanHandlersReturn {
   handleDeleteTask: (taskId: string, columnId: string) => Promise<void>;
   handleAddColumn: (title: string) => Promise<void>;
   handleRenameColumn: (columnId: string, title: string) => Promise<void>;
-  handleDeleteColumn: (columnId: string) => void;
+  handleDeleteColumn: (columnId: string) => Promise<void>;
 }
 
 /**
@@ -42,9 +43,7 @@ interface UseKanbanHandlersReturn {
  * - `handleRenameColumn` → `updateList`
  * - `handleSaveTask` → `updateCard` (+ `moveCard` si cambia de lista)
  * - `handleDeleteTask` → `deleteCard` (archive en el BE)
- *
- * Aún solo local:
- * - `handleDeleteColumn` (el BE no tiene DELETE list; pendiente de equipo)
+ * - `handleDeleteColumn` → `deleteList` (archive en el BE)
  */
 export function useKanbanHandlers({
   boardId,
@@ -193,10 +192,14 @@ export function useKanbanHandlers({
   );
 
   /**
-   * Elimina una columna solo en estado local (el API no tiene DELETE list).
+   * Archiva la list en el API y la quita del Kanban.
+   *
+   * `DELETE /lists/:listId` (`deleteList`) → soft-delete en el backend;
+   * luego `deleteColumn` actualiza el estado local.
    */
   const handleDeleteColumn = useCallback(
-    (columnId: string) => {
+    async (columnId: string): Promise<void> => {
+      await deleteList(columnId);
       onColumnsChange(deleteColumn(columns, columnId));
     },
     [columns, onColumnsChange]
