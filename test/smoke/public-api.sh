@@ -131,6 +131,8 @@ test_login()
 
 verify_dependencies
 
+rm -f "$COOKIE_JAR"
+
 section "Session authentication"
 test_register
 test_login
