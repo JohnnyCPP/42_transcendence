@@ -4,9 +4,8 @@ import { apiFetch } from '@/lib/apiClient';
  * Cliente tipado de seguridad de cuenta: reauth, cambio de contraseña y 2FA.
  *
  * Usa `apiFetch` (cookies de sesión, JSON, `ApiError` en fallos HTTP).
- * Paths relativos al `API_BASE` (`/api/v1`). Los errores se propagan;
- * los hooks de settings (`useReauthForm`, `usePasswordForm`, `useTwoFactorForm`)
- * los muestran en UI.
+ * Paths relativos al `API_BASE` (`/api/v1`). Consumidor principal: `/settings`
+ * (`useTwoFactorForm`, reauth, password). Los errores se propagan a esos hooks.
  *
  * Mutaciones sensibles (todo excepto `reauthenticate`) exigen un
  * `POST /reauthenticate` reciente en la misma sesión. Si no, el
@@ -43,6 +42,13 @@ export type Setup2faResult = {
 /** Respuesta al confirmar o regenerar códigos de recuperación. */
 export type RecoveryCodesResult = {
   recoveryCodes: string[];
+};
+
+/** Respuesta de `GET /two-factor/status`. */
+export type TwoFactorStatus = {
+  enabled: boolean;
+  /** Presente solo si el 2FA está confirmado/activo. */
+  confirmedAt?: string;
 };
 
 /**
@@ -106,6 +112,17 @@ export async function changePassword(
  */
 export async function setup2fa(): Promise<Setup2faResult> {
   return apiFetch<Setup2faResult>('/two-factor/begin', { method: 'POST' });
+}
+
+/**
+ * Estado actual del 2FA del usuario autenticado.
+ *
+ * `GET /two-factor/status` → `{ enabled, confirmedAt? }`
+ *
+ * Usado al montar `/settings` para hidratar el badge tras F5.
+ */
+export async function getTwoFactorStatus(): Promise<TwoFactorStatus> {
+  return apiFetch<TwoFactorStatus>('/two-factor/status');
 }
 
 /**

@@ -18,9 +18,9 @@ import {
 } from './';
 
 /**
- * Paso 3 de seguridad: configurar, confirmar, regenerar o desactivar 2FA.
+ * Paso 3 de seguridad: configurar (QR), confirmar, regenerar o desactivar 2FA.
  *
- * Orquesta subcomponentes presentacionales + `useTwoFactorForm`.
+ * Orquesta subcomponentes + `useTwoFactorForm` (hidrata status al montar).
  * Los recovery codes se muestran en un modal tras setup/regenerate.
  */
 export function TwoFactorSection() {
