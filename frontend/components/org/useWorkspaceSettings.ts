@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useOrg } from './useOrg';
-
+import { useRouter } from 'next/navigation';
 /**
- * Estado y handlers de `/workspace/settings`: editar name/slug y eliminar (UI).
+ * Estado y handlers de `/workspace/settings`: editar name/slug y eliminar.
  *
- * `updateOrganization` usa `PATCH /organizations/:id`; `deleteOrganization`
- * es no-op hasta que exista el endpoint DELETE en el BE.
+ * `updateOrganization` → `PATCH /organizations/:id`
+ * `deleteOrganization` → `DELETE /organizations/:id` (owner); redirige a `/workspace`.
  */
 export function useWorkspaceSettings() {
   const {
@@ -16,7 +16,7 @@ export function useWorkspaceSettings() {
     deleteOrganization,
     clearError,
   } = useOrg();
-
+  const router = useRouter();
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -24,7 +24,6 @@ export function useWorkspaceSettings() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [deleteNotice, setDeleteNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (!activeOrganization) return;
@@ -39,7 +38,6 @@ export function useWorkspaceSettings() {
 
       setError(null);
       setSuccess(null);
-      setDeleteNotice(null);
       clearError();
 
       const trimmedName = name.trim();
@@ -79,9 +77,7 @@ export function useWorkspaceSettings() {
     setIsDeleting(true);
     try {
       await deleteOrganization(activeOrganization.id);
-      setDeleteNotice(
-        'Eliminación pendiente de API: la UI está lista; el endpoint DELETE aún no existe.'
-      );
+      router.push('/workspace');
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'No se pudo eliminar el workspace'
@@ -89,7 +85,7 @@ export function useWorkspaceSettings() {
     } finally {
       setIsDeleting(false);
     }
-  }, [activeOrganization, deleteOrganization]);
+  }, [activeOrganization, deleteOrganization, router]);
 
   return {
     name,
@@ -102,7 +98,6 @@ export function useWorkspaceSettings() {
     setIsDeleteOpen,
     error,
     success,
-    deleteNotice,
     handleSave,
     handleDeleteConfirm,
   };

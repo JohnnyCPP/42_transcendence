@@ -22,8 +22,8 @@ export function WorkspaceSettingsHeader() {
       <p className={uiStyles.pageKicker}>Workspace</p>
       <h1 className={uiStyles.pageTitle}>Ajustes del workspace</h1>
       <p className={`max-w-2xl ${uiStyles.pageLead}`}>
-        Edita el nombre y el slug del espacio activo. La eliminación muestra el
-        flujo de confirmación; la API la conectará tu compañero.
+        Edita el nombre y el slug del espacio activo. Eliminar archiva el
+        workspace (solo el owner) y vuelve al listado.
       </p>
       <Link
         href="/workspace"
@@ -71,9 +71,6 @@ export function WorkspaceSettingsForm({ form }: WorkspaceSettingsFormProps) {
       <FormErrorBanner error={form.error} />
 
       {form.success && <p className={uiStyles.infoCallout}>{form.success}</p>}
-      {form.deleteNotice && (
-        <p className={uiStyles.infoCallout}>{form.deleteNotice}</p>
-      )}
 
       <div className="flex flex-wrap gap-2 pt-2">
         <Button
@@ -101,7 +98,7 @@ export function WorkspaceSettingsForm({ form }: WorkspaceSettingsFormProps) {
 }
 
 /**
- * Ajustes del workspace activo: editar name/slug y eliminar (UI no conectada).
+ * Ajustes del workspace activo: editar name/slug y archivar (`DELETE`).
  */
 export function WorkspaceSettingsPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,7 +117,7 @@ export function WorkspaceSettingsPage() {
         <ConfirmDialog
           isOpen={form.isDeleteOpen}
           title="Eliminar workspace"
-          description={`Vas a eliminar «${form.name || 'este workspace'}». El endpoint aún no está disponible; esta confirmación solo valida el flujo de UI.`}
+          description={`Vas a archivar «${form.name || 'este workspace'}». Esta acción requiere ser owner y no se puede deshacer desde la UI.`}
           confirmLabel="Eliminar"
           tone="danger"
           onConfirm={() => {
