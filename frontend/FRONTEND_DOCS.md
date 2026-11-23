@@ -10,10 +10,10 @@ No forma parte del entregable funcional; sirve para onboarding, handoff y defens
 `frontend/` es la **interfaz web** de TaskFlow (proyecto tipo tablero Kanban / 42 Transcendence).
 
 - El usuario abre el navegador → ve pantallas (login, dashboard, tablero…).
-- Auth, workspaces (orgs), boards y el **kanban (lists/cards)** hablan con el **backend**.
+- Auth, workspaces (orgs + miembros), boards, **kanban (lists/cards/priority)**, 2FA y RBAC hablan con el **backend**.
 - Quedan mocks puntuales (assignees del modal, widgets de actividad/velocidad del dashboard).
 
-En una frase: **Next.js pinta la UI; el backend guarda usuarios, sesión, workspaces, boards, listas y cards.**
+En una frase: **Next.js pinta la UI; el backend guarda usuarios, sesión, workspaces, boards, listas, cards y seguridad de cuenta.**
 
 ---
 
@@ -144,7 +144,7 @@ frontend/
 ├── components/          # UI por dominio (auth, org, boards, board, layout…)
 │   └── ui/              # Primitivos + ui.styles.ts (Button, EmptyState…)
 ├── data/                # Mocks residuales (p. ej. mockUsers para assignees)
-├── lib/                 # Cliente HTTP (`apiClient.ts`: apiFetch, ApiError)
+├── lib/                 # apiClient, securityApi, useRoles
 ├── types/               # Tipos compartidos (ej. board / filtros kanban)
 ├── next.config.ts       # Rewrite /api → Fastify (INTERNAL_API_URL)
 ├── README.md            # Resumen corto + enlace a este doc y al README root
@@ -161,18 +161,22 @@ Convención: hooks y utils van **junto a la feature** (`kanbanBoard/`, `taskModa
 |-----|---------|------------|
 | `/` | `app/page.tsx` | Redirige a `/dashboard`. |
 | `/dashboard` | `app/dashboard/page.tsx` | Resumen + boards de la org activa (API). **Protegida** + `RequireActiveOrg`. |
-| `/workspace` | `app/workspace/page.tsx` | Switcher/crear workspace (`useOrg`). **Protegida**. |
-| `/workspace/settings` | `app/workspace/settings/page.tsx` | Editar name/slug del workspace activo; eliminar (UI, DELETE pendiente en BE). **Protegida** + `RequireActiveOrg`. |
-| `/settings` | `app/settings/page.tsx` | Seguridad de cuenta: reauth, password, 2FA (`lib/securityApi` → `/api/v1`). **Protegida**. |
+| `/workspace` | `app/workspace/page.tsx` | Switcher/crear workspace (`useOrg`) + miembros (`OrganizationMembers`). **Protegida**. |
+| `/workspace/settings` | `app/workspace/settings/page.tsx` | Editar name/slug; archivar org (`DELETE`, owner). **Protegida** + `RequireActiveOrg`. |
+| `/settings` | `app/settings/page.tsx` | Seguridad de cuenta (reauth, password, 2FA + QR; `securityApi`). Bocadillo de perfil. **Protegida**. |
+| `/security` | `app/security/page.tsx` | Página legacy de 2FA (post-merge); **no** enlazada en nav. Preferir `/settings`. **Protegida**. |
+| `/users` | `app/users/page.tsx` | Gestión de usuarios (mod/admin; `GET/PATCH/DELETE /users`). **Protegida** + rol. |
 | `/boards` | `app/boards/page.tsx` | Listado de tableros de la org activa (API). **Protegida** + `RequireActiveOrg`. |
-| `/boards/[boardId]` | `app/boards/[boardId]/` | Kanban de un board (lists/cards vía API). **Protegida** + `RequireActiveOrg`. |
-| `/projects/new` | `app/projects/new/page.tsx` | Crear board vía `POST .../boards`. **Protegida** + `RequireActiveOrg`. |
+| `/boards/[boardId]` | `app/boards/[boardId]/` | Kanban (lists/cards) + permisos `GET /boards/:id/access`. **Protegida** + `RequireActiveOrg`. |
+| `/projects/new` | `app/projects/new/page.tsx` | Crear board vía `POST .../boards` (si `canCreateBoard`). **Protegida** + `RequireActiveOrg`. |
 | `/login` | `app/login/page.tsx` | Login real (backend). Pública. |
 | `/signup` | `app/signup/page.tsx` | Registro real (backend). Pública. |
 | `/forgot-password` | `app/forgot-password/page.tsx` | Placeholder (no hay API aún). Pública. |
 | `/privacy` | `app/privacy/page.tsx` | Política de privacidad (mandatory). Pública. |
 | `/terms` | `app/terms/page.tsx` | Términos de servicio (mandatory). Pública. |
 | *(cualquier ruta inválida)* | `app/not-found.tsx` | Página 404. |
+
+**Nota 2FA:** la entrada oficial es **`/settings`** (bocadillo de perfil). Hidrata estado con `GET /two-factor/status`, setup con QR (`qrcode.react`). `/security` queda como legacy sin enlace en sidebar; login con pocos recovery codes redirige a `/settings`.
 
 **Protegida** = `ProtectedRoute` (sesión).  
 **RequireActiveOrg** = hace falta workspace activo; si no, redirige a `/workspace`.
@@ -190,37 +194,45 @@ Convención: hooks y utils van **junto a la feature** (`kanbanBoard/`, `taskModa
 
 ### `layout/` — marco de la app autenticada
 - `AppShell.tsx` — Sidebar + Header + `<main>`.
-- `Header.tsx` + `header/` — búsqueda, notificaciones, perfil/logout.
-- `Sidebar.tsx` + `sidebar/` — logo (nombre del workspace activo), nav Panel / Workspace / Tableros, CTA “Crear proyecto”.
+- `Header.tsx` + `header/` — búsqueda, notificaciones, perfil/logout (`ProfileMenu` → `/settings`).
+- `Sidebar.tsx` + `sidebar/` — logo (workspace activo), nav Panel / Workspace / Tableros / Usuarios (si rol), CTA “Crear proyecto” (si `canCreateBoard`). Seguridad → perfil → `/settings`.
 - `LegalLinks.tsx` / `LegalDocumentLayout.tsx` — Privacy y Terms.
 
 ### `org/` — organization (= workspace en UI)
-- `OrgProvider.tsx` + `useOrg.ts` — carga `GET /organizations`, crea si vacío, reparte org activa; `updateOrganization` (`PATCH`) cableado; `deleteOrganization` aún no-op (sin `DELETE` org en BE).
-- Persistencia: `localStorage` clave `taskflow.activeOrganizationId` (ver §10).
+- `OrgProvider.tsx` + `useOrg.ts` — `GET/POST/PATCH/DELETE /organizations`; org activa en `localStorage`.
+- Persistencia: clave `taskflow.activeOrganizationId` (ver §10).
 - `RequireActiveOrg.tsx` — guardia de workspace activo (paralela a `ProtectedRoute`).
 - `OrganizationCard.tsx` / `CreateOrganizationForm.tsx` — UI del switcher.
-- `WorkspaceSettingsPage.tsx` + `useWorkspaceSettings.ts` — ajustes del workspace activo.
+- `OrganizationMembers.tsx` — lista / cambiar rol / retirar (`GET` + `PUT`/`DELETE …/members`). Montado en `/workspace`.
+- `WorkspaceSettingsPage.tsx` + `useWorkspaceSettings.ts` — editar + archivar workspace.
 - `org.types.ts` + `index.ts` — tipos y barrel (documenta la convención de nombres).
 
-### `settings/` — seguridad de cuenta
-- `SettingsPage.tsx` — reauth + password + 2FA bajo `/settings` (enlace desde `ProfileMenu`).
+### `settings/` — seguridad de cuenta (`/settings`)
+- `SettingsPage.tsx` — reauth + password + 2FA (enlace desde `ProfileMenu`).
 - `ReauthSection` / `PasswordSection` + hooks `useReauthForm` / `usePasswordForm`.
-- `twoFactor/` — setup/confirm/regenerate/disable (UI + `useTwoFactorForm`; estado enabled solo local hasta que `/me` exponga el flag).
-- Llamadas tipadas: `lib/securityApi.ts` (ya usa `apiFetch` contra `/api/v1`).
+- `twoFactor/` — setup (QR + secreto/URI) / confirm / regenerate / disable; `useTwoFactorForm` hidrata con `GET /two-factor/status`.
+- Llamadas tipadas: `lib/securityApi.ts` → `/api/v1` (incl. `getTwoFactorStatus`).
+
+### `app/security/` (legacy)
+- Página post-merge aún en el repo; **sin** enlace en sidebar. Preferir `/settings`.
+
+### Roles (`lib/useRoles.ts`)
+- Helpers de UI a partir de `user.role` (global) y, en board, de `GET /boards/:id/access` (`canWrite`, `canArchive`, …).
 
 ### `boards/` — listado / fetch de tableros (plural)
-- `BoardsProvider.tsx` + `useBoards.ts` — estado compartido; `GET` + `createBoard` (`POST`) + `updateBoard` (`PATCH`) + `deleteBoard` (`DELETE` archive).
+- `BoardsProvider.tsx` + `useBoards.ts` — `GET` + `createBoard` + `updateBoard` (`PATCH`) + `deleteBoard` (`DELETE` archive).
 - `useBoardActions.ts` + `BoardCardMenu.tsx` — renombrar/eliminar (cards y cabecera kanban).
 - `mapBoardToCard.ts` — adapta `Board` del API → props de `BoardCard`.
 - `board.types.ts` / `boards.types.ts` — tipos alineados al backend.
 
 ### `board/` — Kanban (singular)
-- `boardApi.ts` — cliente HTTP del tablero (`getBoard`, lists/cards CRUD, move, archive).
-- `boardApi.types.ts` — `ApiList` / `ApiCard` (forma JSON del backend).
+- `boardApi.ts` — cliente HTTP (`getBoard`, lists/cards CRUD + `priority`, move, archive list/card).
+- `boardApi.types.ts` — `ApiList` / `ApiCard` (JSON del backend; incluye `priority`).
 - `mapBoardApi.ts` — adaptadores API → UI (`TaskItem` / `BoardColumn`).
-- `kanbanBoard/` — orquestador + `useKanbanState` + `useKanbanHandlers` + utils.
+- `kanbanBoard/` — orquestador + `useKanbanState` + `useKanbanHandlers` + utils; respeta `canWrite`.
 - `kanbanColumn/`, `taskModal/`, `taskCard/`.
-- `boardHeader/` — título, filtros (`BoardFilterDialog`), share (`BoardShareDialog`), menú ⋯ (`BoardCardMenu`).
+- `boardHeader/` — título, filtros (`BoardFilterDialog`), share (`BoardShareDialog` = copiar URL), menú ⋯ (`BoardCardMenu`).
+- `BoardPageClient` — carga también `GET /boards/:id/access` para RBAC de escritura/archivo.
 
 ### `dashboard/`
 - Barrel `index.ts` + `dashboard.types.ts`.
@@ -277,11 +289,23 @@ Convención: hooks y utils van **junto a la feature** (`kanbanBoard/`, `taskModa
 | Editar card | `PATCH` | `/cards/:cardId` | `/api/v1/cards/:cardId` |
 | Mover card | `POST` | `/cards/:cardId/move` | `/api/v1/cards/:cardId/move` |
 | Archivar card | `DELETE` | `/cards/:cardId` | `/api/v1/cards/:cardId` |
+| Archivar board | `DELETE` | `/boards/:boardId` | `/api/v1/boards/:boardId` |
+| Acceso board (RBAC) | `GET` | `/boards/:boardId/access` | `/api/v1/boards/:boardId/access` |
+| 2FA status | `GET` | `/two-factor/status` | `/api/v1/two-factor/status` |
+| Recovery codes restantes | `GET` | `/two-factor/recovery-codes/remaining` | `/api/v1/two-factor/recovery-codes/remaining` |
+| Miembros org | `GET` | `/organizations/:id/members` | `/api/v1/organizations/:id/members` |
+| Rol miembro org | `PUT` | `/organizations/:id/members/:userId` | `/api/v1/organizations/:id/members/:userId` |
+| Quitar miembro org | `DELETE` | `/organizations/:id/members/:userId` | `/api/v1/organizations/:id/members/:userId` |
+| Archivar org | `DELETE` | `/organizations/:id` | `/api/v1/organizations/:id` |
+| Listar usuarios (mod+) | `GET` | `/users` | `/api/v1/users` |
+| Reorder listas (sin UI) | `POST` | `/boards/:boardId/lists/reorder` | `/api/v1/boards/:boardId/lists/reorder` |
 
-**Aún sin UI FE (otros módulos / stories):** `/api/v1/public/*`, `/api/v1/api-keys`, admin `/users`, memberships completas.
+**BE existe, FE parcial o sin UI:** comentarios de card, miembros de board, reorder de columnas.
+
+**Fuera de la app de sesión (otros módulos):** `/api/v1/public/*`, `/api/v1/api-keys`.
 
 Body auth: `username` + `password` (+ `email` opcional en register). **Sin JWT en localStorage.**  
-Kanban: capa `components/board/boardApi.ts` + mappers; handlers en `useKanbanHandlers`.
+Kanban: `components/board/boardApi.ts` + mappers; handlers en `useKanbanHandlers`.
 
 ---
 
@@ -296,10 +320,10 @@ Kanban: capa `components/board/boardApi.ts` + mappers; handlers en `useKanbanHan
 6. Elegir/crear workspace escribe el id en storage; logout (auth ya resuelta y sin sesión) lo borra.
 7. `BoardsProvider` carga/crea tableros de la org activa (`useBoards`).
 8. `ProtectedRoute` + `RequireActiveOrg` en páginas de producto.
-9. Login: si el BE responde `requires_2fa`, la UI pasa al segundo paso (`TwoFactorForm`) y completa con `complete2fa` → `POST /two-factor/login`. Signup y login autenticado redirigen (p. ej. al dashboard).
+9. Login: si el BE responde `requires_2fa`, la UI pasa al segundo paso (`TwoFactorForm`) y completa con `complete2fa` → `POST /two-factor/login`. Signup y login autenticado redirigen (p. ej. al dashboard); si quedan ≤1 recovery codes tras login con recovery, redirige a `/settings`.
 10. Header → `logout()` → `/login`.
 
-**Nota:** el challenge 2FA del login está en `TwoFactorForm`. Setup/confirm/disable viven en `/settings` (`components/settings/twoFactor/` + `lib/securityApi.ts`). El badge enabled/disabled es local hasta que `GET /me` exponga el flag.
+**Nota 2FA:** challenge de login en `TwoFactorForm`. Gestión oficial en **`/settings`** (`securityApi` + QR + `GET /two-factor/status` al montar).
 
 ### Por qué esperar a `isAuthLoading`
 Si al montar se tratara `isAuthenticated === false` como “logout real”, se borraría el id del workspace en **cada F5** antes de recuperar la cookie. Por eso el effect de org no limpia storage mientras auth sigue cargando.
@@ -314,16 +338,17 @@ Usuario abre /dashboard
 
 Usuario abre /boards/:boardId
   → mismos guards + AppShell
-  → Promise.all(getBoard, getBoardColumns)
-  → BoardHeader (nombre) + KanbanBoard (lists/cards)
+  → Promise.all(getBoard, getBoardColumns, GET /boards/:id/access)
+  → BoardHeader + KanbanBoard (canWrite según access)
   → mutaciones vía useKanbanHandlers → boardApi
 ```
 
 ### Archivos clave
 - `components/auth/AuthProvider.tsx`, `useAuth.ts`, `ProtectedRoute.tsx`
-- `components/org/OrgProvider.tsx`, `useOrg.ts`, `RequireActiveOrg.tsx`
-- `app/workspace/page.tsx`
+- `components/org/OrgProvider.tsx`, `useOrg.ts`, `RequireActiveOrg.tsx`, `OrganizationMembers.tsx`
+- `app/workspace/page.tsx`, `app/settings/page.tsx`, `app/users/page.tsx`
 - `components/boards/BoardsProvider.tsx`, `useBoards.ts`
+- `lib/useRoles.ts`
 
 ---
 
@@ -339,14 +364,14 @@ Ejemplo kanban: orquestador + hooks de estado/handlers + utils puras.
 Auth login/signup: contenedor + vista + formulario.
 
 ### C) Mock → real por etapas
-Auth, orgs/workspace, boards y **lists/cards del kanban** ya van al API.  
+Auth, orgs/workspace (incl. miembros), boards, lists/cards (con **priority**), 2FA y RBAC de board ya van al API.  
 Mocks residuales: assignees (`mockUsers`), Activity/Velocity del dashboard.
 
 ### D) Layout compuesto
 `AppShell` + `header/` + `sidebar/`.
 
 ### E) Cliente HTTP único
-`lib/apiClient.ts` (`apiFetch` + `ApiError`) para auth, orgs, boards y kanban (`boardApi.ts`).
+`lib/apiClient.ts` (`apiFetch` + `ApiError`) para auth, orgs, boards, kanban (`boardApi.ts`) y `/users`. Capa tipada de cuenta: `lib/securityApi.ts` (usada por `/settings`).
 
 ### F) UI “workspace” / código “organization”
 Misma entidad; nombres distintos por capa (ver §5).
@@ -360,27 +385,28 @@ No hay librerías extra de clases: solo el helper `cx`.
 ## 12. Kanban (resumen)
 
 - Ruta: `/boards/[boardId]` (`BoardPageClient` + `AppShell` + `RequireActiveOrg`).
-- Carga: `Promise.all([getBoard(boardId), getBoardColumns(boardId)])`.
+- Carga: `Promise.all([getBoard, getBoardColumns, GET /boards/:id/access])`.
 - Capa HTTP: `components/board/boardApi.ts`.
-- Mappers: `mapBoardApi.ts` (`ApiList`/`ApiCard` → `BoardColumn`/`TaskItem`).
-- Orquestador: `KanbanBoard.tsx` + `useKanbanState` + `useKanbanHandlers`.
-- Header: título real del board; enlace compartir = `/boards/:boardId`.
+- Mappers: `mapBoardApi.ts` (`ApiList`/`ApiCard` → `BoardColumn`/`TaskItem`; `priority` desde API).
+- Orquestador: `KanbanBoard.tsx` + `useKanbanState` + `useKanbanHandlers` (mutaciones solo si `canWrite`).
+- Header: título real; share = copiar URL `/boards/:boardId` (sin API de invitaciones).
 
 ### Persistido en API (handlers)
 | UI | API |
 |----|-----|
 | Añadir columna | `POST /boards/:id/lists` |
 | Renombrar columna | `PATCH /lists/:id` |
-| Añadir / duplicar tarea | `POST /lists/:id/cards` |
-| Guardar tarea | `PATCH /cards/:id` (+ `POST .../move` si cambia lista) |
+| Borrar columna | `DELETE /lists/:id` (archive) |
+| Añadir / duplicar tarea | `POST /lists/:id/cards` (+ `priority`) |
+| Guardar tarea | `PATCH /cards/:id` (+ `priority`; `POST .../move` si cambia lista) |
 | Borrar tarea | `DELETE /cards/:id` (archive) |
 
 ### Aún local / limitado
-- **Assignees / priority**: UI; el BE no los persiste (`priority` default en el mapper).
-- **Borrar columna**: no hay `DELETE /lists` en el BE (pendiente de equipo).
-- **Priority**: persistida por el backend; **assignees** siguen siendo solo UI.
-- **`mockUsers`**: solo para el selector del modal.
-- **Reorder de listas**: BE tiene `POST .../lists/reorder`; la UI aún no hace drag de columnas.
+- **Assignees**: solo UI (`mockUsers` en el modal).
+- **Priority**: **sí** persistida en BE; filtros de prioridad en header son locales.
+- **`commentsCount`**: campo UI opcional; **no** hay CRUD de comentarios en el FE (BE: `/cards/:id/comments`).
+- **Reorder de listas**: BE tiene `POST .../lists/reorder`; la UI aún no mueve columnas.
+- **Miembros de board**: BE `PUT`/`DELETE /boards/:id/members/:userId`; FE no cableado (share = URL).
 
 ---
 
@@ -388,27 +414,29 @@ No hay librerías extra de clases: solo el helper `cx`.
 
 ### Ya conectado al backend (`/api/v1`)
 - Login, registro, logout, `/me`
-- Login 2FA challenge (`requires_2fa` → `POST /two-factor/login` + `TwoFactorForm`)
-- Settings: reauth, change-password, 2FA begin/confirm/regenerate/disable (`lib/securityApi`)
-- Organizations: listar, crear, `PATCH` (rename); org activa en `localStorage`
-- Boards: listar por org, crear, `GET` / `PATCH` / `DELETE` (archive) board
-- Lists / cards: carga + create/update/move/archive; borrar columna (`DELETE /lists/:id`); duplicate card vía create
+- Login 2FA (`requires_2fa` → `POST /two-factor/login`)
+- `/settings`: reauth, password, 2FA begin/confirm/regenerate/disable, `GET /two-factor/status` (badge), QR en setup
+- Organizations: listar, crear, `PATCH`, `DELETE` (owner); miembros en `/workspace`
+- Boards: listar por org, crear, `GET` / `PATCH` / `DELETE` archive; `GET …/access` para RBAC
+- Lists / cards: CRUD + move + archive list/card; **priority** en create/update; duplicate vía create
+- `/users` (mod/admin): listar / patch / delete
 
 ### Funcional en UI (mock, stub o sin API)
-- Widgets Activity / Velocity del dashboard (sin endpoints de métricas)
+- Widgets Activity / Velocity del dashboard
 - Assignees del modal (`mockUsers`)
 - Forgot-password (solo pantalla)
 - Privacy, Terms, 404
-- Eliminar org (UI no-op; sin `DELETE` org en BE)
-- Status 2FA en settings tras F5 (local; `/me` no expone flag)
+- Share board: copiar URL
+- Comentarios de card: sin UI de CRUD
+- `/security` legacy (sin nav; preferir `/settings`)
 
-### Pendiente (cuando el contrato / equipo lo permita)
-- Flag `twoFactorEnabled` en `GET /me` + hidratar settings
-- `DELETE` organization en BE + conectar UI
-- Miembros org/board (CRUD membership; hoy BE solo `PUT .../members/:userId`)
+### Pendiente de cablear / unificar
+- Reorder de listas (`POST …/lists/reorder`) + UI
+- Miembros de board + comentarios de card
+- Retirar o redirigir `app/security` → `/settings` (opcional)
+- Profile / friends (sin API de perfil self-service ni friends)
 - Public API / API Keys UI (otros módulos)
 - Tests de auth / utils kanban
-- Reorder de listas (`POST .../lists/reorder`) + UI de drag/↑↓ de columnas
 
 ---
 
@@ -417,17 +445,17 @@ No hay librerías extra de clases: solo el helper `cx`.
 1. Lee este doc (§5 nombres + §10 auth/workspace + §17 estilos UI).
 2. Arranca con `docker compose up --build` (README root); prueba login → `/workspace` → dashboard → board → logout → F5 mantiene workspace.
 3. `app/layout.tsx` → providers; páginas de producto → `ProtectedRoute` + `RequireActiveOrg` + `AppShell`.
-4. Auth: `components/auth/` (login incluye `TwoFactorForm`). Settings: `components/settings/` + `/settings`.
-5. Workspace: `components/org/` + `app/workspace/` (+ `/workspace/settings`).
-6. Boards listado: `components/boards/` (`BoardCardMenu` / `useBoardActions`). Kanban: `components/board/` + `app/boards/[boardId]/`.
-7. HTTP: `lib/apiClient.ts` (`apiFetch`, `ApiError`, `API_BASE=/api/v1`). Seguridad: `lib/securityApi.ts`.
-8. UI reutilizable: `components/ui/` (`Button`, `EmptyState`, `FormErrorBanner`, `uiStyles`…).
+4. Auth: `components/auth/` (login incluye `TwoFactorForm`). Seguridad: `/settings` (`components/settings/` + `securityApi` + QR).
+5. Workspace: `components/org/` + `app/workspace/` (miembros) + `/workspace/settings`.
+6. Boards listado: `components/boards/`. Kanban: `components/board/` + `BoardPageClient` (access + `useRoles`).
+7. HTTP: `lib/apiClient.ts` (`API_BASE=/api/v1`). Roles: `lib/useRoles.ts`. Seguridad tipada: `lib/securityApi.ts`.
+8. Admin usuarios: `app/users/`. UI reutilizable: `components/ui/`.
 
 ---
 
 ## 15. Frase corta para defensa oral
 
-> Frontend por dominio, con AppShell, auth real por cookie HttpOnly (login + challenge 2FA), OrgProvider (workspace en UI) con org activa persistida en localStorage, boards filtrados por org, y kanban con lists/cards persistidos vía `boardApi` + handlers. Stack local vía Docker Compose; Next proxifica `/api` a Fastify. Estilos en `uiStyles` + primitivos. Mocks residuales: assignees y widgets Activity/Velocity.
+> Frontend por dominio, con AppShell, auth por cookie HttpOnly (login + challenge 2FA), OrgProvider (workspace) con org activa en localStorage y miembros vía API, boards filtrados por org, kanban con lists/cards/priority y RBAC por `GET …/access`. Stack vía Docker Compose; Next proxifica `/api` a Fastify (`/api/v1`). Estilos en `uiStyles` + primitivos. Mocks residuales: assignees y widgets Activity/Velocity.
 
 ---
 
@@ -440,9 +468,12 @@ No hay librerías extra de clases: solo el helper `cx`.
 | Header / Sidebar | `components/layout/Header.tsx`, `header/`, `Sidebar.tsx`, `sidebar/` |
 | Cliente API | `lib/apiClient.ts` (`apiFetch`, `ApiError`) |
 | Proxy `/api` → Fastify (`INTERNAL_API_URL`) | `next.config.ts` |
-| Auth | `AuthProvider.tsx`, `useAuth.ts`, `ProtectedRoute.tsx`, `login/` (incl. `TwoFactorForm`), `signup/` |
-| Settings cuenta | `components/settings/`, `app/settings/`, `lib/securityApi.ts` |
-| Workspace (org) | `OrgProvider.tsx`, `useOrg.ts`, `RequireActiveOrg.tsx`, `app/workspace/`, `WorkspaceSettingsPage` |
+| Auth | `AuthProvider.tsx`, `useAuth.ts`, `ProtectedRoute.tsx`, `login/` (incl. `TwoFactorForm`), `signup/`, `RecoveryCodesDialog` |
+| Settings cuenta | `components/settings/` (incl. `twoFactor/` + QR), `app/settings/`, `lib/securityApi.ts` |
+| Seguridad legacy | `app/security/page.tsx` (sin nav) |
+| Usuarios (mod+) | `app/users/page.tsx` |
+| Roles UI | `lib/useRoles.ts` |
+| Workspace (org) | `OrgProvider.tsx`, `useOrg.ts`, `RequireActiveOrg.tsx`, `OrganizationMembers.tsx`, `app/workspace/`, `WorkspaceSettingsPage` |
 | Boards (listado API) | `BoardsProvider.tsx`, `useBoards.ts`, `useBoardActions`, `BoardCardMenu`, `app/boards/page.tsx`, `app/dashboard/page.tsx` |
 | Crear board | `BoardsProvider.createBoard`, `app/projects/new/page.tsx` |
 | Kanban (página) | `app/boards/[boardId]/BoardPageClient.tsx` |
@@ -596,4 +627,4 @@ Si alguien propone instalarlas (u otro cambio de este sistema): se habla en equi
 
 ---
 
-*Última actualización: contrato HTTP alineado a `/api/v1` (§3, §9, §13); rewrite conserva prefijo `/api`; settings/securityApi ya cableados; gap `twoFactorEnabled` en `/me` documentado.*
+*Última actualización: DELETE org cableado; `/settings` oficial (status + QR); sidebar sin Seguridad; gaps: reorder, board members, comments, profile/friends, retirar `/security` legacy.*
