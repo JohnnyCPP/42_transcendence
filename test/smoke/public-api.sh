@@ -160,6 +160,22 @@ test_create_key()
 	printf -v "$dest_var" '%s' "$plaintext_key"
 }
 
+# list all api keys created by the authenticated user, newest first
+#
+# no parameters
+#
+# no return value
+#
+test_list_keys()
+{
+	send_request GET /api/v1/api-keys
+	assert_status 200 "GET /api/v1/api-keys lists user api keys"
+	assert_json "GET /api/v1/api-keys returns exactly two keys" 'length == 2'
+	assert_json "both created api keys are returned" \
+				'([.[].name] | sort) == ([$a, $b] | sort)' \
+				--arg a "$API_KEY_A" --arg b "$API_KEY_B"
+}
+
 verify_dependencies
 
 rm -f "$COOKIE_JAR"
@@ -167,6 +183,6 @@ rm -f "$COOKIE_JAR"
 section "Session authentication"
 test_register
 test_login
-
 test_create_key "$API_KEY_A" PLAINTEXT_KEY_A
 test_create_key "$API_KEY_B" PLAINTEXT_KEY_B
+test_list_keys
