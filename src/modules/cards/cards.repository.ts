@@ -17,7 +17,7 @@ export	interface	CardsRepository
 
 	move(input: MoveCardInput): Promise<Card>;
 
-	archive(cardId: string): Promise<void>;
+	archive(cardId: string): Promise<Card>;
 }
 
 export	class	InMemoryCardsRepository	implements	CardsRepository
@@ -101,7 +101,7 @@ export	class	InMemoryCardsRepository	implements	CardsRepository
 		return card;
 	}
 
-	async	archive(cardId: string): Promise<void>
+	async	archive(cardId: string): Promise<Card>
 	{
 		let	card;
 
@@ -110,6 +110,7 @@ export	class	InMemoryCardsRepository	implements	CardsRepository
 			throw new Error("Card not found");
 		card.archivedAt = new Date();
 		card.updatedAt = new Date();
+		return card;
 	}
 
 	private	getActiveCards(listId: string): Card[]

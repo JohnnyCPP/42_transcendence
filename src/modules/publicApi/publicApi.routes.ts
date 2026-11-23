@@ -2,9 +2,11 @@ import {
 	boardDetailSchema,
 	boardParamsSchema,
 	boardSummarySchema,
+	cardParamsSchema,
 	cardSummarySchema,
 	createBoardApiSchema,
 	createCardApiSchema,
+	createListApiSchema,
 	commonErrors,
 	errorSchema,
 	listParamsSchema,
@@ -237,6 +239,37 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 		return { board };
 	});
 
+	typedApp.post("/api/v1/public/lists", {
+
+		preHandler: guards,
+		schema: {
+
+			tags: ["Public Lists"],
+
+			summary: "Create a list",
+
+			description:
+				"Creates a list in the given board. The API key owner must " +
+				"have write access to the board.",
+
+			body: createListApiSchema,
+
+			response: {
+				201: z.object({ list: listSummarySchema }).describe("List that was created."),
+			}
+		}
+	}, async (request, reply) => {
+
+		const list = await dependencies.listsService.createList({
+
+			boardId: request.body.boardId,
+			actorUserId: request.currentUser!.id,
+
+			name: request.body.name
+		});
+		return reply.status(201).send({ list });
+	});
+
 	typedApp.post("/api/v1/public/cards", {
 
 		preHandler: guards,
@@ -271,6 +304,37 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 		return reply.status(201).send({ card });
 	});
 
+	typedApp.delete("/api/v1/public/cards/:cardId", {
+
+		preHandler: guards,
+		schema: {
+
+			tags: ["Public Cards"],
+
+			summary: "Archive a card",
+
+			description:
+				"Archives a card and removes it from the list. The API key owner " +
+				"must have write access to the card's board. Responds with 404 when the " +
+				"card is inaccessible.",
+
+			params: cardParamsSchema,
+
+			response: {
+				200: z.object({ card: cardSummarySchema }).describe("Card that was archived."),
+			}
+		}
+	}, async (request) => {
+
+		let	card;
+
+		card = await dependencies.cardsService.archiveCard({
+			cardId: request.params.cardId,
+			actorUserId: request.currentUser!.id
+		});
+		return { card };
+	});
+
 	typedApp.delete("/api/v1/public/lists/:listId", {
 
 		preHandler: guards,
@@ -301,6 +365,7 @@ export	async	function	registerPublicApiRoutes(fastifyInstance: FastifyInstance,
 		);
 		return { list };
 	});
+
 	if (env.NODE_ENV === "test")
 	{
 		fastifyInstance.get("/api/v1/test/require-api-key", {

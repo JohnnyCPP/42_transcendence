@@ -10,8 +10,8 @@
 # - api key lifecycle (create, list, use, revoke)
 # - public api:
 #     - boards (GET, POST, PUT, DELETE)
-#     - lists (DELETE)
-#     - cards (POST)
+#     - lists (POST DELETE)
+#     - cards (POST DELETE)
 # - authentication failure after revocation (401)
 # - rate limiting (429) with Retry-After header
 #
@@ -70,11 +70,11 @@ BOARD_NAME_UPDATED="Smoke Board ${RUN_ID} (updated)"
 FAILED_STEPS=0
 CURRENT_STEP=0
 
-API_KEY_A=""
-API_KEY_A_ID=""
+API_KEY_A="smoke_a_${RUN_ID}"
+PLAINTEXT_KEY_A=""
 
-API_KEY_B=""
-API_KEY_B_ID=""
+API_KEY_B="smoke_b_${RUN_ID}"
+PLAINTEXT_KEY_B=""
 
 ORG_ID=""
 BOARD_ID=""
@@ -129,6 +129,37 @@ test_login()
 	assert_json "login opens a session" '.status == "authenticated"'
 }
 
+# create a new api key
+#
+# parameters:
+#
+# $1 is the name of the api key
+# $2 is the destination variable of the plaintext key global variable
+#
+# no return value (if the test fails, terminates the script)
+#
+# afterwards X-API-Key header holds a valid api key
+#
+# it terminates execution if the creation fails, 
+# because future tests depend on it
+#
+test_create_key()
+{
+	local name
+	local dest_var
+	local body
+	local plaintext_key
+
+	name="$1"
+	dest_var="$2"
+	body="$(jq -nc --arg name "$name" '{name: $name}')"
+	send_request POST /api/v1/api-keys "$body"
+	assert_status 201 "POST /api/v1/api-keys creates the api key '$name'" || finish
+	plaintext_key="$(get_json_value "$HTTP_BODY" '.plaintextKey')"
+	assert_json "the plaintext key exists and has the expected format" '.plaintextKey | test("^tfk_[A-Za-z0-9_-]{43}$")'
+	printf -v "$dest_var" '%s' "$plaintext_key"
+}
+
 verify_dependencies
 
 rm -f "$COOKIE_JAR"
@@ -136,3 +167,6 @@ rm -f "$COOKIE_JAR"
 section "Session authentication"
 test_register
 test_login
+
+test_create_key "$API_KEY_A" PLAINTEXT_KEY_A
+test_create_key "$API_KEY_B" PLAINTEXT_KEY_B
