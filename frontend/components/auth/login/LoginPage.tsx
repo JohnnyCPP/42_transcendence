@@ -52,7 +52,7 @@ export default function LoginPage() {
         clearError();
         const result = await complete2fa(challengeToken, code, method);
         if (result.status === 'authenticated') {
-          // Pocos recovery codes → ir a `/settings` a regenerarlos (no a `/security` legacy).
+          // Pocos recovery codes → ir a `/settings` a regenerarlos.
           if (method === 'recovery_code') {
             try {
               const { remaining } = await apiFetch<{ remaining: number }>(

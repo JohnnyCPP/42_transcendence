@@ -46,6 +46,16 @@ function ProfileMenuContent({
       </div>
 
       <Link
+        href="/profile"
+        role="menuitem"
+        onClick={onNavigate}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-on-surface transition-colors hover:bg-surface-container"
+      >
+        <span className="material-symbols-outlined text-[18px]">person</span>
+        Mi perfil
+      </Link>
+
+      <Link
         href="/settings"
         role="menuitem"
         onClick={onNavigate}
