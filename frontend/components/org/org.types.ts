@@ -7,6 +7,16 @@
 
 export type OrganizationRole = 'owner' | 'admin' | 'member';
 
+/** Roles asignables al añadir/cambiar miembro (el owner no se asigna así). */
+export type AssignableOrganizationRole = Exclude<OrganizationRole, 'owner'>;
+
+/** Labels de UI para roles de organización (cards, miembros, etc.). */
+export const ORGANIZATION_ROLE_LABELS: Record<OrganizationRole, string> = {
+  owner: 'Propietario',
+  admin: 'Admin',
+  member: 'Miembro',
+};
+
 export type Organization = {
   id: string;
   name: string;
