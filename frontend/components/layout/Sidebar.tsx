@@ -32,6 +32,8 @@ function SidebarLogo({ organizationName }: { organizationName?: string | null })
  *
  * - `/workspace` → switcher de organization (UI: “Workspace”)
  * - `/boards` → listado de tableros (boards del workspace activo)
+ * - `/users` → gestión de usuarios (solo si `canReadUsers`)
+ * - Seguridad de cuenta: bocadillo de perfil → `/settings` (no en el sidebar)
  */
 export default function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
@@ -89,18 +91,28 @@ export default function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
             active={isBoardsActive}
             fill={isBoardsActive}
           />
-          <NavItem href="/security" onClick={onCloseMobile} icon="security" label="Seguridad de la cuenta" active={pathname === "/security"} fill={pathname === "/security"} />
-          {canReadUsers && <NavItem href="/users" onClick={onCloseMobile} icon="group" label="Gestionar usuarios" active={pathname === '/users'} fill={pathname === '/users'} />}
+          {canReadUsers && (
+            <NavItem
+              href="/users"
+              onClick={onCloseMobile}
+              icon="group"
+              label="Gestionar usuarios"
+              active={pathname === '/users'}
+              fill={pathname === '/users'}
+            />
+          )}
         </nav>
 
         <div className="px-3 mt-auto space-y-4">
-          {canCreateBoard && <Link
-            href="/projects/new"
-            onClick={onCloseMobile}
-            className="flex w-full items-center justify-center bg-primary text-white text-[13px] font-semibold py-3.5 rounded-xl hover:bg-primary-container transition-colors shadow-xs cursor-pointer active:scale-95"
-          >
-            Crear proyecto
-          </Link>}
+          {canCreateBoard && (
+            <Link
+              href="/projects/new"
+              onClick={onCloseMobile}
+              className="flex w-full items-center justify-center bg-primary text-white text-[13px] font-semibold py-3.5 rounded-xl hover:bg-primary-container transition-colors shadow-xs cursor-pointer active:scale-95"
+            >
+              Crear proyecto
+            </Link>
+          )}
           <LegalLinks />
         </div>
       </aside>

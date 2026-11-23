@@ -3,7 +3,7 @@ import { Button, Icon } from '@/components/ui';
 interface TwoFactorActionButtonsProps {
   isBusy: boolean;
   twoFactorEnabled: boolean;
-  /** Inicia `POST /2fa/setup`. */
+  /** Inicia `POST /two-factor/begin`. */
   onSetup: () => void;
   /** Abre el diálogo de confirmación de desactivado. */
   onOpenDisable: () => void;

@@ -1,14 +1,18 @@
 /**
  * List / Card tal como los serializa el API (JSON).
  *
- * Endpoints:
+ * Endpoints (sesión `/api/v1`):
  * - `GET/POST /boards/:boardId/lists`
  * - `PATCH /lists/:listId`
- * - `POST /boards/:boardId/lists/reorder`
- * - `GET/POST /lists/:listId/cards`
- * - `GET/PATCH /cards/:cardId`
+ * - `DELETE /lists/:listId` (archive)
+ * - `POST /boards/:boardId/lists/reorder` (BE listo; FE sin UI)
+ * - `GET/POST /lists/:listId/cards` (create acepta `priority`)
+ * - `GET/PATCH /cards/:cardId` (patch acepta `priority`)
  * - `POST /cards/:cardId/move`
  * - `DELETE /cards/:cardId`
+ *
+ * Relacionados fuera de este módulo: `GET /boards/:boardId/access`,
+ * comentarios `/cards/:cardId/comments`.
  *
  * Las fechas llegan como string ISO; no como `Date`.
  */

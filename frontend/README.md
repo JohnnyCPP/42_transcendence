@@ -13,7 +13,7 @@ The supported way to run the full stack (Postgres + Fastify + Next with HTTPS) i
 docker compose up --build
 ```
 
-App URL: `https://localhost/` (port `443`). The browser talks only to Next; `/api/*` is rewritten to Fastify.
+App URL: `https://localhost/` (port `443`). The browser talks only to Next; `/api/*` is rewritten to Fastify keeping the `/api` prefix (session API under `/api/v1`).
 
 `npm run dev` in this folder starts Next alone and does **not** start the API or database.
 

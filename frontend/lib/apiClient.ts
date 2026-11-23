@@ -1,16 +1,17 @@
 /**
  * Cliente HTTP compartido del frontend.
  *
- * Cuando el backend active el versionado, cambia solo `API_BASE`
- * (p. ej. a `/api/v1`) y ajusta el rewrite de `next.config.ts`.
+ * Prefijo por defecto: `/api/v1` (contrato actual del backend).
+ * Override: `NEXT_PUBLIC_API_BASE`. El rewrite de `next.config.ts`
+ * reenvía `/api/:path*` → Fastify `/api/:path*` (sin quitar el prefijo).
  */
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? '/api/v1';
 
 /**
  * Construye la URL final anteponiendo `API_BASE` si hace falta.
  *
- * - `/me` → `/api/me`
- * - `/api/me` → `/api/me` (no duplica el prefijo)
+ * - `/me` → `/api/v1/me`
+ * - `/api/v1/me` → `/api/v1/me` (no duplica el prefijo)
  */
 function resolveUrl(path: string): string {
   if (path.startsWith('http://') || path.startsWith('https://')) {

@@ -63,8 +63,8 @@ type OrgContextValue = OrgState & {
     input: UpdateOrganizationInput
   ) => Promise<OrganizationWithRole>;
   /**
-   * Eliminar org — endpoint aún no existe en el BE.
-   * No-op para que la UI no rompa; conectar cuando exista `DELETE`.
+   * Archiva la org.
+   * `DELETE /organizations/:id` → actualiza lista, activo y storage.
    */
   deleteOrganization: (organizationId: string) => Promise<void>;
   setActiveOrganization: (org: OrganizationWithRole) => void;
@@ -76,7 +76,7 @@ export const OrgContext = createContext<OrgContextValue | null>(null);
 /**
  * Estado global de organizaciones (= “workspace” en la UI).
  *
- * - API: `GET/POST/PATCH /organizations`
+ * - API: `GET/POST/PATCH/DELETE /organizations`
  * - UI switcher: `/workspace`
  * - Tableros: `/boards` (filtrados por `activeOrganization`)
  *
@@ -270,15 +270,29 @@ export const OrgProvider = ({ children }: { children: ReactNode }) => {
   );
 
   /**
-   * Eliminar workspace — sin endpoint aún.
-   * No llama a la red; la UI muestra feedback “pendiente de API”.
+   * Archiva el workspace.
    *
-   * Cuando exista: `DELETE /organizations/:organizationId`
-   * y refrescar / limpiar `activeOrganization`.
+   * `DELETE /organizations/:organizationId` → `{ ok: true }` (solo owner).
+   * Actualiza lista, activo y `localStorage`.
    */
   const deleteOrganization = useCallback(async (organizationId: string) => {
-    void organizationId;
-    // No-op a propósito (UI funcional, sin conectar).
+    await apiFetch<{ ok: true }>(`/organizations/${organizationId}`, {
+      method: 'DELETE',
+    });
+
+    setOrgState((prev) => {
+      const organizations = prev.organizations.filter(
+        (org) => org.id !== organizationId
+      );
+      const activeOrganization =
+        prev.activeOrganization?.id === organizationId
+          ? organizations[0] ?? null
+          : prev.activeOrganization;
+
+      writeStoredActiveOrgId(activeOrganization?.id ?? null);
+
+      return { ...prev, organizations, activeOrganization, error: null };
+    });
   }, []);
 
   const clearError = useCallback(() => {

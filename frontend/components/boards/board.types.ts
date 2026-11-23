@@ -6,7 +6,9 @@
  * - `POST /organizations/:organizationId/boards`
  * - `GET  /boards/:boardId`
  * - `PATCH /boards/:boardId` (name, description)
- * - `DELETE /boards/:boardId` — pendiente en BE; UI no-op por ahora
+ * - `DELETE /boards/:boardId` (archive; soft-delete en BE)
+ * - `GET /boards/:boardId/access` (RBAC; usado en `BoardPageClient`)
+ * - `PUT`/`DELETE /boards/:boardId/members/:userId` (BE listo; FE sin UI)
  *
  * Las fechas llegan como string ISO (JSON); no como `Date`.
  */
