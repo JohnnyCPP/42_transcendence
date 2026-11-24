@@ -1,9 +1,12 @@
 import {
+	archiveOrganizationDocs,
 	createOrganizationDocs,
 	getOrganizationDocs,
+	listOrganizationMembersDocs,
 	listOrganizationsDocs,
 	organizationMemberSchema as memberResponseSchema,
 	organizationErrorSchema,
+	removeOrganizationMemberDocs,
 	setOrganizationMemberRoleDocs,
 	updateOrganizationDocs
 } from "./organizations.types.js";
@@ -54,13 +57,13 @@ export async function registerOrganizationRoutes(
 			response: createOrganizationDocs.response,
 			security: createOrganizationDocs.security
 	}
-  }, async (request) => {
+  }, async (request, reply) => {
     const body = request.body;
     const organization = await organizationsService.createOrganization({
       ...body,
       createdByUserId: request.currentUser!.id
     });
-    return { organization };
+    return reply.status(201).send({ organization });
   });
 
   typedApp.get('/api/v1/organizations', {
@@ -125,7 +128,7 @@ export async function registerOrganizationRoutes(
       tags: ['Organizations'],
       summary: 'Add an existing user to an organization',
       params: organizationParamsSchema,
-      body: z.object({ userId: z.string().trim().min(1), role: z.enum([ORG_ROLE.MEMBER, ORG_ROLE.ADMIN]).default(ORG_ROLE.MEMBER) }),
+      body: z.object({ username: z.string().trim().min(1), role: z.enum([ORG_ROLE.MEMBER, ORG_ROLE.ADMIN]).default(ORG_ROLE.MEMBER) }),
       response: {
         200: z.object({ member: memberResponseSchema }),
         400: organizationErrorSchema,
@@ -166,22 +169,43 @@ export async function registerOrganizationRoutes(
 
   typedApp.get('/api/v1/organizations/:organizationId/members', {
     preHandler: [requireAuth(sessionsService), requireOrgRole(organizationsService, ORG_ROLE.MEMBER)],
-    schema: { params: organizationParamsSchema }
+    schema: { 
+		tags: listOrganizationMembersDocs.tags,
+		summary: listOrganizationMembersDocs.summary,
+		description: listOrganizationMembersDocs.description,
+		params: listOrganizationMembersDocs.params,
+		response: listOrganizationMembersDocs.response,
+		security: listOrganizationMembersDocs.security
+	}
   }, async (request) => ({ members: await organizationsService.listMembers(request.params.organizationId, request.currentUser!.id) }));
 
   typedApp.delete('/api/v1/organizations/:organizationId/members/:userId', {
     preHandler: [requireAuth(sessionsService), requireOrgRole(organizationsService, ORG_ROLE.ADMIN)],
-    schema: { params: organizationMemberParamsSchema }
+    schema: { 
+		tags: removeOrganizationMemberDocs.tags,
+		summary: removeOrganizationMemberDocs.summary,
+		description: removeOrganizationMemberDocs.description,
+		params: removeOrganizationMemberDocs.params,
+		response: removeOrganizationMemberDocs.response,
+		security: removeOrganizationMemberDocs.security
+	}
   }, async (request) => {
     await organizationsService.removeOrganizationMember(request.params.organizationId, request.currentUser!.id, request.params.userId);
-    return { ok: true };
+    return { ok: true } as const;
   });
 
   typedApp.delete('/api/v1/organizations/:organizationId', {
     preHandler: [requireAuth(sessionsService), requireOrgRole(organizationsService, ORG_ROLE.OWNER)],
-    schema: { params: organizationParamsSchema }
+    schema: { 
+		tags: archiveOrganizationDocs.tags,
+		summary: archiveOrganizationDocs.summary,
+		description: archiveOrganizationDocs.description,
+		params: archiveOrganizationDocs.params,
+		response: archiveOrganizationDocs.response,
+		security: archiveOrganizationDocs.security
+	}
   }, async (request) => {
     await organizationsService.archiveOrganization(request.params.organizationId, request.currentUser!.id);
-    return { ok: true };
+    return { ok: true } as const;
   });
 }

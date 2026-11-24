@@ -61,10 +61,10 @@ type OrgContextValue = OrgState & {
   updateOrganization: (
     organizationId: string,
     input: UpdateOrganizationInput
-  ) => Promise<OrganizationWithRole>;
+  ) => Promise<void>;
   /**
-   * Eliminar org — endpoint aún no existe en el BE.
-   * No-op para que la UI no rompa; conectar cuando exista `DELETE`.
+   * Archiva la org.
+   * `DELETE /organizations/:id` → actualiza lista, activo y storage.
    */
   deleteOrganization: (organizationId: string) => Promise<void>;
   setActiveOrganization: (org: OrganizationWithRole) => void;
@@ -76,7 +76,7 @@ export const OrgContext = createContext<OrgContextValue | null>(null);
 /**
  * Estado global de organizaciones (= “workspace” en la UI).
  *
- * - API: `GET/POST/PATCH /organizations`
+ * - API: `GET/POST/PATCH/DELETE /organizations`
  * - UI switcher: `/workspace`
  * - Tableros: `/boards` (filtrados por `activeOrganization`)
  *
@@ -90,7 +90,7 @@ export const OrgContext = createContext<OrgContextValue | null>(null);
  * cada F5 borraría el workspace guardado antes de recuperar la sesión.
  */
 export const OrgProvider = ({ children }: { children: ReactNode }) => {
-  const { isAuthenticated, isLoading: isAuthLoading, user } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [orgState, setOrgState] = useState<OrgState>({
     organizations: [],
     activeOrganization: null,
@@ -106,23 +106,7 @@ export const OrgProvider = ({ children }: { children: ReactNode }) => {
         '/organizations'
       );
 
-      let organizations = data.organizations;
-
-      if (organizations.length === 0) {
-        const createdOrg = await apiFetch<{
-          organization: OrganizationWithRole;
-        }>('/organizations', {
-          method: 'POST',
-          body: JSON.stringify({
-            name: user?.name
-              ? `Organización de ${user.name}`
-              : 'Organización',
-          }),
-        });
-
-        organizations = [createdOrg.organization];
-      }
-
+      const organizations = data.organizations;
       const storedId = readStoredActiveOrgId();
       const activeOrg =
         organizations.find((org) => org.id === storedId) ??
@@ -152,7 +136,7 @@ export const OrgProvider = ({ children }: { children: ReactNode }) => {
         error: errorMessage,
       }));
     }
-  }, [user?.name]);
+  }, []);
 
   useEffect(() => {
     // Auth aún resolviendo sesión: no tocar storage ni resetear orgs.
@@ -226,7 +210,7 @@ export const OrgProvider = ({ children }: { children: ReactNode }) => {
     async (
       organizationId: string,
       input: UpdateOrganizationInput
-    ): Promise<OrganizationWithRole> => {
+    ): Promise<void> => {
       const data = await apiFetch<{ organization: Organization }>(
         `/organizations/${organizationId}`,
         {
@@ -235,13 +219,10 @@ export const OrgProvider = ({ children }: { children: ReactNode }) => {
         }
       );
 
-      let merged: OrganizationWithRole | null = null;
-
       setOrgState((prev) => {
         const organizations = prev.organizations.map((org) => {
           if (org.id !== data.organization.id) return org;
-          merged = { ...org, ...data.organization, role: org.role };
-          return merged;
+          return { ...org, ...data.organization, role: org.role };
         });
 
         const activeOrganization =
@@ -253,32 +234,36 @@ export const OrgProvider = ({ children }: { children: ReactNode }) => {
               }
             : prev.activeOrganization;
 
-        if (activeOrganization && !merged) {
-          merged = activeOrganization;
-        }
-
         return { ...prev, organizations, activeOrganization, error: null };
       });
-
-      if (!merged) {
-        throw new Error('Organización no encontrada en el estado local');
-      }
-
-      return merged;
     },
     []
   );
 
   /**
-   * Eliminar workspace — sin endpoint aún.
-   * No llama a la red; la UI muestra feedback “pendiente de API”.
+   * Archiva el workspace.
    *
-   * Cuando exista: `DELETE /organizations/:organizationId`
-   * y refrescar / limpiar `activeOrganization`.
+   * `DELETE /organizations/:organizationId` → `{ ok: true }` (solo owner).
+   * Actualiza lista, activo y `localStorage`.
    */
   const deleteOrganization = useCallback(async (organizationId: string) => {
-    void organizationId;
-    // No-op a propósito (UI funcional, sin conectar).
+    await apiFetch<{ ok: true }>(`/organizations/${organizationId}`, {
+      method: 'DELETE',
+    });
+
+    setOrgState((prev) => {
+      const organizations = prev.organizations.filter(
+        (org) => org.id !== organizationId
+      );
+      const activeOrganization =
+        prev.activeOrganization?.id === organizationId
+          ? organizations[0] ?? null
+          : prev.activeOrganization;
+
+      writeStoredActiveOrgId(activeOrganization?.id ?? null);
+
+      return { ...prev, organizations, activeOrganization, error: null };
+    });
   }, []);
 
   const clearError = useCallback(() => {

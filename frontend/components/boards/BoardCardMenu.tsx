@@ -145,7 +145,7 @@ export function BoardCardMenu({
       <TextInputDialog
         isOpen={menu.isRenameOpen}
         title="Renombrar tablero"
-        description="La llamada usa el stub PATCH hasta que lo cables."
+        description="Se guardará el nuevo nombre del tablero."
         label="Nombre"
         value={menu.renameValue}
         error={menu.renameError}
@@ -159,7 +159,7 @@ export function BoardCardMenu({
       <ConfirmDialog
         isOpen={menu.isDeleteOpen}
         title="Eliminar tablero"
-        description={`Vas a eliminar «${boardName || 'este tablero'}». El endpoint DELETE aún no existe; solo se valida el flujo de UI.`}
+        description={`Vas a eliminar «${boardName || 'este tablero'}». Esta acción archiva el tablero.`}
         confirmLabel="Eliminar"
         tone="danger"
         onConfirm={() => {

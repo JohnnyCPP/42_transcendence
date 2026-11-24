@@ -14,7 +14,7 @@ it('manages organizations with isolated membership, validation and soft deletion
 
   expect((await call('POST', '/organizations', undefined, { name: 'Example' })).statusCode).toBe(401);
   const created = await call('POST', '/organizations', ownerSession.token, { name: 'Example', description: '  Initial description  ' });
-  expect(created.statusCode, created.body).toBe(200);
+  expect(created.statusCode, created.body).toBe(201);
   expect(created.json().organization).toMatchObject({ name: 'Example', description: 'Initial description', role: 'owner' });
   const id = created.json().organization.id;
   expect((await call('GET', `/organizations/${id}`, outsiderSession.token)).statusCode).toBe(404);

@@ -133,3 +133,47 @@ export	const	disableTwoFactorDocs = {
 
 	security: []
 } as const;
+
+export	const	twoFactorStatusDocs = {
+
+	tags: ["Two-Factor Authentication"],
+
+	summary: "Get two-factor authentication status",
+
+	description:
+		"Returns whether TOTP two-factor authentication is enabled for the authenticated user, " +
+		"and, when enabled, the timestamp at which it was confirmed. " +
+		"Use this endpoint to decide whether to show enrollment, disable, or regenerate controls in the UI.",
+
+	response: {
+		200: z.object({
+			enabled: z.boolean().describe("Whether TOTP two-factor authentication is active."),
+			confirmedAt: z.date().optional().describe("When the factor was confirmed. Present only when `enabled` is `true`.")
+		}).describe("The caller's two-factor authentication status."),
+		401: twoFactorErrorSchema.describe("Authentication required.")
+	},
+
+	security: []
+} as const;
+
+export	const	remainingRecoveryCodesDocs = {
+
+	tags: ["Two-Factor Authentication"],
+
+	summary: "Count remaining recovery codes",
+
+	description:
+		"Returns the number of unused recovery codes for the authenticated user. " +
+		"The value decreases each time a recovery code is consumed at login. " +
+		"A value of `0` is valid and means all codes have been used, the user should regenerate them. " +
+		"When two-factor authentication is disabled, the count is `0`.",
+
+	response: {
+		200: z.object({
+			remaining: z.number().int().min(0).describe("Number of unused recovery codes.")
+		}).describe("Remaining recovery-code count."),
+		401: twoFactorErrorSchema.describe("Authentication required.")
+	},
+
+	security: []
+} as const;

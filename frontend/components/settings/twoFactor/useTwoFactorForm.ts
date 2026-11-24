@@ -1,19 +1,21 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   confirm2fa,
   disable2fa,
+  getTwoFactorStatus,
   parseTotpSecretFromUri,
   regenerateRecoveryCodes,
   setup2fa,
 } from '@/lib/securityApi';
 
 /**
- * Estado y handlers de la sección 2FA (setup, confirm, regenerar, desactivar).
+ * Estado y handlers de la sección 2FA en `/settings`.
  *
- * `twoFactorEnabled` es estado de sesión de UI hasta que `GET /me` exponga el flag.
- * Tras confirm/regenerate se abren los recovery codes en un modal.
+ * - Al montar hidrata `twoFactorEnabled` con `GET /two-factor/status`.
+ * - Setup → QR/URI (`TwoFactorSetupFields`) → confirm TOTP.
+ * - Tras confirm/regenerate abre el modal de recovery codes.
  */
 export function useTwoFactorForm() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
@@ -32,7 +34,38 @@ export function useTwoFactorForm() {
     [provisioningUri]
   );
 
+  /** Hay URI pendiente de confirmar (muestra QR + formulario TOTP). */
   const isSetupPending = Boolean(provisioningUri) && !twoFactorEnabled;
+
+  /**
+   * Lee el estado real de 2FA al entrar en settings (sobrevive a F5).
+   * `active` evita setState si el usuario sale antes de que responda el fetch.
+   */
+  useEffect(() => {
+    let active = true;
+    setIsBusy(true);
+
+    getTwoFactorStatus()
+      .then((status) => {
+        if (active) setTwoFactorEnabled(status.enabled);
+      })
+      .catch((err) => {
+        if (active) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : 'No se pudo consultar el estado de 2FA'
+          );
+        }
+      })
+      .finally(() => {
+        if (active) setIsBusy(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   /** Envuelve una acción async: limpia feedback, marca busy y captura errores. */
   const runAction = useCallback(async (action: () => Promise<void>) => {
@@ -48,15 +81,15 @@ export function useTwoFactorForm() {
     }
   }, []);
 
-  /** `POST /2fa/setup` → guarda el provisioning URI. */
+  /** `POST /two-factor/begin` → guarda el provisioning URI (QR + secreto). */
   const handleSetup = () =>
     runAction(async () => {
       const data = await setup2fa();
       setProvisioningUri(data.provisioningUri);
-      setInfo('Escanea o copia el URI y confirma con un código TOTP.');
+      setInfo('Escanea el QR o copia el URI y confirma con un código TOTP.');
     });
 
-  /** Valida TOTP de 6 dígitos y llama `POST /2fa/confirm`. */
+  /** Valida TOTP de 6 dígitos y llama `POST /two-factor/confirm`. */
   const handleConfirm = (event: React.FormEvent) => {
     event.preventDefault();
     const trimmed = confirmCode.trim();
@@ -75,7 +108,7 @@ export function useTwoFactorForm() {
     });
   };
 
-  /** `POST /2fa/recovery-codes/regenerate`. */
+  /** `POST /two-factor/regenerate`. */
   const handleRegenerate = () =>
     runAction(async () => {
       const data = await regenerateRecoveryCodes();
@@ -85,7 +118,7 @@ export function useTwoFactorForm() {
       setInfo('Nuevos códigos de recuperación generados. Guárdalos ahora.');
     });
 
-  /** Cierra el dialog y ejecuta `DELETE /2fa`. */
+  /** Cierra el dialog y ejecuta `DELETE /two-factor`. */
   const handleDisableConfirm = () => {
     setIsDisableOpen(false);
     void runAction(async () => {

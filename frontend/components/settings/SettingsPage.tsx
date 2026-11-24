@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { AppShell } from '@/components/layout/AppShell';
-import { uiStyles } from '@/components/ui';
+import { Icon, buttonClassName, uiStyles } from '@/components/ui';
 import { PasswordSection } from './PasswordSection';
 import { ReauthSection } from './ReauthSection';
 import { TwoFactorSection } from './twoFactor';
@@ -25,6 +26,13 @@ export function SettingsPage() {
               Reautentica tu sesión, cambia la contraseña y gestiona el segundo
               factor.
             </p>
+            <Link
+              href="/profile"
+              className={buttonClassName({ variant: 'ghost', size: 'sm' })}
+            >
+              <Icon name="person" size="sm" />
+              Ir a mi perfil
+            </Link>
           </section>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

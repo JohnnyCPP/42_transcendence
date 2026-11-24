@@ -39,21 +39,21 @@ beforeAll(async () => {
     const login = await call(null, 'POST', '/login', { username: user.username, password });
     expect(login.status, `login ${name}`).toBe(200);
     expect(login.cookie, `session cookie for ${name}`).toBeTruthy();
-    users[name] = { id: user.id, cookie: login.cookie };
+    users[name] = { id: user.id, username: user.username, cookie: login.cookie };
   }
 });
 afterAll(async () => { await prisma.$disconnect(); });
 
 // Exercise organization membership and access through HTTP and real persistence.
 it('organization roles: reading, invitations, management and archiving', async () => {
-  const created = await expectResponse('owner', 'POST', '/organizations', 200, { name: 'RBAC organization', description: 'Initial' });
+  const created = await expectResponse('owner', 'POST', '/organizations', 201, { name: 'RBAC organization', description: 'Initial' });
   expect(created.organization.description).toBe('Initial');
   expect((await prisma.organizationMember.findUniqueOrThrow({ where: { organizationId_userId: { organizationId: created.organization.id, userId: users.owner.id } } })).role).toBe('owner');
   const org = `/organizations/${created.organization.id}`;
   const membership = name => `${org}/members/${users[name].id}`;
   for (const [method, path, body] of [
     ['GET', org], ['PATCH', org, { name: 'Denied' }], ['DELETE', org],
-    ['GET', `${org}/members`], ['POST', `${org}/members`, { userId: users.target.id }],
+    ['GET', `${org}/members`], ['POST', `${org}/members`, { username: users.target.username }],
     ['PUT', membership('target'), { role: 'member' }], ['DELETE', membership('target')],
     ['GET', `${org}/boards`], ['POST', `${org}/boards`, { name: 'Denied' }]
   ]) {
@@ -61,8 +61,8 @@ it('organization roles: reading, invitations, management and archiving', async (
     await expectResponse('outsider', method, path, 404, body);
   }
   const concurrent = await Promise.all([
-    call('owner', 'POST', `${org}/members`, { userId: users.outsider.id }),
-    call('owner', 'POST', `${org}/members`, { userId: users.outsider.id })
+    call('owner', 'POST', `${org}/members`, { username: users.outsider.username }),
+    call('owner', 'POST', `${org}/members`, { username: users.outsider.username })
   ]);
   expect(concurrent.map(result => result.status).sort()).toEqual([200, 409]);
   expect(concurrent.find(result => result.status === 409).body.error).toBe('ORGANIZATION_MEMBER_EXISTS');
@@ -101,7 +101,7 @@ it('organization roles: reading, invitations, management and archiving', async (
 
 // Board permissions are checked independently of organization membership.
 it('board roles: read, write, comments, memberships and archiving', async () => {
-  const createdOrg = await expectResponse('owner', 'POST', '/organizations', 200, { name: 'RBAC boards' });
+  const createdOrg = await expectResponse('owner', 'POST', '/organizations', 201, { name: 'RBAC boards' });
   const org = `/organizations/${createdOrg.organization.id}`;
   for (const name of ['orgadmin', 'boardadmin', 'member', 'observer', 'reader'])
     await expectResponse('owner', 'PUT', `${org}/members/${users[name].id}`, 200, { role: name === 'orgadmin' ? 'admin' : 'member' });

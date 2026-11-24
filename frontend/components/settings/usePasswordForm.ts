@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { changePassword } from '@/lib/securityApi';
 
 /**
- * Estado y submit de cambio de contraseña (`POST /auth/password/change` vía stub).
+ * Estado y submit de cambio de contraseña (`POST /change-password`).
  */
 export function usePasswordForm() {
   const [newPassword, setNewPassword] = useState('');

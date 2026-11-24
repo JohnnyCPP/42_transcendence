@@ -97,7 +97,7 @@ export	const	createOrganizationDocs = {
 	}),
 
 	response: {
-		200: z.object({ organization: organizationWithRoleSchema }).describe("The created organization, with the caller's role."),
+		201: z.object({ organization: organizationWithRoleSchema }).describe("The created organization, with the caller's role."),
 		400: organizationErrorSchema.describe("Validation error."),
 		401: organizationErrorSchema.describe("Authentication required."),
 		409: organizationErrorSchema.describe("Organization slug already exists.")
@@ -220,6 +220,96 @@ export	const	setOrganizationMemberRoleDocs = {
 		401: organizationErrorSchema.describe("Authentication required."),
 		403: organizationErrorSchema.describe("Insufficient role to perform this change."),
 		404: organizationErrorSchema.describe("Organization or user not found.")
+	},
+
+	security: []
+} as const;
+
+export	const	listOrganizationMembersDocs = {
+
+	tags: ["Organizations"],
+
+	summary: "List an organization's members",
+
+	description:
+		"Returns every member of the organization with their role and a small user summary. " +
+		"Requires the caller to be a member (`member`, `admin`, or `owner`) of the organization. " +
+		"Returns 404 `ORGANIZATION_NOT_FOUND` if the organization does not exist " +
+		"or the caller is not a member (existence is not leaked).",
+
+	params: z.object({
+		organizationId: z.string().min(1)
+	}),
+
+	response: {
+		200: z.object({
+			members: z.array(organizationMemberSchema.extend({
+				user: z.object({
+					id: z.string(),
+					username: z.string(),
+					displayName: z.string().nullable()
+				}).nullable().describe("User summary, or null if the user record is gone.")
+			}))
+		}).describe("Organization members with user summaries."),
+		401: organizationErrorSchema.describe("Authentication required."),
+		403: organizationErrorSchema.describe("Organization membership required (`INSUFFICIENT_ORG_ROLE`)."),
+		404: organizationErrorSchema.describe("Organization not found or not accessible.")
+	},
+
+	security: []
+} as const;
+
+export	const	removeOrganizationMemberDocs = {
+
+	tags: ["Organizations"],
+
+	summary: "Remove a member from an organization",
+
+	description:
+		"Removes a user from the organization. Requires the caller to be an `owner` or `admin`. " +
+		"Rules: the owner cannot be removed; an `admin` can only be removed by the owner; " +
+		"an admin cannot remove another admin. " +
+		"Returns 404 if the target user is not a member (existence is not leaked).",
+
+	params: z.object({
+		organizationId: z.string().min(1),
+		userId: z.string().min(1)
+	}),
+
+	response: {
+		200: z.object({ ok: z.literal(true) }).describe("The member was removed."),
+		401: organizationErrorSchema.describe("Authentication required."),
+		403: organizationErrorSchema.describe(
+			"Insufficient role (`INSUFFICIENT_ORG_ROLE`): caller is not admin/owner, " +
+			"target is the owner, or caller is an admin trying to remove an admin."
+		),
+		404: organizationErrorSchema.describe("Organization not found, or target user is not a member (`ORGANIZATION_MEMBER_NOT_FOUND`).")
+	},
+
+	security: []
+} as const;
+
+export	const	archiveOrganizationDocs = {
+
+	tags: ["Organizations"],
+
+	summary: "Archive an organization",
+
+	description:
+		"Archives an organization. Archived organizations disappear from listings and " +
+		"become inaccessible. Requires the caller to be the organization `owner`. " +
+		"This is a soft delete: the organization row remains in the database with " +
+		"`archivedAt` set, but it is excluded from all reads.",
+
+	params: z.object({
+		organizationId: z.string().min(1)
+	}),
+
+	response: {
+		200: z.object({ ok: z.literal(true) }).describe("The organization was archived."),
+		401: organizationErrorSchema.describe("Authentication required."),
+		403: organizationErrorSchema.describe("Insufficient role (`INSUFFICIENT_ORG_ROLE`): caller is not the owner."),
+		404: organizationErrorSchema.describe("Organization not found or not accessible.")
 	},
 
 	security: []

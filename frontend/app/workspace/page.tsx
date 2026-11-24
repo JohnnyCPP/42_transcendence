@@ -12,7 +12,6 @@ import {
 } from '@/components/org';
 import type { OrganizationWithRole } from '@/components/org/org.types';
 import { EmptyState, buttonClassName, uiStyles } from '@/components/ui';
-import { OrganizationMembers } from '@/components/org/OrganizationMembers';
 
 function WorkspaceHeader({ hasActive }: { hasActive: boolean }) {
   return (
@@ -128,7 +127,6 @@ export default function WorkspacePage() {
                     titleClassName="mt-3 text-base font-semibold text-on-surface"
                   />
                 )}
-                <OrganizationMembers />
               </section>
 
               <aside>

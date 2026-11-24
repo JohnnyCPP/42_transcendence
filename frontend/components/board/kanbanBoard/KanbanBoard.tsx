@@ -82,14 +82,20 @@ export default function KanbanBoard({
     setNewColumnError(null);
   };
 
-  const handleConfirmAddColumn = () => {
+  const handleConfirmAddColumn = async () => {
     if (!newColumnTitle.trim()) {
       setNewColumnError('El nombre de la lista es obligatorio.');
       return;
     }
 
-    handleAddColumn(newColumnTitle);
-    handleCloseAddColumnDialog();
+    try {
+      await handleAddColumn(newColumnTitle);
+      handleCloseAddColumnDialog();
+    } catch (err) {
+      setNewColumnError(
+        err instanceof Error ? err.message : 'No se pudo crear la lista'
+      );
+    }
   };
 
   return (

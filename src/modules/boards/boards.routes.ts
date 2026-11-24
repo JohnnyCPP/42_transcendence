@@ -1,12 +1,13 @@
 import { BOARD_ROLES, ORG_ROLE, ORG_ROLES } from "../authorization/roles.js";
 import {
-	listMyBoardsDocs,
-	listOrganizationBoardsDocs,
+	archiveBoardDocs,
 	createBoardDocs,
 	getBoardDocs,
-	updateBoardDocs,
-	archiveBoardDocs,
-	setBoardMemberRoleDocs
+	listMyBoardsDocs,
+	listOrganizationBoardsDocs,
+	removeBoardMemberDocs,
+	setBoardMemberRoleDocs,
+	updateBoardDocs
 } from "./boards.types.js";
 import { paginationMetadata } from "../../shared/pagination.js";
 import { paginationQuerySchema } from "../../shared/http/pagination.js";
@@ -214,9 +215,16 @@ export	async	function	registerBoardRoutes(app: FastifyInstance,
 
 	typedApp.delete("/api/v1/boards/:boardId/members/:userId", {
 		preHandler: requireAuth(sessionsService),
-		schema: { params: setBoardMemberRoleDocs.params }
+		schema: { 
+			tags: removeBoardMemberDocs.tags,
+			summary: removeBoardMemberDocs.summary,
+			description: removeBoardMemberDocs.description,
+			params: removeBoardMemberDocs.params,
+			response: removeBoardMemberDocs.response,
+			security: removeBoardMemberDocs.security
+		}
 	}, async (request) => {
 		await boardsService.removeBoardMember(request.params.boardId, request.currentUser!.id, request.params.userId);
-		return { ok: true };
+		return { ok: true } as const;
 	});
 }

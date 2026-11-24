@@ -72,16 +72,16 @@ export class OrganizationsService
     return this.organizationsRepository.upsertMember(input);
   }
 
-  async addOrganizationMember(input: { organizationId: string; actorUserId: string; userId: string; role: 'member' | 'admin' }): Promise<OrganizationMember>
+  async addOrganizationMember(input: { organizationId: string; actorUserId: string; username: string; role: 'member' | 'admin' }): Promise<OrganizationMember>
   {
     const actor = await this.getOrganizationForUser(input.organizationId, input.actorUserId);
     if (!canManageOrganization(actor.role))
       throw forbidden('Organization admin role required', 'ORGANIZATION_ADMIN_REQUIRED');
     if (input.role === ORG_ROLE.ADMIN && actor.role !== ORG_ROLE.OWNER)
       throw forbidden('Only an organization owner can manage admins', 'ORGANIZATION_OWNER_REQUIRED');
-    const target = await this.usersService.findById(input.userId);
+    const target = await this.usersService.findByUsername(input.username);
     if (!target || target.status !== 'active') throw notFound('User not found', 'USER_NOT_FOUND');
-    return this.organizationsRepository.createMember(input);
+    return this.organizationsRepository.createMember({ organizationId: input.organizationId, userId: target.id, role: input.role });
   }
 
   async archiveOrganization(organizationId: string, actorUserId: string): Promise<void> {

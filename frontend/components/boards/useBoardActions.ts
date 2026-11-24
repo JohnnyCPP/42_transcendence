@@ -15,7 +15,7 @@ export type UseBoardActionsOptions = {
  * - `BoardCardMenu` (cards del dashboard / `/boards`)
  * - `BoardHeader` (kanban)
  *
- * Así no hay dos copias de PATCH/DELETE stub + dialogs state.
+ * Así no hay dos copias de PATCH/DELETE + dialogs state.
  */
 export function useBoardActions(
   boardId: string,
@@ -85,9 +85,7 @@ export function useBoardActions(
     setIsDeleteOpen(false);
     try {
       await deleteBoard(boardId);
-      setNotice(
-        'Eliminación pendiente de API: UI lista, sin endpoint DELETE aún.'
-      );
+      setNotice('Tablero eliminado.');
     } catch (err) {
       setNotice(
         err instanceof Error ? err.message : 'No se pudo eliminar el tablero'

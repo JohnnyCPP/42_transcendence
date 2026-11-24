@@ -4,8 +4,8 @@ import { apiFetch } from '@/lib/apiClient';
  * Cliente tipado de seguridad de cuenta: reauth, cambio de contraseña y 2FA.
  *
  * Usa `apiFetch` (cookies de sesión, JSON, `ApiError` en fallos HTTP).
- * Los errores se propagan sin capturarlos aquí; los hooks de settings
- * (`useReauthForm`, `usePasswordForm`, `useTwoFactorForm`) los muestran en UI.
+ * Paths relativos al `API_BASE` (`/api/v1`). Consumidor principal: `/settings`
+ * (`useTwoFactorForm`, reauth, password). Los errores se propagan a esos hooks.
  *
  * Mutaciones sensibles (todo excepto `reauthenticate`) exigen un
  * `POST /reauthenticate` reciente en la misma sesión. Si no, el
@@ -42,6 +42,13 @@ export type Setup2faResult = {
 /** Respuesta al confirmar o regenerar códigos de recuperación. */
 export type RecoveryCodesResult = {
   recoveryCodes: string[];
+};
+
+/** Respuesta de `GET /two-factor/status`. */
+export type TwoFactorStatus = {
+  enabled: boolean;
+  /** Presente solo si el 2FA está confirmado/activo. */
+  confirmedAt?: string;
 };
 
 /**
@@ -108,6 +115,17 @@ export async function setup2fa(): Promise<Setup2faResult> {
 }
 
 /**
+ * Estado actual del 2FA del usuario autenticado.
+ *
+ * `GET /two-factor/status` → `{ enabled, confirmedAt? }`
+ *
+ * Usado al montar `/settings` para hidratar el badge tras F5.
+ */
+export async function getTwoFactorStatus(): Promise<TwoFactorStatus> {
+  return apiFetch<TwoFactorStatus>('/two-factor/status');
+}
+
+/**
  * Confirma el setup TOTP con un código de 6 dígitos.
  *
  * `POST /two-factor/confirm` → `{ recoveryCodes }`
@@ -139,7 +157,7 @@ export async function regenerateRecoveryCodes(): Promise<RecoveryCodesResult> {
 /**
  * Desactiva el 2FA del usuario.
  *
- * `DELETE /2fa` → `{ ok: true }`
+ * `DELETE /two-factor` → `{ ok: true }`
  *
  * Requiere reauth reciente. Otras sesiones se revocan en backend.
  */

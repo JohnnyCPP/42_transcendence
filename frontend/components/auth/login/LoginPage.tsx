@@ -52,11 +52,14 @@ export default function LoginPage() {
         clearError();
         const result = await complete2fa(challengeToken, code, method);
         if (result.status === 'authenticated') {
+          // Pocos recovery codes → ir a `/settings` a regenerarlos.
           if (method === 'recovery_code') {
             try {
-              const { remaining } = await apiFetch<{ remaining: number }>('/two-factor/recovery-codes/remaining');
+              const { remaining } = await apiFetch<{ remaining: number }>(
+                '/two-factor/recovery-codes/remaining'
+              );
               if (remaining <= 1) {
-                router.push('/security');
+                router.push('/settings');
                 return;
               }
             } catch {

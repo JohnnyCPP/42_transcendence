@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by pablgarc, jonnavar, gsoteldo, jorexpos, jdiaz-he.*
+*This project has been created as part of the 42 curriculum by pablgarc, jonnavar, gsoteldo, jorexpos.*
 
 # TaskFlow
 
@@ -39,12 +39,15 @@
 │   ├── config
 │   ├── db
 │   ├── modules
+│   │   ├── apiKeys
 │   │   ├── authentication
 │   │   ├── authorization
 │   │   ├── boards
 │   │   ├── cards
+│   │   ├── comments
 │   │   ├── lists
 │   │   ├── organizations
+│   │   ├── publicApi
 │   │   ├── sessions
 │   │   ├── twoFactor
 │   │   └── users
@@ -53,33 +56,42 @@
 │       ├── crypto
 │       ├── errors
 │       └── http
-├── frontend/                 # app Next.js
-│   ├── app/
-│   ├── components/
-│   ├── lib/
-│   ├── types/
+├── test
+│   ├── integration
+│   └── smoke
+├── frontend
+│   ├── app
+│   ├── components
+│   ├── lib
+│   ├── types
 │   ├── next.config.ts
 │   ├── package.json
 │   ├── README.md
 │   └── FRONTEND_DOCS.md
-└── tsconfig.json
+├── tsconfig.json
+├── vitest.config.integration.ts
+├── vitest.config.postgres.ts
+└── vitest.config.ts
 ```
 
 ## Description
 
-**TODO:** Clearly presents the project, including its goal and a brief overview.
-
-**TODO:** Should also contain a clear name for the project and its key features.
-
 TaskFlow is a work-management web application inspired by Trello.
 
-The implemented domain follows this hierarchy:
-
-```text
-Organization -> Board -> List -> Card
-```
-
 Users can authenticate, enable two-factor authentication, create shared organizations and boards, organize work into ordered lists, and create, edit, move, or archive cards.
+
+Key features:
+
+- Create your user account, choose to enable/disable two factor authentication
+- Browse other users, add/remove friends, see your friendlist
+- Manage organizations, add/remove users from your organization
+- Manage boards to have your work in one place, boards are created under one organization and its members
+- Manage card lists in your board to organize work items in a structured fashion
+- Configure user roles in a three-layered system: App roles, organization roles, and board roles
+- Collaborate in boards with board members in real time
+- Integrate third-party tools to the TaskFlow Server with TaskFlow Public API
+- Experience a modular SSR GUI Next.js application with the TaskFlow Client
+- Receive notifications when actions happen regarding your work items: Assignments, comments, and membership changes
 
 ## Instructions
 
@@ -226,19 +238,18 @@ This uses the local values of `.env` (`HOST=127.0.0.1`, `DATABASE_URL` pointing 
 
 ## Resources
 
-**TODO:** Lists classic references related to the topic (documentation, articles, tutorials, etc.).
-
 Primary technical references:
 
 - [Fastify documentation](https://fastify.dev/docs/latest/)
-- [Prisma documentation](https://www.prisma.io/docs)
-- [PostgreSQL documentation](https://www.postgresql.org/docs/)
-- [Zod documentation](https://zod.dev/)
+- [GNU Bash Manual](https://www.gnu.org/software/bash/manual/)
 - [Node.js Crypto documentation](https://nodejs.org/api/crypto.html)
 - [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
-- [WCAG 2.1](https://www.w3.org/TR/WCAG21/)
-- [Vitest configuration](https://vitest.dev/config/)
+- [PostgreSQL documentation](https://www.postgresql.org/docs/)
+- [Prisma documentation](https://www.prisma.io/docs)
 - [Vitest API](https://vitest.dev/api/test)
+- [Vitest configuration](https://vitest.dev/config/)
+- [WCAG 2.1](https://www.w3.org/TR/WCAG21/)
+- [Zod documentation](https://zod.dev/)
 
 ### AI usage
 
@@ -246,30 +257,69 @@ AI was not used for any task or any part of the project.
 
 ## Team Information
 
-**TODO:** For each team member mentioned at the top of the README.md, provide:
+### pablgarc
 
-- Assigned role(s): Product Owner, Project Manager/Scrum Master, Technical Lead, and Developer.
-- Brief description of their responsibilities.
+Pablo (pablgarc) is the technical lead and also a developer of the team.
+
+He provides support mostly for backend development, supplied the initial skeleton of the backend from which we started the implementation.
+
+He suggested the technical stack at the beginning for Fastify/Prisma, the backend modular/layered architectural pattern, and bootstrapped Prisma's schema.
+
+Wrote most of the backend endpoints for many modules: Authentication, authorization, boards, cards, comments, lists, organizations, sessions, twoFactor, and users.
+
+He's also responsible for writing unit and integration tests for most backend modules.
+
+### jonnavar
+
+Jonathan (jonnavar) is the product owner and also a developer.
+
+He supported development flow analyzing subject requirements, writing checklists, epics and user stories to streamline work with clear acceptance criteria.
+
+He is responsible for documenting most of the project, writing this README file, configuring Swagger and documenting all backend endpoints.
+
+He provided support updating backend routes for boards, lists, and cards on top of Pablo's work. He standardized endpoint formats for consistency and suggested development standards.
+
+Initial policies for unit tests, integration tests, and smoke tests have been provided by him.
+
+The implementation of API keys and the public API comes from him.
+
+### gsoteldo
+
+The one in charge of the whole frontend development is Gabriel (gsoteldo), developer and project manager of the team.
+
+He began implementing the TaskFlow Client from scratch with Next.js, and all frontend features are provided by him.
+
+He participated actively in many team decissions from the beginning, in many development areas.
+
+He identified frontend needs regarding backend lacks, which have been implemented in demand.
+
+### jorexpos
+
+Our DevOps engineer and developer is Jorge (jorexpos), who's responsible of container configuration and orchestration for the whole application stack.
+
+He configured the frontend container, providing an environment to run TaskFlow Client.
+
+Also configured the backend container and a DB container for postgres, which executes Prisma commands to always have an updated database in the production environment.
+
+HTTPS configuration and TLS certificate provisioning has been provided by Jorge.
+
+To enable HTTPS from the frontend container, an embedded HTTP server was needed in the frontend container, which was configured by him.
+
+He supported the implementation of WebSockets and collaborative features in the backend development.
 
 ## Project Management
 
-**TODO:** How the team organized the work (task distribution, meetings, etc.).
+The team organized the work through task distribution using a public GitHub Project [Transcendence](https://github.com/users/JohnnyCPP/projects/5), organizing tasks into user stories and those into epics.
 
-**TODO:** Tools used for project management (GitHub Issues, Trello, etc.).
+Meetings (through Google Meet) have been few, only to discuss very urgent and blocking team decissions.
 
-**TODO:** Communication channels used (Discord, Slack, etc.).
+WhatsApp has been used for asynchronous communication.
+
+A high level of diligence and implication was required from each team member for this management model to work.
+
+Sprints were not strictly defined, user stories were being developed arbitrarily depending on complexity and personal needs.
 
 ## Technical Stack
-
-**TODO:** Frontend technologies and frameworks used.
-
-**TODO:** Backend technologies and frameworks used.
-
-**TODO:** Database system and why it was chosen.
-
-**TODO:** Any other significant technologies or libraries.
-
-**TODO:** Justification for major technical choices.
 
 | Area | Technology | Reason for use |
 | --- | --- | --- |
@@ -439,7 +489,26 @@ A misconfigured production container therefore exits immediately rather than ser
 
 ## Features List
 
-### Roles and user administration
+**TODO:** Complete list of implemented features.
+
+**TODO:** Which team member(s) worked on each feature.
+
+**TODO:** Brief description of each feature’s functionality.
+
+**TODO:** Complete the subsections listed below.
+
+### Authentication
+### Authorization
+### Boards
+### Cards
+### Comments
+### Lists
+### Organizations
+### Public API
+### Sessions
+### Two Factor Authentication
+
+### Users and roles
 
 | Scope | Roles | Meaning |
 | --- | --- | --- |
@@ -474,7 +543,7 @@ Administrators cannot change their own role, disable their own account, or delet
 
 Any authenticated user can create an organization and becomes its `owner`. The following permissions apply within an organization to which the user belongs:
 
-`POST /api/v1/organizations` and `PATCH /api/v1/organizations/:organizationId` accept an optional `description` (up to 5,000 characters). PATCH accepts `null` to clear it. Existing organizations have a null description until one is set.
+`POST /api/v1/organizations` and `PATCH /api/v1/organizations/:organizationId` accept an optional `description` (up to 5,000 characters). Creation returns 201 with the organization and its owner role. PATCH accepts `null` to clear it. Existing organizations have a null description until one is set.
 
 | Action | `member` | `admin` | `owner` |
 | --- | --- | --- | --- |
@@ -491,7 +560,7 @@ Any authenticated user can create an organization and becomes its `owner`. The f
 
 `PUT /organizations/:organizationId/members/:userId` adds a user or sets their role; its body contains `role: "member"` or `role: "admin"`. An organization admin may repeat an unchanged `member` assignment, but cannot assign an admin role or change an existing role. `DELETE /organizations/:organizationId/members/:userId` removes a membership and its board memberships in that organization. `DELETE /organizations/:organizationId` archives the organization. These are soft archives of the organization itself; membership removal deletes the relevant membership records.
 
-`POST /api/v1/organizations/:organizationId/members` adds an active user with `{ "userId": "...", "role": "member" }`; `role` defaults to `member`. Owners may add admins. A duplicate returns 409 `ORGANIZATION_MEMBER_EXISTS`. Owners cannot be removed or demoted; attempts return 403 `ORGANIZATION_OWNER_IMMUTABLE`.
+`POST /api/v1/organizations/:organizationId/members` adds an active user by username with `{ "username": "...", "role": "member" }`; `role` defaults to `member`. Owners may add admins. A duplicate returns 409 `ORGANIZATION_MEMBER_EXISTS`. Owners cannot be removed or demoted; attempts return 403 `ORGANIZATION_OWNER_IMMUTABLE`.
 
 #### Board roles
 
@@ -521,7 +590,9 @@ Board members being added must already belong to the organization. The current A
 | `POST /lists/:listId/cards`, `PATCH /cards/:cardId`, `POST /cards/:cardId/move`, `DELETE /cards/:cardId` | Board member or admin, organization admin or owner; moving a card requires write access to both lists |
 | `POST /cards/:cardId/comments`, `PATCH /cards/:cardId/comments/:commentId`, `DELETE /cards/:cardId/comments/:commentId` | Board member or admin, organization admin or owner |
 
-Organization-scoped routes use `requireAuth` followed by `requireOrgRole` from `src/modules/authorization/requireScopeRole.ts`: members can read, admins can edit and manage eligible members or create boards, and only owners can archive an organization. Services enforce additional rules, including owner protection and admin role changes. Organization, board, list, card and comment services also check permissions. Non-members receive 404 for scoped organization routes; unauthenticated requests receive 401. User-administration routes use `requireRole` and the user service. Global user mutations use an advisory transaction lock to protect the last active administrator. Backend checks remain authoritative regardless of frontend visibility.
+Scoped route guards are implemented in `src/modules/authorization/requireScopeRole.ts`; organization, board, list, card and comment services also check the applicable permissions. User-administration routes use `requireRole` and the user service. Global user mutations use an advisory transaction lock to protect the last active administrator. These backend checks remain authoritative even when a future frontend hides actions.
+
+Organization routes apply `requireAuth` followed by `requireOrgRole`. Requests without a session receive 401 and non-members receive 404. Only owners can archive an organization.
 
 Real administrative accounts need to be provisioned securely by the team. Run `npm run test:rbac:integration` to exercise the 11.7 global, organization and board role matrices against the real API and PostgreSQL. It requires Node.js, Docker and Docker Compose. The command builds the backend, creates a uniquely named isolated Compose project, applies migrations, runs `test/integration/rbac.postgres.test.ts`, and removes its containers and network afterward. The database uses ephemeral storage and no host ports; it does not connect to the application's existing database. The fixed credentials in `test/compose.rbac.yml` are only for that isolated test project.
 
@@ -530,12 +601,6 @@ For a faster check, `npm run test:rbac` runs `test/integration/rbac.routes.test.
 For an isolated example of the three roles, see [the RBAC demo](document/md/rbac-demo.md). Its explicit development-only `npm run seed:demo` command requires a disposable database whose name ends in `_demo` and the confirmation variable `DEMO_SEED_CONFIRM=yes`. The example accounts are `demo_admin` (`admin@example.com`), `demo_moderator` (`moderator@example.com`), and `demo_user` (`user@example.com`); their example-only password is `ChangeMe123456!`. Sign in with the username. Never use these credentials on shared or production data.
 
 `GET /api/v1/organizations/:organizationId/members` provides an organization's member names and roles to its members. Backend authorization remains authoritative.
-
-**TODO:** Complete list of implemented features.
-
-**TODO:** Which team member(s) worked on each feature.
-
-**TODO:** Brief description of each feature’s functionality.
 
 ## Modules
 
@@ -551,11 +616,71 @@ For an isolated example of the three roles, see [the RBAC demo](document/md/rbac
 
 ## Individual Contributions
 
-**TODO:** Detailed breakdown of what each team member contributed.
+### pablgarc
 
-**TODO:** Specific features, modules, or components implemented by each person.
+Pablo contributed in the backend development of the following modules:
 
-**TODO:** Any challenges faced and how they were overcome.
+- Authentication
+- Authorization
+- Boards
+- Cards
+- Comments
+- Lists
+- Organizations
+- Sessions
+- TwoFactor
+- Users
+
+### jonnavar
+
+Jonathan was in charge of project documentation, as well as writing of epics and user stories in the GitHub Project.
+
+He also contributed in the backend development of the following modules:
+
+- ApiKeys
+- Authentication
+- Boards
+- Cards
+- Comments
+- Lists
+- Organizations
+- PublicApi
+
+### gsoteldo
+
+Gabriel contributed in the frontend development of the following modules:
+
+- ApiKeys
+- Authentication
+- Authorization
+- Boards
+- Cards
+- Comments
+- Lists
+- Organizations
+- Sessions
+- TwoFactor
+- Users
+
+### jorexpos
+
+Jorge implemented the container configuration architecture in Docker.
+
+He configured HTTPS and TLS self-signed certificates.
+
+He also contributed in the backend development of the following modules:
+
+- WebSockets
+- Authentication
+- Authorization
+- Boards
+- Cards
+- Comments
+- Lists
+- Organizations
+- Sessions
+- TwoFactor
+- Users
 
 ## Public API
 
@@ -671,3 +796,13 @@ Install backend dependencies with `npm ci`. Use a Node.js version supported by V
 | `npm run test:integration:coverage` | Coverage for the in-memory HTTP integration suite. |
 
 The PostgreSQL runners apply migrations to disposable databases with test-only credentials and remove their containers afterward. They do not use the application database. There is no single command that runs all four suites: run `npm test`, `npm run test:integration`, and both PostgreSQL commands for the full set. One API-key integration case is currently marked `skip` in `test/integration/apiKeys.routes.test.ts` and will not run automatically.
+
+### Smoke tests
+
+The project includes comprehensive smoke tests for chosen functionalities. They are located in the "test/smoke/" directory.
+
+The file "test-lib.sh" contains reusable functions shared by all smoke tests.
+
+Currently, the following functionalities are covered under smoke tests:
+
+- Public API (public-api.sh): Register/login user, create org, create api key, consume all endpoints, revoke api key, trigger status code 429, delete resources.

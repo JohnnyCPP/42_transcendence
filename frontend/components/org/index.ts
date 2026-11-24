@@ -13,4 +13,7 @@ export { OrganizationCard } from './OrganizationCard';
 export { CreateOrganizationForm } from './CreateOrganizationForm';
 export { RequireActiveOrg } from './RequireActiveOrg';
 export { WorkspaceSettingsPage } from './WorkspaceSettingsPage';
+export { OrganizationMembers } from './OrganizationMembers';
+export { AddOrganizationMemberForm } from './AddOrganizationMemberForm';
+export { useOrganizationMembers } from './useOrganizationMembers';
 
