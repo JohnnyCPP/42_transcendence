@@ -507,6 +507,96 @@ test_get_board_contents()
 				--arg expected "$CARD_TITLE" || finish
 }
 
+# archive a card
+#
+# no parameters
+#
+# no return value
+#
+# the card is identified by $CARD_ID
+# after this test the card is archived on the server
+#
+test_delete_card()
+{
+	send_request DELETE "/api/v1/public/cards/$CARD_ID" "" "X-API-Key: $PLAINTEXT_KEY_A"
+	assert_status 200 "DELETE /api/v1/public/cards/$CARD_ID archives the card '$CARD_TITLE'" || finish
+	assert_json "response contains a 'card' object" \
+				'has("card") and (.card | type == "object")'
+	assert_json "card.id equals the deleted card id" \
+				'.card.id == $expected' \
+				--arg expected "$CARD_ID"
+	assert_json "card.listId still points at the original list" \
+				'.card.listId == $expected' \
+				--arg expected "$LIST_ID"
+	assert_json "card.title is unchanged" \
+				'.card.title == $expected' \
+				--arg expected "$CARD_TITLE"
+	assert_json "card.archivedAt is no longer null" \
+				'.card.archivedAt != null'
+	assert_json "card.archivedAt is an ISO timestamp" \
+				'.card.archivedAt | type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T")'
+}
+
+# archive a list
+#
+# no parameters
+#
+# no return value
+#
+# the list is identified by $LIST_ID
+# after this test the list is archived on the server
+#
+test_delete_list()
+{
+	send_request DELETE "/api/v1/public/lists/$LIST_ID" "" "X-API-Key: $PLAINTEXT_KEY_A"
+	assert_status 200 "DELETE /api/v1/public/lists/$LIST_ID archives the list '$LIST_NAME'" || finish
+	assert_json "response contains a 'list' object" \
+				'has("list") and (.list | type == "object")'
+	assert_json "list.id equals the deleted list id" \
+				'.list.id == $expected' \
+				--arg expected "$LIST_ID"
+	assert_json "list.boardId still points at the original board" \
+				'.list.boardId == $expected' \
+				--arg expected "$BOARD_ID"
+	assert_json "list.name is unchanged" \
+				'.list.name == $expected' \
+				--arg expected "$LIST_NAME"
+	assert_json "list.archivedAt is no longer null" \
+				'.list.archivedAt != null'
+	assert_json "list.archivedAt is an ISO timestamp" \
+				'.list.archivedAt | type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T")'
+}
+
+# archive a board
+#
+# no parameters
+#
+# no return value
+#
+# the board is identified by $BOARD_ID
+# after this test the board is archived on the server
+#
+test_delete_board()
+{
+	send_request DELETE "/api/v1/public/boards/$BOARD_ID" "" "X-API-Key: $PLAINTEXT_KEY_A"
+	assert_status 200 "DELETE /api/v1/public/boards/$BOARD_ID archives the board '$BOARD_NAME'" || finish
+	assert_json "response contains a 'board' object" \
+				'has("board") and (.board | type == "object")'
+	assert_json "board.id equals the deleted board id" \
+				'.board.id == $expected' \
+				--arg expected "$BOARD_ID"
+	assert_json "board.organizationId still points at the original organization" \
+				'.board.organizationId == $expected' \
+				--arg expected "$ORGANIZATION_ID"
+	assert_json "board.name is unchanged" \
+				'.board.name == $expected' \
+				--arg expected "$BOARD_NAME"
+	assert_json "board.archivedAt is no longer null" \
+				'.board.archivedAt != null'
+	assert_json "board.archivedAt is an ISO timestamp" \
+				'.board.archivedAt | type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T")'
+}
+
 verify_dependencies
 
 rm -f "$COOKIE_JAR"
@@ -535,5 +625,8 @@ test_create_card
 test_get_board_contents
 
 section "Delete resources"
+test_delete_card
+test_delete_list
+test_delete_board
 
 finish
