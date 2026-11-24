@@ -50,6 +50,10 @@ source "$(dirname "$0")/test-lib.sh"
 
 DEPENDENCIES=(curl jq)
 
+# #######
+# COOKIES
+# #######
+
 # create a unique temp directory in /tmp
 WORK_DIR="$(mktemp -d)"
 COOKIE_JAR="${WORK_DIR}/cookies.txt"
@@ -60,26 +64,41 @@ HEADERS_FILE="${WORK_DIR}/headers.txt"
 # and run the specified action (clean resources)
 trap 'rm -rf "$WORK_DIR"' EXIT
 
+# ########
+# API KEYS
+# ########
+
+API_KEY_NAME_A="smoke_a_${RUN_ID}"
+PLAINTEXT_KEY_A=""
+
+API_KEY_NAME_B="smoke_b_${RUN_ID}"
+PLAINTEXT_KEY_B=""
+
+# #########
+# TEST DATA
+# #########
+
 USERNAME="smoke_${RUN_ID}"
 EMAIL="smoke_${RUN_ID}@example.test"
 PASSWORD="SmokeTest!${RUN_ID}Aa1"
 
-BOARD_NAME="Smoke Board ${RUN_ID}"
-BOARD_NAME_UPDATED="Smoke Board ${RUN_ID} (updated)"
+ORGANIZATION_ID=""
+ORGANIZATION_NAME="Smoke Organization ${RUN_ID}"
+ORGANIZATION_SLUG="Smoke Slug ${RUN_ID}"
 
-FAILED_STEPS=0
-CURRENT_STEP=0
-
-API_KEY_A="smoke_a_${RUN_ID}"
-PLAINTEXT_KEY_A=""
-
-API_KEY_B="smoke_b_${RUN_ID}"
-PLAINTEXT_KEY_B=""
-
-ORG_ID=""
 BOARD_ID=""
+BOARD_NAME="Smoke Board ${RUN_ID}"
+BOARD_NAME_2="Smoke Board 2 ${RUN_ID}"
+BOARD_NAME_UPDATED="Smoke Board ${RUN_ID} (updated)"
+BOARD_DESCRIPTION="created during a smoke test"
+
 LIST_ID=""
+LIST_NAME="Smoke List ${RUN_ID}"
+
 CARD_ID=""
+CARD_TITLE="Smoke Card ${RUN_ID}"
+CARD_DESCRIPTION="created during a smoke test"
+CARD_DUE_DATE="1973-12-31T14:24:24Z"
 
 # register a test user
 #
@@ -152,12 +171,28 @@ test_create_key()
 
 	name="$1"
 	dest_var="$2"
+	if ! declare -p "$dest_var" >/dev/null 2>&1
+	then
+		fail "test_create_key: destination variable '$dest_var' is not declared"
+		finish
+	fi
 	body="$(jq -nc --arg name "$name" '{name: $name}')"
 	send_request POST /api/v1/api-keys "$body"
 	assert_status 201 "POST /api/v1/api-keys creates the api key '$name'" || finish
+	assert_json "the plaintext key exists and has the expected format" \
+				'.plaintextKey | test("^tfk_[A-Za-z0-9_-]{43}$")' || finish
 	plaintext_key="$(get_json_value "$HTTP_BODY" '.plaintextKey')"
-	assert_json "the plaintext key exists and has the expected format" '.plaintextKey | test("^tfk_[A-Za-z0-9_-]{43}$")'
+	if [ -z "$plaintext_key" ] || [ "$plaintext_key" = "null" ]
+	then
+		fail "test_create_key: extracted plaintext key is empty or null"
+		finish
+	fi
 	printf -v "$dest_var" '%s' "$plaintext_key"
+	if [ -z "${!dest_var:-}" ]
+	then
+		fail "test_create_key: failed to assign plaintext key to '$dest_var'"
+		finish
+	fi
 }
 
 # list all api keys created by the authenticated user, newest first
@@ -173,7 +208,303 @@ test_list_keys()
 	assert_json "GET /api/v1/api-keys returns exactly two keys" 'length == 2'
 	assert_json "both created api keys are returned" \
 				'([.[].name] | sort) == ([$a, $b] | sort)' \
-				--arg a "$API_KEY_A" --arg b "$API_KEY_B"
+				--arg a "$API_KEY_NAME_A" --arg b "$API_KEY_NAME_B"
+}
+
+# create a new organization
+#
+# no parameters
+#
+# no return value (if the test fails, terminates the script)
+#
+# it terminates execution if the creation fails, 
+# because future tests depend on it
+#
+# afterwards ORGANIZATION_ID contains the organization id
+#
+test_create_organization()
+{
+	local body
+
+	body="$(jq -nc --arg name "$ORGANIZATION_NAME" \
+					--arg slug "$ORGANIZATION_SLUG" \
+					'{name: $name, slug: $slug}')"
+	send_request POST /api/v1/organizations "$body"
+	assert_status 201 "POST /api/v1/organizations creates the organization '$ORGANIZATION_NAME'" || finish
+	assert_json "response contains an 'organization' object" \
+				'has("organization") and (.organization | type == "object")' || finish
+	ORGANIZATION_ID="$(get_json_value "$HTTP_BODY" '.organization.id')"
+	assert_json "organization.id is a non-empty string" \
+				'.organization.id | type == "string" and length > 0' || finish
+	assert_json "organization.name equals the request name" \
+				'.organization.name == $expected' \
+				--arg expected "$ORGANIZATION_NAME" || finish
+	assert_json "organization.archivedAt is null on a fresh org" \
+				'.organization.archivedAt == null' || finish
+	assert_json "organization.role is 'owner' for the creator" \
+				'.organization.role == "owner"' || finish
+}
+
+# create a new board
+#
+# no parameters
+#
+# no return value (if the test fails, terminates the script)
+#
+# it terminates execution if the creation fails, 
+# because future tests depend on it
+#
+# afterwards BOARD_ID contains the board id
+#
+test_create_board()
+{
+	local body
+
+	body="$(jq -nc --arg organizationId "$ORGANIZATION_ID" \
+					--arg name "$BOARD_NAME" \
+					--arg description "$BOARD_DESCRIPTION" \
+					'{organizationId: $organizationId, name: $name, description: $description}')"
+	send_request POST /api/v1/public/boards "$body" "X-API-Key: $PLAINTEXT_KEY_A"
+	assert_status 201 "POST /api/v1/public/boards creates the board '$BOARD_NAME'" || finish
+	assert_json "response contains a 'board' object" \
+				'has("board") and (.board | type == "object")' || finish
+	BOARD_ID="$(get_json_value "$HTTP_BODY" '.board.id')"
+	assert_json "board.id is a non-empty string" \
+				'.board.id | type == "string" and length > 0' || finish
+	assert_json "board.name equals the request name" \
+				'.board.name == $expected' \
+				--arg expected "$BOARD_NAME" || finish
+	assert_json "board.archivedAt is null on a fresh board" \
+				'.board.archivedAt == null' || finish
+}
+
+# get a board by ID, including its lists and cards
+#
+# no parameters
+#
+# no return value
+#
+test_get_board()
+{
+	send_request GET "/api/v1/public/boards/$BOARD_ID" "" "X-API-Key: $PLAINTEXT_KEY_A"
+	assert_status 200 "GET /api/v1/public/boards/$BOARD_ID returns the board '$BOARD_NAME'"
+	assert_json "response contains a 'board' object" \
+				'has("board") and (.board | type == "object")' || finish
+	BOARD_ID="$(get_json_value "$HTTP_BODY" '.board.id')"
+	assert_json "board.lists is an empty array" \
+            '.board.lists | type == "array" and length == 0' || finish
+	assert_json "board.cards is an empty array" \
+            '.board.cards | type == "array" and length == 0' || finish
+}
+
+# update an existing board by ID
+#
+# no parameters
+#
+# no return value
+#
+test_update_board()
+{
+	local body
+	local description
+
+	description="The description of this board has been updated during a smoke test."
+	body="$(jq -nc --arg organizationId "$ORGANIZATION_ID" \
+					--arg name "$BOARD_NAME" \
+					--arg description "$description" \
+					'{organizationId: $organizationId, name: $name, description: $description}')"
+	send_request PUT "/api/v1/public/boards/$BOARD_ID" "$body" "X-API-Key: $PLAINTEXT_KEY_A"
+	assert_status 200 "PUT /api/v1/public/boards/$BOARD_ID updates the description of board '$BOARD_NAME'"
+	assert_json "board.description equals the request description" \
+				'.board.description == $expected' \
+				--arg expected "$description" || finish
+}
+
+# list boards owned by the api key, scoped to the current organization
+#
+# creates a second board in $ORGANIZATION_ID (not saved — only its name
+# matters for the assertions), then lists boards for the organization.
+#
+# because the organization is scoped to RUN_ID and starts empty, the only
+# boards it can contain are the ones created by this run: BOARD_NAME and
+# BOARD_NAME_2.
+#
+# no parameters
+#
+# no return value
+#
+test_list_boards()
+{
+	local body
+
+	body="$(jq -nc --arg organizationId "$ORGANIZATION_ID" \
+					--arg name "$BOARD_NAME_2" \
+					--arg description "$BOARD_DESCRIPTION" \
+					'{organizationId: $organizationId, name: $name, description: $description}')"
+	send_request POST /api/v1/public/boards "$body" "X-API-Key: $PLAINTEXT_KEY_A"
+	assert_status 201 "POST /api/v1/public/boards creates the second board '$BOARD_NAME_2'" || finish
+	send_request GET "/api/v1/public/boards?organizationId=$ORGANIZATION_ID&limit=50&offset=0" \
+					 "" "X-API-Key: $PLAINTEXT_KEY_A"
+	assert_status 200 "GET /api/v1/public/boards lists boards for the organization" || finish
+	assert_json "response contains a 'boards' array" \
+				'.boards | type == "array"'
+	assert_json "the organization has exactly two boards" \
+				'.pagination.total == 2 and (.boards | length == 2)'
+	assert_json "every board belongs to the requested organization" \
+				'.boards | all(.organizationId == $expected)' \
+				--arg expected "$ORGANIZATION_ID"
+	assert_json "every board is non-archived" \
+				'.boards | all(.archivedAt == null)'
+	assert_json "the first created board is listed" \
+				'[.boards[].name] | index($expected) != null' \
+				--arg expected "$BOARD_NAME"
+	assert_json "the second created board is listed" \
+				'[.boards[].name] | index($expected) != null' \
+				--arg expected "$BOARD_NAME_2"
+}
+
+# create a new list in the board
+#
+# no parameters
+#
+# no return value (if the test fails, terminates the script)
+#
+# it terminates execution if the creation fails,
+# because future tests depend on it
+#
+# afterwards LIST_ID contains the list id
+#
+test_create_list()
+{
+	local body
+
+	body="$(jq -nc --arg boardId "$BOARD_ID" \
+					--arg name "$LIST_NAME" \
+					'{boardId: $boardId, name: $name}')"
+	send_request POST /api/v1/public/lists "$body" "X-API-Key: $PLAINTEXT_KEY_A"
+	assert_status 201 "POST /api/v1/public/lists creates the list '$LIST_NAME'" || finish
+	assert_json "response contains a 'list' object" \
+				'has("list") and (.list | type == "object")' || finish
+	assert_json "list.id is a non-empty string" \
+				'.list.id | type == "string" and length > 0' || finish
+	assert_json "list.boardId equals the target board id" \
+				'.list.boardId == $expected' \
+				--arg expected "$BOARD_ID" || finish
+	assert_json "list.name equals the request name" \
+				'.list.name == $expected' \
+				--arg expected "$LIST_NAME" || finish
+	assert_json "list.archivedAt is null on a fresh list" \
+				'.list.archivedAt == null' || finish
+	assert_json "list.position is an integer" \
+				'.list.position | type == "number" and (floor == .)' || finish
+	LIST_ID="$(get_json_value "$HTTP_BODY" '.list.id')"
+	if [ -z "$LIST_ID" ] || [ "$LIST_ID" = "null" ]
+	then
+		fail "test_create_list: failed to extract list.id"
+		finish
+	fi
+}
+
+# create a new card in the list
+#
+# no parameters
+#
+# no return value (if the test fails, terminates the script)
+#
+# it terminates execution if the creation fails,
+# because future tests depend on it
+#
+# afterwards CARD_ID contains the card id
+#
+# fromdateiso8601 parses an ISO 8601 date string and returns 
+# the Unix timestamp: The number of seconds since 
+# 1970-01-01T00:00:00 UTC (the epoch)
+#
+# because the server normalizes date formats, the due dates are both 
+# parsed to Unix timestamps so format differences 
+# (1973-12-31T14:24:24Z vs ...24.000Z) don't fail the test
+#
+test_create_card()
+{
+	local body
+
+	body="$(jq -nc --arg listId "$LIST_ID" \
+					--arg title "$CARD_TITLE" \
+					--arg description "$CARD_DESCRIPTION" \
+					--arg dueDate "$CARD_DUE_DATE" \
+					'{listId: $listId, title: $title, description: $description, dueDate: $dueDate}')"
+	send_request POST /api/v1/public/cards "$body" "X-API-Key: $PLAINTEXT_KEY_A"
+	assert_status 201 "POST /api/v1/public/cards creates the card '$CARD_TITLE'" || finish
+	assert_json "response contains a 'card' object" \
+				'has("card") and (.card | type == "object")' || finish
+	assert_json "card.id is a non-empty string" \
+				'.card.id | type == "string" and length > 0' || finish
+	assert_json "card.listId equals the target list id" \
+				'.card.listId == $expected' \
+				--arg expected "$LIST_ID"
+	assert_json "card.title equals the request title" \
+				'.card.title == $expected' \
+				--arg expected "$CARD_TITLE"
+	assert_json "card.description equals the request description" \
+				'.card.description == $expected' \
+				--arg expected "$CARD_DESCRIPTION"
+	assert_json "card.dueDate equals the request dueDate" \
+				'(.card.dueDate | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) == ($expected | fromdateiso8601)' \
+				--arg expected "$CARD_DUE_DATE"
+	assert_json "card.archivedAt is null on a fresh card" \
+				'.card.archivedAt == null'
+	assert_json "card.position is an integer" \
+				'.card.position | type == "number" and (floor == .)'
+	CARD_ID="$(get_json_value "$HTTP_BODY" '.card.id')"
+	if [ -z "$CARD_ID" ] || [ "$CARD_ID" = "null" ]
+	then
+		fail "test_create_card: failed to extract card.id"
+		finish
+	fi
+}
+
+# get a board by id and verify its lists and cards
+#
+# no parameters
+#
+# no return value
+#
+test_get_board_contents()
+{
+	send_request GET "/api/v1/public/boards/$BOARD_ID" "" "X-API-Key: $PLAINTEXT_KEY_A"
+	assert_status 200 "GET /api/v1/public/boards/$BOARD_ID returns the board '$BOARD_NAME'"
+	assert_json "response contains a 'board' object" \
+				'has("board") and (.board | type == "object")' || finish
+	assert_json "board.id equals the requested board id" \
+				'.board.id == $expected' \
+				--arg expected "$BOARD_ID" || finish
+	assert_json "board.lists is present" \
+				'.board | has("lists")' || finish
+	assert_json "board.lists is an array" \
+				'.board.lists | type == "array"' || finish
+	assert_json "board.lists contains exactly one entry" \
+				'.board.lists | length == 1' || finish
+	assert_json "board.lists contains the created list" \
+				'.board.lists[0].id == $expected' \
+				--arg expected "$LIST_ID" || finish
+	assert_json "the list in board.lists equals the request name" \
+				'.board.lists[0].name == $expected' \
+				--arg expected "$LIST_NAME" || finish
+	assert_json "board.cards is present" \
+				'.board | has("cards")' || finish
+	assert_json "board.cards is an array" \
+				'.board.cards | type == "array"' || finish
+	assert_json "board.cards contains exactly one entry" \
+				'.board.cards | length == 1' || finish
+	assert_json "board.cards contains the created card" \
+				'.board.cards[0].id == $expected' \
+				--arg expected "$CARD_ID" || finish
+	assert_json "the card in board.cards belongs to our list" \
+				'.board.cards[0].listId == $expected' \
+				--arg expected "$LIST_ID" || finish
+	assert_json "the card in board.cards equals the request title" \
+				'.board.cards[0].title == $expected' \
+				--arg expected "$CARD_TITLE" || finish
 }
 
 verify_dependencies
@@ -183,6 +514,26 @@ rm -f "$COOKIE_JAR"
 section "Session authentication"
 test_register
 test_login
-test_create_key "$API_KEY_A" PLAINTEXT_KEY_A
-test_create_key "$API_KEY_B" PLAINTEXT_KEY_B
+
+section "API key management"
+test_create_key "$API_KEY_NAME_A" PLAINTEXT_KEY_A
+test_create_key "$API_KEY_NAME_B" PLAINTEXT_KEY_B
 test_list_keys
+
+section "Create organization"
+test_create_organization
+
+section "Board management"
+test_create_board
+test_get_board
+test_update_board
+test_list_boards
+
+section "Create list and card"
+test_create_list
+test_create_card
+test_get_board_contents
+
+section "Delete resources"
+
+finish
