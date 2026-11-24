@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useOrg } from './useOrg';
 import { useRouter } from 'next/navigation';
+import { useRoles } from '@/lib/useRoles';
 /**
  * Estado y handlers de `/workspace/settings`: editar name/slug y eliminar.
  *
@@ -10,6 +11,7 @@ import { useRouter } from 'next/navigation';
  * `deleteOrganization` → `DELETE /organizations/:id` (owner); redirige a `/workspace`.
  */
 export function useWorkspaceSettings() {
+	const { canManageOrganization, canArchiveOrganization } = useRoles();
   const {
     activeOrganization,
     updateOrganization,
@@ -34,6 +36,7 @@ export function useWorkspaceSettings() {
   const handleSave = useCallback(
     async (event: React.FormEvent) => {
       event.preventDefault();
+	  if (!canManageOrganization) return;
       if (!activeOrganization) return;
 
       setError(null);
@@ -66,10 +69,11 @@ export function useWorkspaceSettings() {
         setIsSaving(false);
       }
     },
-    [activeOrganization, name, slug, updateOrganization, clearError]
+    [activeOrganization, name, slug, updateOrganization, clearError, canManageOrganization]
   );
 
   const handleDeleteConfirm = useCallback(async () => {
+	if (!canArchiveOrganization) return;
     if (!activeOrganization) return;
     setIsDeleteOpen(false);
     setError(null);
@@ -85,7 +89,8 @@ export function useWorkspaceSettings() {
     } finally {
       setIsDeleting(false);
     }
-  }, [activeOrganization, deleteOrganization, router]);
+  }, [activeOrganization, deleteOrganization, router, canArchiveOrganization]);
+
 
   return {
     name,
@@ -100,5 +105,7 @@ export function useWorkspaceSettings() {
     success,
     handleSave,
     handleDeleteConfirm,
+	canManageOrganization,
+	canArchiveOrganization,
   };
 }

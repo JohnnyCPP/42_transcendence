@@ -78,6 +78,12 @@ export const uiStyles = {
     'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-error transition-colors hover:bg-error/10',
   /** Label de formulario asociado a inputs. */
   formLabel: 'block text-sm font-medium text-on-surface',
+  /**
+   * Card blanca de sección (settings, workspace settings…).
+   * Misma chrome que `SettingsSectionCard`.
+   */
+  surfaceCard:
+    'rounded-2xl border border-outline-variant bg-white p-5 shadow-sm md:p-6',
 } as const;
 
 /**

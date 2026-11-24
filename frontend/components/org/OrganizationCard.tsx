@@ -1,12 +1,9 @@
 'use client';
 
-import type { OrganizationWithRole } from './org.types';
-
-const ROLE_LABELS: Record<OrganizationWithRole['role'], string> = {
-  owner: 'Propietario',
-  admin: 'Admin',
-  member: 'Miembro',
-};
+import {
+  ORGANIZATION_ROLE_LABELS,
+  type OrganizationWithRole,
+} from './org.types';
 
 type OrganizationCardProps = {
   organization: OrganizationWithRole;
@@ -62,7 +59,7 @@ export function OrganizationCard({
 
       <div className="mt-3 flex items-center gap-2 text-[12px] text-on-surface-variant">
         <span className="material-symbols-outlined text-[14px]">badge</span>
-        <span>{ROLE_LABELS[organization.role]}</span>
+        <span>{ORGANIZATION_ROLE_LABELS[organization.role]}</span>
       </div>
     </button>
   );

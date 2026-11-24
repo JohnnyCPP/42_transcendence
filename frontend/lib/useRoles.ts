@@ -22,5 +22,8 @@ export function useRoles(boardAccess?: BoardAccess | null) {
     canCreateBoard: organizationRole === 'owner' || organizationRole === 'admin',
     canWriteBoard: boardAccess?.canWrite ?? false,
     canArchiveBoard: boardAccess?.canArchive ?? false,
+    canManageOrganization: organizationRole === 'owner' || organizationRole === 'admin',
+    canManageOrgAdmins: organizationRole === 'owner',
+    canArchiveOrganization: organizationRole === 'owner',
   };
 }

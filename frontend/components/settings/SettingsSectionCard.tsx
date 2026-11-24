@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { cx, uiStyles } from '@/components/ui';
 
 type SettingsSectionCardProps = {
   step: string;
@@ -19,9 +20,7 @@ export function SettingsSectionCard({
   className,
 }: SettingsSectionCardProps) {
   return (
-    <section
-      className={`rounded-2xl border border-outline-variant bg-white p-5 shadow-sm md:p-6 ${className ?? ''}`}
-    >
+    <section className={cx(uiStyles.surfaceCard, className)}>
       <div className="mb-5 flex items-start gap-3">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
           {step}
