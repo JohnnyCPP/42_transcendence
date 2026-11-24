@@ -604,6 +604,8 @@ For an isolated example of the three roles, see [the RBAC demo](document/md/rbac
 
 ## Modules
 
+- **User Management — Organization system** ([three-minute organizations demo](document/md/organizations.md))
+
 **TODO:** List of all chosen modules (Major and Minor).
 
 **TODO:** Point calculation (Major = 2pts, Minor = 1pt).
