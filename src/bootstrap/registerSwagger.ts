@@ -11,9 +11,9 @@ export	async	function	registerSwagger(fastifyInstance: FastifyInstance): Promise
 	await fastifyInstance.register(fastifySwagger, {
 		openapi: {
 			info: {
-				title: "TaskFlow Public API",
-				description: "Programmatic access to TaskFlow boards and cards. Authenticate with an API key created from your account settings.",
-				version: "v1"
+				title: "TaskFlow Server",
+				description: "Comprehensive list of documented session and public endpoints of TaskFlow Server. Public endpoints require authentication with an API key, and provide support for third-party integration. Session endpoints require session authentication (login in with a user account), and are meant to be used by the TaskFlow Client. Public endpoints are those explicitly categorized with the 'Public' prefix, whereas session endpoints are the rest.",
+				version: "v1.0.0"
 			},
 			servers: [{ url: "/" }],
 			components: {

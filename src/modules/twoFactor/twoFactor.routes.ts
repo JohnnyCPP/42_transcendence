@@ -2,7 +2,9 @@ import {
 	beginTotpDocs,
 	confirmTotpDocs,
 	disableTwoFactorDocs,
-	regenerateRecoveryCodesDocs
+	regenerateRecoveryCodesDocs,
+	remainingRecoveryCodesDocs,
+	twoFactorStatusDocs
 } from './twoFactor.types.js';
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
@@ -27,12 +29,28 @@ export async function registerTwoFactorRoutes(
 ) {
   const typedApp = app.withTypeProvider<ZodTypeProvider>();
 
-  app.get('/api/v1/two-factor/status', { preHandler: requireAuth(sessionsService) }, async (request, reply) => {
+  typedApp.get('/api/v1/two-factor/status', { preHandler: requireAuth(sessionsService),
+		schema: {
+			tags: twoFactorStatusDocs.tags,
+			summary: twoFactorStatusDocs.summary,
+			description: twoFactorStatusDocs.description,
+			response: twoFactorStatusDocs.response,
+			security: twoFactorStatusDocs.security
+		}
+  }, async (request, reply) => {
     reply.header('Cache-Control', 'no-store');
     return twoFactorService.status(request.currentUser!.id);
   });
 
-  app.get('/api/v1/two-factor/recovery-codes/remaining', { preHandler: requireAuth(sessionsService) }, async (request, reply) => {
+  typedApp.get('/api/v1/two-factor/recovery-codes/remaining', { preHandler: requireAuth(sessionsService), 
+		schema: {
+			tags: remainingRecoveryCodesDocs.tags,
+			summary: remainingRecoveryCodesDocs.summary,
+			description: remainingRecoveryCodesDocs.description,
+			response: remainingRecoveryCodesDocs.response,
+			security: remainingRecoveryCodesDocs.security
+		}
+  }, async (request, reply) => {
     reply.header('Cache-Control', 'no-store');
     return { remaining: await twoFactorService.remainingRecoveryCodes(request.currentUser!.id) };
   });

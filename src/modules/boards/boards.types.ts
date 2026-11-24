@@ -285,3 +285,33 @@ export	const	setBoardMemberRoleDocs = {
 		404: boardErrorSchema.describe("Board or user not accessible.")
 	}
 } as const;
+
+export	const	removeBoardMemberDocs = {
+
+	tags: ["Boards"],
+
+	summary: "Remove a member from a board",
+
+	description:
+		"Removes a user from the board's explicit member list. " +
+		"The caller must be a board admin. " +
+		"Note: because board role resolution falls back to organization membership, " +
+		"removing a board membership does not remove the user's access if they are " +
+		"still a member of the board's organization — it only removes the board-level " +
+		"role override (e.g. `observer`, `admin`). " +
+		"Returns 404 if the user is not an explicit board member.",
+
+	security: [],
+
+	params: z.object({
+		boardId: z.string().min(1),
+		userId: z.string().min(1)
+	}),
+
+	response: {
+		200: z.object({ ok: z.literal(true) }).describe("The board membership was removed."),
+		401: boardErrorSchema.describe("Authentication required."),
+		403: boardErrorSchema.describe("Board admin role required (`BOARD_ADMIN_REQUIRED`)."),
+		404: boardErrorSchema.describe("Board not found, or the user is not a board member (`BOARD_MEMBER_NOT_FOUND`).")
+	}
+} as const;
