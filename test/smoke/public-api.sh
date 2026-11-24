@@ -68,9 +68,11 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 # API KEYS
 # ########
 
+API_KEY_ID_A=""
 API_KEY_NAME_A="smoke_a_${RUN_ID}"
 PLAINTEXT_KEY_A=""
 
+API_KEY_ID_B=""
 API_KEY_NAME_B="smoke_b_${RUN_ID}"
 PLAINTEXT_KEY_B=""
 
@@ -153,7 +155,8 @@ test_login()
 # parameters:
 #
 # $1 is the name of the api key
-# $2 is the destination variable of the plaintext key global variable
+# $2 is the destination variable of the plaintext key
+# $3 is the destination variable of the api key id
 #
 # no return value (if the test fails, terminates the script)
 #
@@ -165,15 +168,23 @@ test_login()
 test_create_key()
 {
 	local name
-	local dest_var
+	local dest_var_plaintext
+	local dest_var_id
 	local body
 	local plaintext_key
+	local api_key_id
 
 	name="$1"
-	dest_var="$2"
-	if ! declare -p "$dest_var" >/dev/null 2>&1
+	dest_var_plaintext="$2"
+	dest_var_id="$3"
+	if ! declare -p "$dest_var_plaintext" >/dev/null 2>&1
 	then
-		fail "test_create_key: destination variable '$dest_var' is not declared"
+		fail "test_create_key: destination variable '$dest_var_plaintext' is not declared"
+		finish
+	fi
+	if ! declare -p "$dest_var_id" >/dev/null 2>&1
+	then
+		fail "test_create_key: destination variable '$dest_var_id' is not declared"
 		finish
 	fi
 	body="$(jq -nc --arg name "$name" '{name: $name}')"
@@ -187,10 +198,22 @@ test_create_key()
 		fail "test_create_key: extracted plaintext key is empty or null"
 		finish
 	fi
-	printf -v "$dest_var" '%s' "$plaintext_key"
-	if [ -z "${!dest_var:-}" ]
+	api_key_id="$(get_json_value "$HTTP_BODY" '.apiKey.id')"
+	if [ -z "$api_key_id" ] || [ "$api_key_id" = "null" ]
 	then
-		fail "test_create_key: failed to assign plaintext key to '$dest_var'"
+		fail "test_create_key: extracted api key id is empty or null"
+		finish
+	fi
+	printf -v "$dest_var_plaintext" '%s' "$plaintext_key"
+	if [ -z "${!dest_var_plaintext:-}" ]
+	then
+		fail "test_create_key: failed to assign plaintext key to '$dest_var_plaintext'"
+		finish
+	fi
+	printf -v "$dest_var_id" '%s' "$api_key_id"
+	if [ -z "${!dest_var_id:-}" ]
+	then
+		fail "test_create_key: failed to assign api key id to '$dest_var_id'"
 		finish
 	fi
 }
@@ -597,6 +620,127 @@ test_delete_board()
 				'.board.archivedAt | type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T")'
 }
 
+# revoke the api key
+#
+# parameters:
+#
+# $1 is the id of the api key to revoke
+# $2 is the plaintext key, used to verify that 
+#    the key stops authenticating afterwards
+#
+# no return value
+#
+test_revoke_key()
+{
+	local key_id
+	local plaintext
+	local body
+
+	key_id="$1"
+	plaintext="$2"
+	send_request DELETE "/api/v1/api-keys/$key_id"
+	assert_status 200 "DELETE /api/v1/api-keys/$key_id revokes the api key" || finish
+	assert_json "response contains the revoked key's id" \
+				'.id == $expected' \
+				--arg expected "$key_id"
+	assert_json "response contains a non-empty name" \
+				'.name | type == "string" and length > 0'
+	assert_json "response contains a non-empty prefix" \
+				'.prefix | type == "string" and length > 0'
+	assert_json "revokedAt is no longer null" \
+				'.revokedAt != null'
+	assert_json "revokedAt is an ISO timestamp" \
+				'.revokedAt | type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T")'
+	body="$(jq -nc --arg organizationId "$ORGANIZATION_ID" \
+					--arg name "should-not-be-created-${RUN_ID}" \
+					'{organizationId: $organizationId, name: $name}')"
+	send_request POST /api/v1/public/boards "$body" "X-API-Key: $plaintext"
+	assert_status 401 "revoked api key '$key_id' is rejected on POST /api/v1/public/boards" || finish
+	assert_json "rejection body reports an auth error" \
+				'.error | type == "string" and length > 0'
+}
+
+# asserts the last response (in $HEADERS_FILE) includes a Retry-After
+# header whose value is a non-negative integer, per RFC 7231 section 7.1.3
+#
+assert_retry_after()
+{
+	local label="$1"
+	local value
+
+	if [ ! -f "$HEADERS_FILE" ]
+	then
+		fail "$label" "headers file not found: $HEADERS_FILE"
+		return 1
+	fi
+	value="$(grep -i '^retry-after:' "$HEADERS_FILE" \
+				| head -n1 \
+				| sed -E 's/^[Rr]etry-[Aa]fter:[[:space:]]*//; s/\r$//')"
+	if [ -z "$value" ]
+	then
+		fail "$label" "missing Retry-After header in $HEADERS_FILE"
+		return 1
+	fi
+	if ! printf '%s' "$value" | grep -Eq '^[0-9]+$'
+	then
+		fail "$label" "Retry-After is not a numeric seconds value: '$value'"
+		return 1
+	fi
+	pass "$label (Retry-After: ${value}s)"
+	return 0
+}
+
+# verify that exceeding the per-key rate limit returns 429
+#
+# no parameters
+#
+# no return value (if the test fails, terminates the script)
+#
+# key B is used only for this test. the limiter is scoped to apiKey.id,
+# so the burst is on one endpoint to keep the counting simple, it does
+# not matter which /api/v1/public/* endpoint is hit.
+#
+# the burst sends RATE_LIMIT + 1 requests
+#
+test_rate_limit()
+{
+	local limit
+	local burst
+	local i
+	local got_429
+	local saw_retry_after
+
+	limit="$RATE_LIMIT"
+	burst=$((limit + 1))
+	got_429=0
+	saw_retry_after=0
+	for i in $(seq 1 "$burst")
+	do
+		send_request GET "/api/v1/public/boards?organizationId=$ORGANIZATION_ID&limit=50&offset=0" \
+						 "" "X-API-Key: $PLAINTEXT_KEY_B"
+		if [ "$HTTP_STATUS" = "429" ]
+		then
+			got_429=$((got_429 + 1))
+			if [ "$saw_retry_after" -eq 0 ]
+			then
+				assert_retry_after "the first 429 carries a numeric Retry-After header"
+				saw_retry_after=1
+			fi
+		fi
+	done
+	if [ "$got_429" -ge 1 ]
+	then
+		pass "rate limit: received $got_429 x 429 out of $burst requests (limit=$limit)"
+	else
+		fail "rate limit: expected at least one 429 out of $burst requests (limit=$limit)"
+		finish
+	fi
+	assert_json "429 body uses the project's error envelope" \
+				'has("error") and has("message")'
+	assert_json "429 error code is RATE_LIMITED" \
+				'.error == "RATE_LIMITED"'
+}
+
 verify_dependencies
 
 rm -f "$COOKIE_JAR"
@@ -606,8 +750,8 @@ test_register
 test_login
 
 section "API key management"
-test_create_key "$API_KEY_NAME_A" PLAINTEXT_KEY_A
-test_create_key "$API_KEY_NAME_B" PLAINTEXT_KEY_B
+test_create_key "$API_KEY_NAME_A" PLAINTEXT_KEY_A API_KEY_ID_A
+test_create_key "$API_KEY_NAME_B" PLAINTEXT_KEY_B API_KEY_ID_B
 test_list_keys
 
 section "Create organization"
@@ -628,5 +772,9 @@ section "Delete resources"
 test_delete_card
 test_delete_list
 test_delete_board
+test_revoke_key "$API_KEY_ID_A" "$PLAINTEXT_KEY_A"
+
+section "Rate limiting"
+test_rate_limit
 
 finish
