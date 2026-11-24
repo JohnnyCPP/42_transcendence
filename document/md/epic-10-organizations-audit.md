@@ -24,4 +24,4 @@ This audit reflects the application at commit `be9c663` on the local `pablgarc` 
 ## Remaining epic work
 
 - Story 10.6 still requires a three-minute browser walkthrough for two users, with expected results for each step and a link from the README's Modules section. The complete walkthrough still needs verification, including the member losing access after removal and the visible owner protection message. [Story 10.6](https://github.com/JohnnyCPP/42_transcendence/issues/86) · [README](../../README.md#modules)
-- Story 10.1 also requires a link to this audit from the epic issue. [Epic ticket](https://github.com/JohnnyCPP/42_transcendence/issues/80)
+
