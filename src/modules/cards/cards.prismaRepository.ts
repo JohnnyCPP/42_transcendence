@@ -206,12 +206,15 @@ export	class	PrismaCardsRepository	implements	CardsRepository
 		}));
 	}
 
-	async	archive(cardId: string): Promise<void>
+	async	archive(cardId: string): Promise<Card>
 	{
-		await this.prisma.card.update({
+		let	row;
+
+		row = await this.prisma.card.update({
 			where: { id: cardId },
 			data: { archivedAt: new Date() }
 		});
+		return mapCard(row);
 	}
 }
 
