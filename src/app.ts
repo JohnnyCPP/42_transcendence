@@ -9,6 +9,7 @@ import { registerErrorHandlers } from "./bootstrap/registerErrorHandlers.js";
 import { registerHealthCheck } from "./bootstrap/registerHealthCheck.js";
 import { registerSwagger } from "./bootstrap/registerSwagger.js";
 import { registerTestDecorators } from "./bootstrap/registerTestDecorators.js";
+import { registerWebSocket } from "./ws/registerWebSocket.js";
 import { requireApiKey } from "./modules/authorization/requireApiKey.js";
 import type { PrismaClient } from "@prisma/client";
 
@@ -55,6 +56,7 @@ export async function buildApp()
 	registerErrorHandlers(fastifyInstance);
 	registerHealthCheck(fastifyInstance, prismaClient);
 	await registerSwagger(fastifyInstance);
+	await registerWebSocket(fastifyInstance);
 	await registerAppRoutes(fastifyInstance, services);
 	// uncomment this to print routes on the terminal
 	//

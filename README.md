@@ -190,7 +190,8 @@ Password login is limited to five failures per IP-and-username combination and 3
 
 - `frontend/server.mjs` is a small Node.js HTTPS server that wraps Next.js, because `next start` cannot serve HTTPS.
 - `frontend/scripts/generate-cert.sh` creates the certificate with OpenSSL while the image is built (valid for `localhost` and `127.0.0.1`, 365 days). It is never committed.
-- `frontend/next.config.ts` proxies `/api/*` requests to Fastify, removing the `/api` prefix, so the browser only talks to `https://localhost`.
+- `frontend/next.config.ts` proxies `/api/*` requests to Fastify without changing the path, so the browser only talks to `https://localhost`.
+- `frontend/server.mjs` also forwards WebSocket upgrades on `/ws` to Fastify (see below).
 
 #### How to trust the certificate locally
 
@@ -206,6 +207,18 @@ docker compose cp nextjs:/app/certs/cert.pem ./localhost-cert.pem
 - **Firefox (any OS):** *Settings*, *Privacy & Security*, *View Certificates*, *Authorities*, *Import*.
 
 A new certificate is generated every time the `nextjs` image is rebuilt, so import it again after a rebuild. Delete `localhost-cert.pem` afterwards; it is ignored by Git.
+
+#### WebSockets
+
+Next.js rewrites only handle normal HTTP requests, so `server.mjs` listens for the HTTP `upgrade` event and forwards connections to `/ws` (and `/ws?...`) to `${INTERNAL_API_URL}/ws` with [`http-proxy`](https://github.com/http-party/node-http-proxy). The browser opens `wss://localhost/ws`: TLS ends in the `nextjs` container and the connection continues as plain `ws://fastify:3000/ws` inside the Compose network. Cookies are forwarded with the handshake. Upgrades to any other path are closed, and a proxy error closes only that connection without stopping the server.
+
+On the backend, `src/ws/registerWebSocket.ts` registers `@fastify/websocket`. For now `/ws` is a temporary echo endpoint used to verify the proxy; it will be replaced by the real-time features. To check it, open `https://localhost` and run in the browser console:
+
+```js
+const ws = new WebSocket('wss://localhost/ws');
+ws.onmessage = (event) => console.log('echo:', event.data);
+ws.onopen = () => ws.send('hello');
+```
 
 ### Backend development without Docker (optional)
 
