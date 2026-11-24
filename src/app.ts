@@ -60,16 +60,5 @@ export async function buildApp()
 	//
 	// await fastifyInstance.ready();
 	// console.log(fastifyInstance.printRoutes());
-	if (env.NODE_ENV === "test")
-	{
-		fastifyInstance.get("/__test/api-key-ping", {
-			preHandler: requireApiKey(services.apiKeysService, services.usersService)
-		}, async (request) => ({
-
-			userId: request.currentUser!.id,
-			keyId: request.currentApiKey!.id
-		}));
-	}
-
 	return fastifyInstance;
 }

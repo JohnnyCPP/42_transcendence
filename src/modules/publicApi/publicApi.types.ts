@@ -29,15 +29,25 @@ export	const	boardListSchema = z.object({
 	position: z.number().int()
 });
 
+export	const	cardParamsSchema = z.object({
+	cardId: z.string().min(1)
+});
+
 export	const	cardSummarySchema = z.object({
 
 	id: z.string(),
 	listId: z.string(),
+	createdById: z.string(),
 
 	title: z.string(),
 	description: z.string().nullable(),
 	position: z.number().int(),
-	dueDate: z.date().nullable()
+	dueDate: z.date().nullable(),
+	priority: z.string(),
+
+	createdAt: z.date(),
+	updatedAt: z.date(),
+	archivedAt: z.date().nullable()
 });
 
 export	const	boardDetailSchema = boardSummarySchema.extend({
@@ -92,7 +102,17 @@ export	const	listSummarySchema = z.object({
 	boardId: z.string(),
 
 	name: z.string(),
-	position: z.number().int()
+	position: z.number().int(),
+
+	createdAt: z.date(),
+	updatedAt: z.date(),
+	archivedAt: z.date().nullable()
+});
+
+export	const	createListApiSchema = z.object({
+
+	boardId: z.string().min(1),
+	name: z.string()
 });
 
 export	const	paginatedBoardsSchema = z.object({

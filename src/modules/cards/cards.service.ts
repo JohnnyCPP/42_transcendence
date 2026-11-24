@@ -58,11 +58,11 @@ export	class	CardsService
 		return this.cardsRepository.move({ ...input, cardId: card.id });
 	}
 
-	async	archiveCard(input: ArchiveCardInput): Promise<void>
+	async	archiveCard(input: ArchiveCardInput): Promise<Card>
 	{
 		let	card;
 
 		card = await this.getCardForUser(input.cardId, input.actorUserId, "write");
-		await this.cardsRepository.archive(card.id);
+		return this.cardsRepository.archive(card.id);
 	}
 }

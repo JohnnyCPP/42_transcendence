@@ -667,3 +667,13 @@ Install backend dependencies with `npm ci`. Use a Node.js version supported by V
 | `npm run test:integration:coverage` | Coverage for the in-memory HTTP integration suite. |
 
 The PostgreSQL runners apply migrations to disposable databases with test-only credentials and remove their containers afterward. They do not use the application database. There is no single command that runs all four suites: run `npm test`, `npm run test:integration`, and both PostgreSQL commands for the full set. One API-key integration case is currently marked `skip` in `test/integration/apiKeys.routes.test.ts` and will not run automatically.
+
+### Smoke tests
+
+The project includes comprehensive smoke tests for chosen functionalities. They are located in the "test/smoke/" directory.
+
+The file "test-lib.sh" contains reusable functions shared by all smoke tests.
+
+Currently, the following functionalities are covered under smoke tests:
+
+- Public API (public-api.sh): Register/login user, create org, create api key, consume all endpoints, revoke api key, trigger status code 429, delete resources.
