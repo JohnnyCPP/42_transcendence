@@ -2,13 +2,16 @@
  * Servidor HTTPS que ejecuta la app de Next.js.
  *
  * next start no sirve HTTPS, así que este servidor carga el certificado,
- * termina TLS y entrega cada petición a Next.js. Comprueba antes las
- * variables obligatorias y se cierra limpio con docker compose down.
+ * termina TLS y entrega cada petición a Next.js. Las conexiones WebSocket
+ * a /ws (wss:// desde el navegador) se reenvían a Fastify con http-proxy.
+ * Comprueba antes las variables obligatorias y se cierra limpio con
+ * docker compose down.
  */
 
 import { readFileSync } from 'node:fs';
 import { createServer } from 'node:https';
 import next from 'next';
+import httpProxy from 'http-proxy';
 
 const REQUIRED_ENV = ['HTTPS_CERT_PATH', 'HTTPS_KEY_PATH', 'INTERNAL_API_URL'];
 const missing = REQUIRED_ENV.filter((name) => !process.env[name]);
@@ -36,6 +39,21 @@ const handle = app.getRequestHandler();
 await app.prepare();
 
 const server = createServer(tls, (req, res) => handle(req, res));
+
+const wsProxy = httpProxy.createProxyServer({ target: process.env.INTERNAL_API_URL, ws: true });
+wsProxy.on('error', (error, req, socket) => {
+  console.error(`[server] WebSocket proxy error on ${req.url}: ${error.message}`);
+  socket.destroy();
+});
+
+server.on('upgrade', (req, socket, head) => {
+  if (req.url === '/ws' || req.url.startsWith('/ws?')) {
+    wsProxy.ws(req, socket, head);
+    return;
+  }
+  socket.destroy();
+});
+
 server.listen(port, host, () => {
   console.log(`[server] HTTPS ready on https://${host}:${port} (API proxied to ${process.env.INTERNAL_API_URL})`);
 });
