@@ -237,6 +237,22 @@ Before joining the room of a board, the server checks access with the same rule 
 
 On the frontend, `frontend/lib/useBoardSocket.ts` opens the connection from the board page, subscribes after `ready` and keeps the presence list, which `BoardPresence` shows above the columns. To check it, open the same board in a normal window and in a private window logged in as another member of the organization: each one sees the other, and closing one window removes that user from the other's list.
 
+Changes to lists and cards are published to the board's room as soon as they are saved. The lists and cards services publish them through a small `BoardEventPublisher` interface (`src/ws/boardEvents.ts`) that `BoardRooms` implements, so every route that changes a list or a card (including the public API) sends the event, and nothing is published when a request is rejected.
+
+| Event | Sent when | Payload |
+| --- | --- | --- |
+| `list:created` | A list is created | `list` |
+| `list:updated` | A list is renamed, or once per list after a reorder | `list` |
+| `list:deleted` | A list is archived | `listId` |
+| `card:created` | A card is created | `card` |
+| `card:updated` | A card is edited | `card` |
+| `card:moved` | A card is moved to another list | `card`, `fromListId` |
+| `card:deleted` | A card is archived, or moved to a list of another board | `cardId`, `listId` |
+
+Every event also carries `boardId`. On the board page, `frontend/components/board/applyBoardEvent.ts` applies each event to the columns idempotently: cards and lists are always looked up by id, so the user who made the change (who gets it from the REST response and from the WebSocket) does not see it twice. To check it, open the same board in two windows with two members and create, edit, move and delete cards and lists in one of them.
+
+Moving or creating cards uses a single database transaction with a per-list advisory lock, and `@@unique([listId, position])` with retries as a safety net, so concurrent moves never produce duplicate positions. `npm run test:cards:integration` checks it against a temporary PostgreSQL container: it moves several cards to the same list at once and verifies that every position is unique and that each move publishes its event.
+
 ### Backend development without Docker (optional)
 
 PostgreSQL is not published on the host, so to run the backend with npm publish it temporarily:
@@ -823,6 +839,7 @@ Install backend dependencies with `npm ci`. Use a Node.js version supported by V
 | `npm run test:integration` | HTTP integration tests using in-memory repositories; PostgreSQL tests are excluded. |
 | `npm run test:rbac` | The in-memory RBAC route suite. |
 | `npm run test:2fa:integration` | 2FA lifecycle with a temporary PostgreSQL container on a randomly assigned localhost port. |
+| `npm run test:cards:integration` | Concurrent card creation and moves, and their WebSocket events, with a temporary PostgreSQL container on a randomly assigned localhost port. |
 | `npm run test:rbac:integration` | RBAC with a temporary Compose stack and PostgreSQL; the test image uses Node 22 and does not download a browser. |
 | `npm run test:coverage` | Unit coverage. |
 | `npm run test:integration:coverage` | Coverage for the in-memory HTTP integration suite. |

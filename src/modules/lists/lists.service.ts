@@ -1,6 +1,7 @@
 import { defaultPagination } from "../../shared/pagination.js";
 import { notFound } from "../../shared/errors/httpErrors.js";
 import type { BoardList, CreateListInput, ReorderListsInput, UpdateListInput } from "./lists.types.js";
+import type { BoardEventPublisher } from "../../ws/boardEvents.js";
 import type { BoardsService } from "../boards/boards.service.js";
 import type { ListsRepository } from "./lists.repository.js";
 import type { Page, PaginationInput } from "../../shared/pagination.js";
@@ -8,12 +9,17 @@ import type { Page, PaginationInput } from "../../shared/pagination.js";
 export	class	ListsService
 {
 	constructor(private readonly listsRepository: ListsRepository,
-				private readonly boardsService: BoardsService) {}
+				private readonly boardsService: BoardsService,
+				private readonly boardEvents: BoardEventPublisher) {}
 
 	async	createList(input: CreateListInput): Promise<BoardList>
 	{
+		let	list;
+
 		await this.boardsService.getByBoardIdAndUserId(input.boardId, input.actorUserId, "write");
-		return this.listsRepository.create(input);
+		list = await this.listsRepository.create(input);
+		this.boardEvents.publish(list.boardId, { type: "list:created", list });
+		return list;
 	}
 
 	async	listByBoardId(boardId: string, actorUserId: string, pagination: PaginationInput = defaultPagination): Promise<Page<BoardList>>
@@ -46,13 +52,20 @@ export	class	ListsService
 		let	list;
 
 		list = await this.getByListIdAndUserId(input.listId, input.actorUserId, "write");
-		return this.listsRepository.update({ ...input, listId: list.id });
+		list = await this.listsRepository.update({ ...input, listId: list.id });
+		this.boardEvents.publish(list.boardId, { type: "list:updated", list });
+		return list;
 	}
 
 	async	reorderLists(input: ReorderListsInput): Promise<BoardList[]>
 	{
+		let	lists;
+
 		await this.boardsService.getByBoardIdAndUserId(input.boardId, input.actorUserId, "write");
-		return this.listsRepository.reorder(input);
+		lists = await this.listsRepository.reorder(input);
+		for (const list of lists)
+			this.boardEvents.publish(input.boardId, { type: "list:updated", list });
+		return lists;
 	}
 
 	async archiveList(listId: string, actorUserId: string): Promise<BoardList>
@@ -60,6 +73,8 @@ export	class	ListsService
 		let	list;
 
 		list = await this.getByListIdAndUserId(listId, actorUserId, "write");
-		return this.listsRepository.archive(list.id);
+		list = await this.listsRepository.archive(list.id);
+		this.boardEvents.publish(list.boardId, { type: "list:deleted", listId: list.id });
+		return list;
 	}
 }

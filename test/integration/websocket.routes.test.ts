@@ -47,6 +47,7 @@ describe("websocket", () => {
 	let	memberCookie: string;
 	let	strangerCookie: string;
 	let	boardId: string;
+	let	orgId: string;
 
 	beforeAll(async () => {
 		const	cookieName = process.env.SESSION_COOKIE_NAME ?? "sid";
@@ -65,6 +66,7 @@ describe("websocket", () => {
 		const	org = await app.testContext.organizationsService.createOrganization({ name: "WS org", createdByUserId: owner.id });
 		const	board = await app.inject({ method: "POST", url: `/api/v1/organizations/${org.id}/boards`, headers: { cookie: ownerCookie }, payload: { name: "Board" } });
 		boardId = board.json().board.id;
+		orgId = org.id;
 		const	added = await app.inject({ method: "PUT", url: `/api/v1/organizations/${org.id}/members/${member.id}`, headers: { cookie: ownerCookie }, payload: { role: "member" } });
 		expect(added.statusCode).toBe(200);
 	});
@@ -168,5 +170,99 @@ describe("websocket", () => {
 		expect(await presenceChange).toMatchObject({ type: "presence:left", user: { username: "ws-member" } });
 		tabB.ws.terminate();
 		watcher.ws.terminate();
+	});
+
+	// Story 5.3: eventos de listas y tarjetas.
+
+	// Conecta al owner, lo suscribe al tablero indicado y devuelve el cliente.
+	async	function	subscribedOwner(board = boardId)
+	{
+		const	client = await connect(app, ownerCookie);
+
+		await client.next((m) => m.type === "ready");
+		client.ws.send(JSON.stringify({ type: "subscribe:board", boardId: board }));
+		await client.next((m) => m.type === "presence:state");
+		return client;
+	}
+
+	function	api(method: "POST" | "PATCH" | "DELETE", url: string, payload?: object, cookie = ownerCookie)
+	{
+		return app.inject({ method, url: `/api/v1${url}`, headers: { cookie }, ...(payload ? { payload } : {}) });
+	}
+
+	it("broadcasts list events to the board room", async () => {
+		const	client = await subscribedOwner();
+		const	created = await api("POST", `/boards/${boardId}/lists`, { name: "Doing" });
+		const	listId = created.json().list.id;
+
+		expect(await client.next((m) => m.type === "list:created")).toEqual({ type: "list:created", boardId, list: created.json().list });
+		await api("PATCH", `/lists/${listId}`, { name: "In progress" });
+		expect(await client.next((m) => m.type === "list:updated")).toMatchObject({ boardId, list: { id: listId, name: "In progress" } });
+		await api("DELETE", `/lists/${listId}`);
+		expect(await client.next((m) => m.type === "list:deleted")).toEqual({ type: "list:deleted", boardId, listId });
+		client.ws.terminate();
+	});
+
+	it("broadcasts a list:updated for every list when lists are reordered", async () => {
+		const	first = (await api("POST", `/boards/${boardId}/lists`, { name: "First" })).json().list.id;
+		const	second = (await api("POST", `/boards/${boardId}/lists`, { name: "Second" })).json().list.id;
+		const	client = await subscribedOwner();
+		const	active = (await app.inject({ method: "GET", url: `/api/v1/boards/${boardId}/lists?limit=100`, headers: { cookie: ownerCookie } })).json();
+		const	listIds = (active.lists ?? active.items).map((list: { id: string }) => list.id).reverse();
+		const	reordered = await api("POST", `/boards/${boardId}/lists/reorder`, { listIds });
+
+		expect(reordered.statusCode).toBe(200);
+		const	updated = [];
+		for (let i = 0; i < listIds.length; i += 1)
+			updated.push((await client.next((m) => m.type === "list:updated")).list.id);
+		expect(updated.sort()).toEqual([...listIds].sort());
+		expect(listIds).toEqual(expect.arrayContaining([first, second]));
+		client.ws.terminate();
+	});
+
+	it("broadcasts card events to the board room", async () => {
+		const	client = await subscribedOwner();
+		const	listA = (await api("POST", `/boards/${boardId}/lists`, { name: "A" })).json().list.id;
+		const	listB = (await api("POST", `/boards/${boardId}/lists`, { name: "B" })).json().list.id;
+		const	created = await api("POST", `/lists/${listA}/cards`, { title: "Live" });
+		const	cardId = created.json().card.id;
+
+		expect(await client.next((m) => m.type === "card:created")).toEqual({ type: "card:created", boardId, card: created.json().card });
+		await api("PATCH", `/cards/${cardId}`, { title: "Live edit" });
+		expect(await client.next((m) => m.type === "card:updated")).toMatchObject({ boardId, card: { id: cardId, title: "Live edit" } });
+		await api("POST", `/cards/${cardId}/move`, { targetListId: listB });
+		expect(await client.next((m) => m.type === "card:moved")).toMatchObject({ boardId, fromListId: listA, card: { id: cardId, listId: listB } });
+		await api("DELETE", `/cards/${cardId}`);
+		expect(await client.next((m) => m.type === "card:deleted")).toEqual({ type: "card:deleted", boardId, cardId, listId: listB });
+		client.ws.terminate();
+	});
+
+	it("removes a card from the source board when it moves to another board", async () => {
+		const	otherBoard = (await api("POST", `/organizations/${orgId}/boards`, { name: "Other board" })).json().board.id;
+		const	source = (await api("POST", `/boards/${boardId}/lists`, { name: "Source" })).json().list.id;
+		const	target = (await api("POST", `/boards/${otherBoard}/lists`, { name: "Target" })).json().list.id;
+		const	cardId = (await api("POST", `/lists/${source}/cards`, { title: "Traveller" })).json().card.id;
+		const	sourceWatcher = await subscribedOwner(boardId);
+		const	targetWatcher = await subscribedOwner(otherBoard);
+
+		await api("POST", `/cards/${cardId}/move`, { targetListId: target });
+		expect(await sourceWatcher.next((m) => m.type === "card:deleted")).toEqual({ type: "card:deleted", boardId, cardId, listId: source });
+		expect(await targetWatcher.next((m) => m.type === "card:moved")).toMatchObject({ boardId: otherBoard, fromListId: source, card: { id: cardId, listId: target } });
+		sourceWatcher.ws.terminate();
+		targetWatcher.ws.terminate();
+	});
+
+	it("does not publish when the change is rejected", async () => {
+		const	client = await subscribedOwner();
+		const	listId = (await api("POST", `/boards/${boardId}/lists`, { name: "Guarded" })).json().list.id;
+
+		await client.next((m) => m.type === "list:created");
+		const	denied = await api("POST", `/lists/${listId}/cards`, { title: "Intruder" }, strangerCookie);
+		expect(denied.statusCode).toBe(404);
+		// Un cambio permitido después sirve de marca: si el rechazado hubiera publicado
+		// algo, habría llegado antes que este.
+		await api("PATCH", `/lists/${listId}`, { name: "Guarded!" });
+		expect(await client.next((m) => m.type.startsWith("card:") || m.type.startsWith("list:"))).toMatchObject({ type: "list:updated", list: { name: "Guarded!" } });
+		client.ws.terminate();
 	});
 });

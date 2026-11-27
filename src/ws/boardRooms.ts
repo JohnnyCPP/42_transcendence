@@ -7,11 +7,15 @@
  *
  * Además guarda todos los sockets conectados (estén o no en una sala), que el
  * heartbeat de la Story 5.5 recorrerá para detectar conexiones muertas.
+ *
+ * Implementa BoardEventPublisher: los servicios publican aquí los cambios de
+ * listas y tarjetas y llegan a todos los suscritos al tablero.
  */
 import { toPublicProfile } from "./types.js";
 import type { AuthenticatedSocket, PublicProfile } from "./types.js";
+import type { BoardEvent, BoardEventPublisher } from "./boardEvents.js";
 
-export	class	BoardRooms
+export	class	BoardRooms implements BoardEventPublisher
 {
 	readonly	sockets = new Set<AuthenticatedSocket>();
 	private		rooms = new Map<string, Set<AuthenticatedSocket>>();
@@ -57,6 +61,11 @@ export	class	BoardRooms
 		this.sockets.delete(socket);
 		for (const boardId of [...this.rooms.keys()])
 			this.leave(boardId, socket);
+	}
+
+	publish(boardId: string, event: BoardEvent): void
+	{
+		this.sendToRoom(boardId, { ...event, boardId });
 	}
 
 	private	sendToRoom(boardId: string, message: object, except?: AuthenticatedSocket): void
