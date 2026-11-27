@@ -212,13 +212,15 @@ A new certificate is generated every time the `nextjs` image is rebuilt, so impo
 
 Next.js rewrites only handle normal HTTP requests, so `server.mjs` listens for the HTTP `upgrade` event and forwards connections to `/ws` (and `/ws?...`) to `${INTERNAL_API_URL}/ws` with [`http-proxy`](https://github.com/http-party/node-http-proxy). The browser opens `wss://localhost/ws`: TLS ends in the `nextjs` container and the connection continues as plain `ws://fastify:3000/ws` inside the Compose network. Cookies are forwarded with the handshake. Upgrades to any other path are closed, and a proxy error closes only that connection without stopping the server.
 
-On the backend, `src/ws/registerWebSocket.ts` registers `@fastify/websocket`. For now `/ws` is a temporary echo endpoint used to verify the proxy; it will be replaced by the real-time features. To check it, open `https://localhost` and run in the browser console:
+On the backend, `src/ws/registerWebSocket.ts` registers `@fastify/websocket` and authenticates `/ws` with the session cookie (`sid`), the same one used by the REST API. Connections without a valid session are closed with code `4401` (WebSocket close codes must be between 1000 and 4999, so 4000 + HTTP 401 is used). Accepted connections receive `{"type":"ready","user":{...}}`. To check it, log in at `https://localhost` and run in the browser console:
 
 ```js
-const ws = new WebSocket('wss://localhost/ws');
-ws.onmessage = (event) => console.log('echo:', event.data);
-ws.onopen = () => ws.send('hello');
+const ws = new WebSocket(`wss://${location.host}/ws`);
+ws.onmessage = (event) => console.log('message:', event.data);
+ws.onclose = (event) => console.log('closed', event.code, event.reason);
 ```
+
+In a private window without logging in, the same code prints `closed 4401 Unauthorized`.
 
 ### Backend development without Docker (optional)
 
