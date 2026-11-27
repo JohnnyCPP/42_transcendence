@@ -222,6 +222,21 @@ ws.onclose = (event) => console.log('closed', event.code, event.reason);
 
 In a private window without logging in, the same code prints `closed 4401 Unauthorized`.
 
+Messages are JSON objects with a `type` field. Client messages are validated with zod (`src/ws/types.ts`); an invalid message gets an `error` reply but does not close the connection.
+
+| Direction | Message | When |
+| --- | --- | --- |
+| client → server | `{"type":"subscribe:board","boardId"}` | When opening a board |
+| client → server | `{"type":"unsubscribe:board","boardId"}` | Optional; closing the socket also leaves every board |
+| server → subscriber | `{"type":"presence:state","boardId","users":[...]}` | Confirms the subscription and lists who is already viewing the board |
+| server → room | `{"type":"presence:joined","boardId","user"}` | Another user starts viewing the board |
+| server → room | `{"type":"presence:left","boardId","user"}` | A user stops viewing the board or disconnects |
+| server → sender | `{"type":"error","code","message","boardId?"}` | `INVALID_JSON`, `INVALID_MESSAGE` or `BOARD_FORBIDDEN` |
+
+Before joining the room of a board, the server checks access with the same rule as `GET /api/v1/boards/:boardId` (observers included). Rooms live in memory in `src/ws/boardRooms.ts`, which is enough with a single backend container. A user with several tabs open on the same board counts once: `presence:joined` is sent with their first socket and `presence:left` when their last one leaves. Users are always sent as their public profile (`id`, `username`, `displayName`).
+
+On the frontend, `frontend/lib/useBoardSocket.ts` opens the connection from the board page, subscribes after `ready` and keeps the presence list, which `BoardPresence` shows above the columns. To check it, open the same board in a normal window and in a private window logged in as another member of the organization: each one sees the other, and closing one window removes that user from the other's list.
+
 ### Backend development without Docker (optional)
 
 PostgreSQL is not published on the host, so to run the backend with npm publish it temporarily:

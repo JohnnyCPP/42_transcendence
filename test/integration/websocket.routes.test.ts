@@ -44,6 +44,9 @@ describe("websocket", () => {
 	let	app: App;
 	let	ownerCookie: string;
 	let	ownerId: string;
+	let	memberCookie: string;
+	let	strangerCookie: string;
+	let	boardId: string;
 
 	beforeAll(async () => {
 		const	cookieName = process.env.SESSION_COOKIE_NAME ?? "sid";
@@ -51,8 +54,19 @@ describe("websocket", () => {
 		app = await buildApp();
 		await app.ready();
 		const	owner = await app.testContext.usersService.createUser({ username: "ws-owner" });
+		const	member = await app.testContext.usersService.createUser({ username: "ws-member" });
+		const	stranger = await app.testContext.usersService.createUser({ username: "ws-stranger" });
 		ownerId = owner.id;
 		ownerCookie = `${cookieName}=${(await app.testContext.sessionsService.createSession({ userId: owner.id })).token}`;
+		memberCookie = `${cookieName}=${(await app.testContext.sessionsService.createSession({ userId: member.id })).token}`;
+		strangerCookie = `${cookieName}=${(await app.testContext.sessionsService.createSession({ userId: stranger.id })).token}`;
+		// El owner crea una organización con un tablero y añade a "member" a la organización.
+		// "stranger" no pertenece a ella, así que no puede ver el tablero.
+		const	org = await app.testContext.organizationsService.createOrganization({ name: "WS org", createdByUserId: owner.id });
+		const	board = await app.inject({ method: "POST", url: `/api/v1/organizations/${org.id}/boards`, headers: { cookie: ownerCookie }, payload: { name: "Board" } });
+		boardId = board.json().board.id;
+		const	added = await app.inject({ method: "PUT", url: `/api/v1/organizations/${org.id}/members/${member.id}`, headers: { cookie: ownerCookie }, payload: { role: "member" } });
+		expect(added.statusCode).toBe(200);
 	});
 
 	afterAll(async () => { await app.close(); });
@@ -70,5 +84,69 @@ describe("websocket", () => {
 
 		expect(await missing.closed()).toEqual({ code: 4401, reason: "Unauthorized" });
 		expect(await invalid.closed()).toEqual({ code: 4401, reason: "Unauthorized" });
+	});
+
+	it("rejects subscriptions to boards the user is not a member of", async () => {
+		const	client = await connect(app, strangerCookie);
+
+		await client.next((m) => m.type === "ready");
+		client.ws.send(JSON.stringify({ type: "subscribe:board", boardId }));
+		expect(await client.next()).toMatchObject({ type: "error", code: "BOARD_FORBIDDEN", boardId });
+		client.ws.terminate();
+	});
+
+	it("rejects malformed messages without closing the socket", async () => {
+		const	client = await connect(app, ownerCookie);
+
+		await client.next((m) => m.type === "ready");
+		client.ws.send("not json");
+		expect(await client.next()).toMatchObject({ type: "error", code: "INVALID_JSON" });
+		client.ws.send(JSON.stringify({ type: "dance" }));
+		expect(await client.next()).toMatchObject({ type: "error", code: "INVALID_MESSAGE" });
+		client.ws.terminate();
+	});
+
+	it("announces presence:joined and presence:left to the room", async () => {
+		const	first = await connect(app, ownerCookie);
+		const	second = await connect(app, memberCookie);
+
+		await first.next((m) => m.type === "ready");
+		await second.next((m) => m.type === "ready");
+		first.ws.send(JSON.stringify({ type: "subscribe:board", boardId }));
+		await first.next((m) => m.type === "presence:state");
+		second.ws.send(JSON.stringify({ type: "subscribe:board", boardId }));
+		const	state = await second.next((m) => m.type === "presence:state");
+		expect(state.users.map((u: any) => u.username).sort()).toEqual(["ws-member", "ws-owner"]);
+		expect(await first.next((m) => m.type === "presence:joined")).toMatchObject({ boardId, user: { username: "ws-member" } });
+		second.ws.terminate();
+		expect(await first.next((m) => m.type === "presence:left")).toMatchObject({ boardId, user: { username: "ws-member" } });
+		first.ws.terminate();
+	});
+
+	it("treats several tabs of the same user as a single presence", async () => {
+		const	watcher = await connect(app, ownerCookie);
+		const	tabA = await connect(app, memberCookie);
+		const	tabB = await connect(app, memberCookie);
+
+		for (const client of [watcher, tabA, tabB])
+			await client.next((m) => m.type === "ready");
+		watcher.ws.send(JSON.stringify({ type: "subscribe:board", boardId }));
+		await watcher.next((m) => m.type === "presence:state");
+		tabA.ws.send(JSON.stringify({ type: "subscribe:board", boardId }));
+		await tabA.next((m) => m.type === "presence:state");
+		expect(await watcher.next((m) => m.type === "presence:joined")).toMatchObject({ user: { username: "ws-member" } });
+		// La segunda pestaña no es un usuario nuevo: el watcher no recibe otro joined
+		// y la lista de presencia no repite al usuario.
+		tabB.ws.send(JSON.stringify({ type: "subscribe:board", boardId }));
+		const	state = await tabB.next((m) => m.type === "presence:state");
+		expect(state.users.map((u: any) => u.username).sort()).toEqual(["ws-member", "ws-owner"]);
+		// Cerrar una pestaña no es "irse": solo al cerrar la última llega presence:left.
+		const	presenceChange = watcher.next((m) => m.type === "presence:joined" || m.type === "presence:left");
+		tabA.ws.terminate();
+		expect(await Promise.race([presenceChange, new Promise((resolve) => setTimeout(() => resolve("nothing"), 100))])).toBe("nothing");
+		tabB.ws.send(JSON.stringify({ type: "unsubscribe:board", boardId }));
+		expect(await presenceChange).toMatchObject({ type: "presence:left", user: { username: "ws-member" } });
+		tabB.ws.terminate();
+		watcher.ws.terminate();
 	});
 });
