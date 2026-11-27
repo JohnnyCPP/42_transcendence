@@ -56,7 +56,7 @@ export async function buildApp()
 	registerErrorHandlers(fastifyInstance);
 	registerHealthCheck(fastifyInstance, prismaClient);
 	await registerSwagger(fastifyInstance);
-	await registerWebSocket(fastifyInstance);
+	await registerWebSocket(fastifyInstance, services);
 	await registerAppRoutes(fastifyInstance, services);
 	// uncomment this to print routes on the terminal
 	//
