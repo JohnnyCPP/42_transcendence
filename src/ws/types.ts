@@ -15,6 +15,7 @@ export	type	WsAuth = {
 export	type	AuthenticatedSocket = WebSocket & {
 	user: User;
 	sessionId: string;
+	lastPongAt: number;
 };
 
 declare module "fastify"

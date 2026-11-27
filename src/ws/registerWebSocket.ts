@@ -30,8 +30,11 @@ export	async	function	registerWebSocket(fastifyInstance: FastifyInstance,
 		}
 		const	client: AuthenticatedSocket = Object.assign(socket, {
 			user: request.wsAuth.user,
-			sessionId: request.wsAuth.sessionId
+			sessionId: request.wsAuth.sessionId,
+			lastPongAt: Date.now()
 		});
+		boardRooms.add(client);
+		client.on("pong", () => { client.lastPongAt = Date.now(); });
 		client.on("close", () => boardRooms.remove(client));
 		client.on("message", (raw) => { void handleMessage(client, raw.toString()); });
 		client.send(JSON.stringify({ type: "ready", user: toPublicProfile(client.user) }));

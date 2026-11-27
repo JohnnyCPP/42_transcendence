@@ -4,13 +4,22 @@
  * Cada tablero tiene una sala con los sockets suscritos. Un usuario puede
  * tener varias pestañas (varios sockets) en la misma sala: solo se anuncia
  * presence:joined con su primer socket y presence:left cuando se va el último.
+ *
+ * Además guarda todos los sockets conectados (estén o no en una sala), que el
+ * heartbeat de la Story 5.5 recorrerá para detectar conexiones muertas.
  */
 import { toPublicProfile } from "./types.js";
 import type { AuthenticatedSocket, PublicProfile } from "./types.js";
 
 export	class	BoardRooms
 {
-	private	rooms = new Map<string, Set<AuthenticatedSocket>>();
+	readonly	sockets = new Set<AuthenticatedSocket>();
+	private		rooms = new Map<string, Set<AuthenticatedSocket>>();
+
+	add(socket: AuthenticatedSocket): void
+	{
+		this.sockets.add(socket);
+	}
 
 	join(boardId: string, socket: AuthenticatedSocket): void
 	{
@@ -45,6 +54,7 @@ export	class	BoardRooms
 
 	remove(socket: AuthenticatedSocket): void
 	{
+		this.sockets.delete(socket);
 		for (const boardId of [...this.rooms.keys()])
 			this.leave(boardId, socket);
 	}

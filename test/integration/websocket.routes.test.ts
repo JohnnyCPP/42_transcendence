@@ -78,6 +78,26 @@ describe("websocket", () => {
 		client.ws.terminate();
 	});
 
+	it("tracks connected sockets and records pongs for the heartbeat", async () => {
+		const	sockets = app.testContext.boardRooms.sockets;
+		const	existing = new Set(sockets);
+		const	client = await connect(app, ownerCookie);
+
+		await client.next((m) => m.type === "ready");
+		// El socket del servidor de esta conexión es el único que no estaba antes.
+		const	server = [...sockets].find((socket) => !existing.has(socket))!;
+		const	before = server.lastPongAt;
+
+		// injectWS crea el cliente sin autoPong: aquí se contesta a mano, como haría el navegador.
+		client.ws.on("ping", () => client.ws.pong());
+		await new Promise((resolve) => setTimeout(resolve, 5));
+		await new Promise<void>((resolve) => { server.once("pong", () => resolve()); server.ping(); });
+		expect(server.lastPongAt).toBeGreaterThan(before);
+		client.ws.terminate();
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		expect(sockets.has(server)).toBe(false);
+	});
+
 	it("closes with 4401 when the cookie is missing or invalid", async () => {
 		const	missing = await connect(app);
 		const	invalid = await connect(app, "sid=not-a-real-token");
