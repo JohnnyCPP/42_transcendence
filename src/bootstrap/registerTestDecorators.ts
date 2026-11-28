@@ -4,10 +4,12 @@ import type { FastifyInstance } from "fastify";
 import type { Repositories } from "./createRepositories.js";
 import type { Services } from "./createServices.js";
 import type { UsersRepository } from "../modules/users/users.repository.js";
+import type { BoardRooms } from "../ws/boardRooms.js";
 
 export	function	registerTestDecorators(fastifyInstance: FastifyInstance, 
 										   services: Services, 
-										   repositories: Repositories): void
+										   repositories: Repositories,
+										   boardRooms: BoardRooms): void
 {
 	if (env.NODE_ENV !== "test") 
 		return;
@@ -15,6 +17,7 @@ export	function	registerTestDecorators(fastifyInstance: FastifyInstance,
 
 		...services,
 		authenticationRepository: repositories.authenticationRepository,
-		usersRepository: repositories.usersRepository
+		usersRepository: repositories.usersRepository,
+		boardRooms
 	});
 }

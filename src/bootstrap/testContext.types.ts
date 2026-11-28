@@ -10,6 +10,7 @@ import type { SessionsService } from "../modules/sessions/sessions.service.js";
 import type { TwoFactorService } from "../modules/twoFactor/twoFactor.service.js";
 import type { UsersRepository } from "../modules/users/users.repository.js";
 import type { UsersService } from "../modules/users/users.service.js";
+import type { BoardRooms } from "../ws/boardRooms.js";
 
 // the types listed in the testContext object must match 
 // the ones decorated in the testContext of registerTestDecorators.ts
@@ -36,6 +37,7 @@ declare module "fastify" {
 			twoFactorService: TwoFactorService;
 			usersRepository: UsersRepository;
 			usersService: UsersService;
+			boardRooms: BoardRooms;
 		};
 	}
 }

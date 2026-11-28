@@ -8,6 +8,8 @@ import KanbanColumn from '../kanbanColumn';
 import TaskModal from '../taskModal/TaskModal';
 import { useKanbanState } from './useKanbanState';
 import { useKanbanHandlers } from './useKanbanHandlers';
+import { useBoardSocket } from '@/lib/useBoardSocket';
+import BoardPresence from '../boardPresence/BoardPresence';
 
 // Props del tablero Kanban.
 interface KanbanBoardProps {
@@ -48,6 +50,9 @@ export default function KanbanBoard({
     setSelectedColumnId,
     filteredColumns,
   } = useKanbanState(initialColumns, searchQuery, filters);
+
+  // Tiempo real: suscripción al tablero y lista de quién lo está viendo.
+  const { status: socketStatus, presentUsers } = useBoardSocket(boardId);
 
   // Acciones de interacción del tablero (create list/card ya van al API).
   const {
@@ -99,74 +104,77 @@ export default function KanbanBoard({
   };
 
   return (
-    <div className="kanban-board flex-1">
-      {!hasVisibleTasks && hasSearchQuery && (
-        <EmptyState
-          icon="search_off"
-          title="No se encontraron tareas"
-          description="Prueba con otra búsqueda o crea una nueva tarea desde el tablero."
-          className="w-80 min-w-80 shrink-0 rounded-xl p-6 text-on-surface-variant"
-          titleClassName="mt-3 text-base font-semibold text-on-surface"
+    <>
+      <BoardPresence users={presentUsers} status={socketStatus} />
+      <div className="kanban-board flex-1">
+        {!hasVisibleTasks && hasSearchQuery && (
+          <EmptyState
+            icon="search_off"
+            title="No se encontraron tareas"
+            description="Prueba con otra búsqueda o crea una nueva tarea desde el tablero."
+            className="w-80 min-w-80 shrink-0 rounded-xl p-6 text-on-surface-variant"
+            titleClassName="mt-3 text-base font-semibold text-on-surface"
+          />
+        )}
+
+        {/* Una columna por cada estado visible después del filtrado. */}
+        {filteredColumns.map((column) => (
+          <KanbanColumn
+            canWrite={canWrite}
+            key={column.id}
+            column={column}
+            onAddTask={handleAddTask}
+            onTaskClick={handleTaskClick}
+            onDuplicateTask={handleDuplicateTask}
+            onDeleteTask={handleDeleteTask}
+            onRenameColumn={handleRenameColumn}
+            onDeleteColumn={handleDeleteColumn}
+          />
+        ))}
+
+        {/* Acción para crear una nueva lista/columna. */}
+        {canWrite && <button
+          onClick={handleOpenAddColumnDialog}
+          className="w-70 min-w-70 flex items-center gap-2 p-3 text-on-surface bg-surface-container hover:bg-surface-container-high rounded-lg hover:text-on-surface transition-colors h-fit text-[14px] font-medium cursor-pointer shrink-0"
+        >
+          <Icon name="add" size="lg" />
+          Añadir otra columna
+        </button>}
+
+        {/* Modal de detalle y edición de tarea. */}
+        {selectedTask && (
+          <TaskModal
+            task={selectedTask}
+            currentColumnId={selectedColumnId}
+            columns={columns}
+            users={mockUsers}
+            onClose={() => setSelectedTask(null)}
+            onSave={handleSaveTask}
+            onDelete={handleDeleteTask}
+          />
+        )}
+
+        <TextInputDialog
+          isOpen={isAddColumnDialogOpen}
+          title="Crear nueva lista"
+          description="Añade una nueva columna al tablero actual."
+          label="Nombre de la lista"
+          value={newColumnTitle}
+          error={newColumnError}
+          placeholder="Ej. Review"
+          confirmLabel="Crear lista"
+          onChange={(value) => {
+            if (newColumnError && value.trim()) {
+              setNewColumnError(null);
+            }
+
+            setNewColumnTitle(value);
+          }}
+          onConfirm={handleConfirmAddColumn}
+          onClose={handleCloseAddColumnDialog}
         />
-      )}
-
-      {/* Una columna por cada estado visible después del filtrado. */}
-      {filteredColumns.map((column) => (
-        <KanbanColumn
-          canWrite={canWrite}
-          key={column.id}
-          column={column}
-          onAddTask={handleAddTask}
-          onTaskClick={handleTaskClick}
-          onDuplicateTask={handleDuplicateTask}
-          onDeleteTask={handleDeleteTask}
-          onRenameColumn={handleRenameColumn}
-          onDeleteColumn={handleDeleteColumn}
-        />
-      ))}
-
-      {/* Acción para crear una nueva lista/columna. */}
-      {canWrite && <button
-        onClick={handleOpenAddColumnDialog}
-        className="w-70 min-w-70 flex items-center gap-2 p-3 text-on-surface bg-surface-container hover:bg-surface-container-high rounded-lg hover:text-on-surface transition-colors h-fit text-[14px] font-medium cursor-pointer shrink-0"
-      >
-        <Icon name="add" size="lg" />
-        Añadir otra columna
-      </button>}
-
-      {/* Modal de detalle y edición de tarea. */}
-      {selectedTask && (
-        <TaskModal
-          task={selectedTask}
-          currentColumnId={selectedColumnId}
-          columns={columns}
-          users={mockUsers}
-          onClose={() => setSelectedTask(null)}
-          onSave={handleSaveTask}
-          onDelete={handleDeleteTask}
-        />
-      )}
-
-      <TextInputDialog
-        isOpen={isAddColumnDialogOpen}
-        title="Crear nueva lista"
-        description="Añade una nueva columna al tablero actual."
-        label="Nombre de la lista"
-        value={newColumnTitle}
-        error={newColumnError}
-        placeholder="Ej. Review"
-        confirmLabel="Crear lista"
-        onChange={(value) => {
-          if (newColumnError && value.trim()) {
-            setNewColumnError(null);
-          }
-
-          setNewColumnTitle(value);
-        }}
-        onConfirm={handleConfirmAddColumn}
-        onClose={handleCloseAddColumnDialog}
-      />
-    </div>
+      </div>
+    </>
   );
 }
 
