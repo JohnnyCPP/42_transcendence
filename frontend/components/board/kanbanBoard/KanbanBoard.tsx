@@ -9,7 +9,8 @@ import TaskModal from '../taskModal/TaskModal';
 import { useKanbanState } from './useKanbanState';
 import { useKanbanHandlers } from './useKanbanHandlers';
 import { useBoardSocket } from '@/lib/useBoardSocket';
-import { applyBoardEvent } from '../applyBoardEvent';
+import { applyBoardEvent, mergeRefetchedColumns } from '../applyBoardEvent';
+import { getBoardColumns } from '../boardApi';
 import BoardPresence from '../boardPresence/BoardPresence';
 
 // Props del tablero Kanban.
@@ -53,8 +54,15 @@ export default function KanbanBoard({
   } = useKanbanState(initialColumns, searchQuery, filters);
 
   // Tiempo real: lista de quién está viendo el tablero y cambios de los demás.
+  // Tras reconectar se recarga el tablero por REST: los eventos perdidos
+  // mientras no había conexión no se reenvían.
   const { status: socketStatus, presentUsers } = useBoardSocket(boardId, {
     onEvent: (event) => setColumns((current) => applyBoardEvent(current, event)),
+    onReconnect: () => {
+      getBoardColumns(boardId)
+        .then((fresh) => setColumns((current) => mergeRefetchedColumns(current, fresh)))
+        .catch((error) => console.warn('[ws] board refetch failed', error));
+    },
   });
 
   // Acciones de interacción del tablero (create list/card ya van al API).

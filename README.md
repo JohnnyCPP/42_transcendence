@@ -253,6 +253,17 @@ Every event also carries `boardId`. On the board page, `frontend/components/boar
 
 Moving or creating cards uses a single database transaction with a per-list advisory lock, and `@@unique([listId, position])` with retries as a safety net, so concurrent moves never produce duplicate positions. `npm run test:cards:integration` checks it against a temporary PostgreSQL container: it moves several cards to the same list at once and verifies that every position is unique and that each move publishes its event.
 
+#### Real-time resilience
+
+Connections drop: the backend restarts, the Wi-Fi goes down, the laptop goes to sleep. The board page recovers on its own:
+
+- **Reconnection:** when the socket closes, `useBoardSocket` retries with exponential backoff (1 s, 2 s, 4 s ... up to 30 s). Each delay is multiplied by a random factor between 0.5 and 1 (jitter), so clients do not all reconnect at the same moment after a restart. The counter goes back to 1 s once a connection opens. While it retries, `BoardPresence` shows that the real-time connection is down.
+- **No retry without a session:** a close with code `4401` is not retried, because the session will not come back by itself. Leaving the board closes the socket with `1000` and cancels any pending retry.
+- **Resync:** every new connection subscribes again to the current board after `ready`. On a reconnection, once the server confirms the subscription with `presence:state`, the page refetches the board through the REST API (`getBoardColumns`). The server does not replay events missed while offline: from the subscription on, changes arrive over the WebSocket, and earlier ones are in the refetch. Anything received both ways is applied idempotently, so nothing is duplicated.
+- **Server cleanup:** a socket is removed from every board room as soon as its `close` event fires, and the other members get `presence:left` within milliseconds. This covers closing or reloading a tab, the browser crashing, and the proxy losing the connection. A connection that dies silently (no TCP close, for example a suspended laptop) only fires `close` once it is detected; the ping/pong heartbeat of Story 5.5 handles those.
+
+To check it, open a board and restart the backend with `docker compose restart fastify`: the page shows that it is reconnecting, comes back on its own, and DevTools → Network shows a new `/ws` and the REST requests of the refetch. To check the resync, open the same board in two windows, set one of them offline in DevTools for a few seconds while creating a card in the other one, and then go back online: the card appears after the reconnection.
+
 ### Backend development without Docker (optional)
 
 PostgreSQL is not published on the host, so to run the backend with npm publish it temporarily:

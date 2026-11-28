@@ -265,4 +265,40 @@ describe("websocket", () => {
 		expect(await client.next((m) => m.type.startsWith("card:") || m.type.startsWith("list:"))).toMatchObject({ type: "list:updated", list: { name: "Guarded!" } });
 		client.ws.terminate();
 	});
+
+	// Story 5.4: limpieza al caerse un socket y vuelta tras reconectar.
+
+	it("removes a dropped socket from every room within 5 seconds and lets it resubscribe", async () => {
+		const	otherBoard = (await api("POST", `/organizations/${orgId}/boards`, { name: "Second board" })).json().board.id;
+		const	watchers = [await subscribedOwner(boardId), await subscribedOwner(otherBoard)];
+		const	dropped = await connect(app, memberCookie);
+
+		await dropped.next((m) => m.type === "ready");
+		for (const board of [boardId, otherBoard])
+		{
+			dropped.ws.send(JSON.stringify({ type: "subscribe:board", boardId: board }));
+			await dropped.next((m) => m.type === "presence:state" && m.boardId === board);
+		}
+		for (const watcher of watchers)
+			await watcher.next((m) => m.type === "presence:joined");
+
+		// terminate() corta sin cierre limpio, como una pestaña que se cuelga o un proxy que se cae.
+		const	startedAt = Date.now();
+		dropped.ws.terminate();
+		const	left = await Promise.all(watchers.map((watcher) => watcher.next((m) => m.type === "presence:left")));
+		expect(Date.now() - startedAt).toBeLessThan(5000);
+		expect(left.map((m) => m.boardId)).toEqual([boardId, otherBoard]);
+		expect(left.every((m) => m.user.username === "ws-member")).toBe(true);
+
+		// El cliente reconectado vuelve a suscribirse y los demás lo ven entrar otra vez.
+		const	reconnected = await connect(app, memberCookie);
+		await reconnected.next((m) => m.type === "ready");
+		reconnected.ws.send(JSON.stringify({ type: "subscribe:board", boardId }));
+		const	state = await reconnected.next((m) => m.type === "presence:state");
+		expect(state.users.map((u: any) => u.username).sort()).toEqual(["ws-member", "ws-owner"]);
+		expect(await watchers[0].next((m) => m.type === "presence:joined")).toMatchObject({ boardId, user: { username: "ws-member" } });
+		reconnected.ws.terminate();
+		for (const watcher of watchers)
+			watcher.ws.terminate();
+	});
 });

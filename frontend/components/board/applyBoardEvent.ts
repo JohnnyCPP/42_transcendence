@@ -53,3 +53,17 @@ export function applyBoardEvent(columns: BoardColumn[], event: BoardEvent): Boar
       return columns.filter((column) => column.id !== event.listId);
   }
 }
+
+/**
+ * Sustituye las columnas por las recargadas por REST tras reconectar
+ * (Story 5.4). Lo que dice el servidor manda, pero cada tarea conserva los
+ * campos solo de UI que ya tenía, igual que en `applyBoardEvent`.
+ */
+export function mergeRefetchedColumns(current: BoardColumn[], fresh: BoardColumn[]): BoardColumn[] {
+  const previous = new Map(current.flatMap((column) => column.tasks).map((task) => [task.id, task]));
+
+  return fresh.map((column) => ({
+    ...column,
+    tasks: column.tasks.map((task) => ({ ...previous.get(task.id), ...task })),
+  }));
+}
