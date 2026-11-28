@@ -16,7 +16,7 @@ export default function BoardPresence({ users, status }: BoardPresenceProps) {
   if (status !== 'open') {
     return (
       <p className="mx-6 text-sm text-on-surface-variant">
-        {status === 'connecting' ? 'Conectando en tiempo real…' : 'Sin conexión en tiempo real'}
+        {status === 'connecting' ? 'Conectando en tiempo real…' : 'Sin conexión en tiempo real, reconectando…'}
       </p>
     );
   }
