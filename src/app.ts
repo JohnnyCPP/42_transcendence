@@ -52,8 +52,8 @@ export async function buildApp()
 	}, 60_000);
 	expiryTimer.unref();
 	fastifyInstance.addHook('onClose', async () => { clearInterval(expiryTimer); });
-	const services = createServices(repositories);
 	const boardRooms = new BoardRooms();
+	const services = createServices(repositories, boardRooms);
 	registerTestDecorators(fastifyInstance, services, repositories, boardRooms);
 	registerErrorHandlers(fastifyInstance);
 	registerHealthCheck(fastifyInstance, prismaClient);

@@ -9,6 +9,7 @@ import TaskModal from '../taskModal/TaskModal';
 import { useKanbanState } from './useKanbanState';
 import { useKanbanHandlers } from './useKanbanHandlers';
 import { useBoardSocket } from '@/lib/useBoardSocket';
+import { applyBoardEvent } from '../applyBoardEvent';
 import BoardPresence from '../boardPresence/BoardPresence';
 
 // Props del tablero Kanban.
@@ -51,8 +52,10 @@ export default function KanbanBoard({
     filteredColumns,
   } = useKanbanState(initialColumns, searchQuery, filters);
 
-  // Tiempo real: suscripción al tablero y lista de quién lo está viendo.
-  const { status: socketStatus, presentUsers } = useBoardSocket(boardId);
+  // Tiempo real: lista de quién está viendo el tablero y cambios de los demás.
+  const { status: socketStatus, presentUsers } = useBoardSocket(boardId, {
+    onEvent: (event) => setColumns((current) => applyBoardEvent(current, event)),
+  });
 
   // Acciones de interacción del tablero (create list/card ya van al API).
   const {

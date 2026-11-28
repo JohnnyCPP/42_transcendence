@@ -14,6 +14,8 @@ import { SessionsService } from "../modules/sessions/sessions.service.js";
 import { TotpService } from "../modules/twoFactor/totp.service.js";
 import { TwoFactorService } from "../modules/twoFactor/twoFactor.service.js";
 import { UsersService } from "../modules/users/users.service.js";
+import { noopBoardEvents } from "../ws/boardEvents.js";
+import type { BoardEventPublisher } from "../ws/boardEvents.js";
 import type { Repositories } from "./createRepositories.js";
 
 export	type	Services = 
@@ -33,7 +35,8 @@ export	type	Services =
 	usersService: UsersService;
 };
 
-export	function	createServices(repositories: Repositories): Services
+export	function	createServices(repositories: Repositories,
+									boardEvents: BoardEventPublisher = noopBoardEvents): Services
 {
 	let	apiKeysService;
 	let	authenticationService;
@@ -65,8 +68,8 @@ export	function	createServices(repositories: Repositories): Services
 								  twoFactorService);
 	organizationsService = new OrganizationsService(repositories.organizationsRepository, usersService);
 	boardsService = new BoardsService(repositories.boardsRepository, organizationsService);
-	listsService = new ListsService(repositories.listsRepository, boardsService);
-	cardsService = new CardsService(repositories.cardsRepository, listsService);
+	listsService = new ListsService(repositories.listsRepository, boardsService, boardEvents);
+	cardsService = new CardsService(repositories.cardsRepository, listsService, boardEvents);
 	const commentsService = new CommentsService(repositories.commentsRepository, cardsService);
 	publicApiService = new PublicApiService(boardsService, listsService, cardsService);
 	return {

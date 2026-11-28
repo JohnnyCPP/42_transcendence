@@ -11,6 +11,7 @@
     "test:rbac": "vitest run --config vitest.config.integration.ts test/integration/rbac.routes.test.ts",
     "test:rbac:integration": "node test/run-rbac.integration.mjs",
     "test:2fa:integration": "node test/run-2fa.integration.mjs",
+    "test:cards:integration": "node test/run-cards.integration.mjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
